@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { formatTimeInZone } from './timeZones'
 import {
   LANE_COLORS,
   axisTicks,
@@ -18,7 +19,7 @@ import {
 const BASE = Date.UTC(2024, 0, 15, 12)
 
 function event(id: string, offsetMs: number, laneId = 'lane-1', label = id): TimelineEvent {
-  return { id, ms: BASE + offsetMs, label, laneId, format: 'ISO 8601', hasExplicitOffset: true }
+  return { id, ms: BASE + offsetMs, label, laneId, format: 'ISO 8601', hasExplicitOffset: true, source: label }
 }
 
 describe('timelineBounds', () => {
@@ -134,5 +135,13 @@ describe('axisTicks', () => {
     const ticks = axisTicks({ startMs: BASE, endMs: BASE + 2 * 86400000, spanMs: 2 * 86400000 }, 3, 'UTC')
     expect(ticks[0].label).toBe('2024-01-15')
     expect(ticks[2].label).toBe('2024-01-17')
+  })
+})
+
+describe('formatting a scrubbed instant', () => {
+  it('never prints a fractional millisecond for a position between events', () => {
+    // The roving guide reads an instant off a 0..1 position, which lands
+    // between milliseconds; the wall clock has to stay integral anyway.
+    expect(formatTimeInZone(BASE + 42.7, 'UTC')).toBe('12:00:00.042')
   })
 })

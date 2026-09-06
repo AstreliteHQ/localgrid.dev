@@ -1,6 +1,6 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useState, type DragEvent } from 'react'
 import { nanoid } from 'nanoid'
-import { Plus, X } from 'lucide-react'
+import { GripVertical, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { CopyButton } from '@/components/CopyButton'
@@ -10,6 +10,7 @@ import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { SUPPORTED_FORMAT_EXAMPLES, parseEventLines } from './parseTimestamp'
+import { TimelineTracks } from './TimelineTracks'
 import {
   LOCAL_TIME_ZONE,
   formatDateTimeInZone,
@@ -20,13 +21,10 @@ import {
   listTimeZones,
 } from './timeZones'
 import {
-  axisTicks,
   formatDelta,
   formatDuration,
   laneColor,
-  laneColorName,
   nextColorIndex,
-  positionRatio,
   sortEvents,
   spansMultipleDays,
   timelineBounds,
@@ -37,19 +35,17 @@ import {
 
 const FIRST_LANE_ID = 'lane-1'
 
+/** Drag payload key. `text/plain` is set alongside it so a marker dragged out
+ * of the widget still carries something readable, and so log text dragged in
+ * from an editor or a browser tab can be dropped straight onto a lane. */
+const DRAG_MIME = 'application/x-localgrid-timeline-event'
+
 function defaultLanes(): TimelineLane[] {
   return [{ id: FIRST_LANE_ID, name: 'Timeline 1', colorIndex: 0 }]
 }
 
 const SELECT_CLASS =
   'h-6 min-w-0 rounded-md border border-input bg-transparent px-1 text-[11px] outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 dark:bg-input/30'
-
-const INLINE_INPUT_CLASS =
-  'min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 py-0.5 outline-none placeholder:text-muted-foreground/70 hover:bg-muted focus-visible:bg-muted focus-visible:ring-1 focus-visible:ring-ring/50'
-
-/** Drag payload key. Set as `text/plain` too so a drag that lands outside a
- * lane (on the page, another app) degrades to plain text instead of nothing. */
-const DRAG_MIME = 'application/x-localgrid-timeline-event'
 
 export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps) {
   const [lanes, setLanes] = useWidgetState<TimelineLane[]>(instanceId, 'lanes', defaultLanes)
@@ -62,7 +58,12 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
   const [displayZone, setDisplayZone] = useWidgetState(instanceId, 'displayZone', LOCAL_TIME_ZONE)
   const [targetLaneId, setTargetLaneId] = useWidgetState(instanceId, 'targetLaneId', FIRST_LANE_ID)
   const [failedLines, setFailedLines] = useState<string[]>([])
-  const [dragOverLaneId, setDragOverLaneId] = useState<string | null>(null)
+  // Hover and selection are shared by the tracks and the list so pointing at
+  // an event in one place lights it up in the other, which is what makes a
+  // marker and its row read as the same thing.
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
   // Only used to date the "current offset" readout while the timeline is
   // still empty; captured once at mount rather than read during render,
   // which would make the render impure for a label nobody watches tick.
@@ -75,18 +76,15 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
   const sorted = useMemo(() => sortEvents(events), [events])
   const bounds = useMemo(() => timelineBounds(sorted), [sorted])
   const multiDay = useMemo(() => spansMultipleDays(sorted, displayZone), [sorted, displayZone])
-  const ticks = useMemo(
-    () => (bounds ? axisTicks(bounds, mode === 'overlay' ? 5 : 3, displayZone) : []),
-    [bounds, mode, displayZone],
-  )
 
   const laneById = useMemo(() => new Map(lanes.map((lane) => [lane.id, lane])), [lanes])
   const colorForEvent = (event: TimelineEvent) => laneColor(laneById.get(event.laneId)?.colorIndex ?? 0)
   const activeLaneId = laneById.has(targetLaneId) ? targetLaneId : (lanes[0]?.id ?? FIRST_LANE_ID)
+  const selectedEvent = sorted.find((event) => event.id === selectedId) ?? null
 
   const displayOffset = formatOffsetLabel(getUtcOffsetMinutes(bounds?.startMs ?? mountedAt, displayZone))
 
-  const addEvents = (text: string) => {
+  const addEvents = (text: string, laneId: string) => {
     const { events: parsed, failed } = parseEventLines(text, { timeZone: inputZone })
     if (parsed.length > 0) {
       setEvents((previous) => [
@@ -95,12 +93,18 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
           id: nanoid(8),
           ms: event.ms,
           label: event.label,
-          laneId: activeLaneId,
+          laneId,
           format: event.format,
           hasExplicitOffset: event.hasExplicitOffset,
+          source: event.source,
         })),
       ])
     }
+    return failed
+  }
+
+  const handleAdd = () => {
+    const failed = addEvents(input, activeLaneId)
     setFailedLines(failed)
     // Anything unparseable stays in the box so it can be corrected in place
     // rather than being silently dropped on the floor.
@@ -108,15 +112,17 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
   }
 
   const handleAddNow = () => {
+    const now = Date.now()
     setEvents((previous) => [
       ...previous,
       {
         id: nanoid(8),
-        ms: Date.now(),
+        ms: now,
         label: input.trim() || 'now',
         laneId: activeLaneId,
         format: 'Captured now',
         hasExplicitOffset: true,
+        source: formatDateTimeInZone(now, displayZone),
       },
     ])
     setInput('')
@@ -133,6 +139,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
 
   const removeEvent = (eventId: string) => {
     setEvents((previous) => previous.filter((event) => event.id !== eventId))
+    setSelectedId((current) => (current === eventId ? null : current))
   }
 
   const addLane = () => {
@@ -170,26 +177,29 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
   const clearEvents = () => {
     setEvents([])
     setFailedLines([])
+    setSelectedId(null)
   }
 
-  const handleDrop = (laneId: string) => (dragEvent: React.DragEvent) => {
-    dragEvent.preventDefault()
-    setDragOverLaneId(null)
-    const eventId = dragEvent.dataTransfer.getData(DRAG_MIME)
-    if (eventId) moveEvent(eventId, laneId)
-  }
-
-  const handleDragOver = (laneId: string) => (dragEvent: React.DragEvent) => {
-    if (!dragEvent.dataTransfer.types.includes(DRAG_MIME)) return
-    dragEvent.preventDefault()
-    dragEvent.dataTransfer.dropEffect = 'move'
-    setDragOverLaneId(laneId)
-  }
-
-  const startDrag = (event: TimelineEvent) => (dragEvent: React.DragEvent) => {
+  const startDrag = (event: TimelineEvent) => (dragEvent: DragEvent) => {
     dragEvent.dataTransfer.setData(DRAG_MIME, event.id)
     dragEvent.dataTransfer.setData('text/plain', `${formatDateTimeInZone(event.ms, displayZone)} ${event.label}`)
     dragEvent.dataTransfer.effectAllowed = 'move'
+    setDraggingId(event.id)
+  }
+
+  /** A drop is either one of our own markers changing lane, or text from
+   * outside (a selected log line, a spreadsheet cell) landing on a lane, in
+   * which case it is parsed straight into that lane. */
+  const handleDropOnLane = (laneId: string, dragEvent: DragEvent) => {
+    setDraggingId(null)
+    const eventId = dragEvent.dataTransfer.getData(DRAG_MIME)
+    if (eventId) {
+      moveEvent(eventId, laneId)
+      return
+    }
+    const text = dragEvent.dataTransfer.getData('text/plain')
+    if (!text.trim()) return
+    setFailedLines(addEvents(text, laneId))
   }
 
   const eventTime = (event: TimelineEvent) =>
@@ -206,7 +216,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
           onKeyDown={(keyEvent) => {
             if (keyEvent.key === 'Enter' && (keyEvent.metaKey || keyEvent.ctrlKey)) {
               keyEvent.preventDefault()
-              addEvents(input)
+              handleAdd()
             }
           }}
           rows={2}
@@ -217,7 +227,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
           className="min-h-14 flex-1 font-mono text-xs"
         />
         <div className="flex flex-col gap-1">
-          <Button type="button" size="sm" onClick={() => addEvents(input)} disabled={input.trim() === ''}>
+          <Button type="button" size="sm" onClick={handleAdd} disabled={input.trim() === ''}>
             Add
           </Button>
           <Button type="button" size="sm" variant="outline" onClick={handleAddNow}>
@@ -298,93 +308,24 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-        <div className="space-y-1.5">
-          {lanes.map((lane, laneIndex) => {
-            const laneEvents = sorted.filter((event) => event.laneId === lane.id)
-            return (
-              <div
-                key={lane.id}
-                onDragOver={handleDragOver(lane.id)}
-                onDragLeave={() => setDragOverLaneId((current) => (current === lane.id ? null : current))}
-                onDrop={handleDrop(lane.id)}
-                className={cn(
-                  'rounded-md border border-border p-1.5 transition-colors',
-                  dragOverLaneId === lane.id && 'border-ring bg-muted/60',
-                )}
-              >
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => cycleLaneColor(lane.id)}
-                    aria-label={`Change color of ${lane.name}, currently ${laneColorName(lane.colorIndex)}`}
-                    className="size-3 shrink-0 rounded-full ring-offset-1 ring-offset-card focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
-                    style={{ backgroundColor: laneColor(lane.colorIndex) }}
-                  />
-                  <input
-                    value={lane.name}
-                    onChange={(changeEvent) => renameLane(lane.id, changeEvent.target.value)}
-                    aria-label={`Name of timeline ${laneIndex + 1}`}
-                    className={cn(INLINE_INPUT_CLASS, 'font-medium')}
-                  />
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {laneEvents.length} {laneEvents.length === 1 ? 'event' : 'events'}
-                  </span>
-                  <Button
-                    type="button"
-                    size="icon-xs"
-                    variant="ghost"
-                    aria-label={`Remove ${lane.name}`}
-                    disabled={lanes.length <= 1}
-                    onClick={() => removeLane(lane.id)}
-                  >
-                    <X />
-                  </Button>
-                </div>
-                <div className="relative mt-1 h-7 rounded bg-muted/50">
-                  <div className="absolute inset-x-1.5 top-1/2 h-px -translate-y-1/2 bg-border" />
-                  {bounds &&
-                    laneEvents.map((event) => (
-                      <button
-                        key={event.id}
-                        type="button"
-                        draggable
-                        onDragStart={startDrag(event)}
-                        title={`${formatDateTimeInZone(event.ms, displayZone)}${event.label ? `, ${event.label}` : ''}`}
-                        aria-label={`${event.label || 'Event'} at ${eventTime(event)} on ${lane.name}`}
-                        className="group absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-card focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none active:cursor-grabbing"
-                        style={{
-                          left: `calc(6px + ${positionRatio(event.ms, bounds)} * (100% - 12px))`,
-                          backgroundColor: colorForEvent(event),
-                        }}
-                      >
-                        <span className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded border border-border bg-popover px-1 py-0.5 font-mono text-[10px] whitespace-nowrap text-popover-foreground shadow-sm group-hover:block group-focus-visible:block">
-                          {eventTime(event)}
-                          {event.label ? ` ${event.label}` : ''}
-                        </span>
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {bounds && (
-          <div className="relative h-3 font-mono text-[10px] text-muted-foreground">
-            {ticks.map((tick) => (
-              <span
-                key={tick.ratio}
-                className={cn(
-                  'absolute top-0 whitespace-nowrap',
-                  tick.ratio === 0 ? '' : tick.ratio === 1 ? '-translate-x-full' : '-translate-x-1/2',
-                )}
-                style={{ left: `calc(6px + ${tick.ratio} * (100% - 12px))` }}
-              >
-                {tick.label}
-              </span>
-            ))}
-          </div>
-        )}
+        <TimelineTracks
+          lanes={lanes}
+          events={sorted}
+          bounds={bounds}
+          displayZone={displayZone}
+          tickCount={mode === 'overlay' ? 5 : 3}
+          hoveredId={hoveredId}
+          selectedId={selectedId}
+          draggingId={draggingId}
+          onHover={setHoveredId}
+          onSelect={setSelectedId}
+          onDragStart={startDrag}
+          onDragEnd={() => setDraggingId(null)}
+          onDropOnLane={handleDropOnLane}
+          onRenameLane={renameLane}
+          onCycleLaneColor={cycleLaneColor}
+          onRemoveLane={removeLane}
+        />
 
         {bounds ? (
           <p className="text-[11px] text-muted-foreground">
@@ -394,70 +335,100 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
           </p>
         ) : (
           <p className="text-[11px] text-muted-foreground">
-            Paste timestamps above, one per line, with an optional label. Drag a marker onto another timeline to regroup
-            it.
+            Paste timestamps above, one per line, with an optional label. Drop log text straight onto a timeline, and
+            drag events between timelines to group them.
+          </p>
+        )}
+
+        {selectedEvent && (
+          <p className="truncate rounded-md bg-muted/60 px-1.5 py-1 font-mono text-[10px] text-muted-foreground">
+            <span className="text-foreground">{formatDateTimeInZone(selectedEvent.ms, displayZone)}</span> ·{' '}
+            {selectedEvent.format}
+            {selectedEvent.hasExplicitOffset ? '' : `, read as ${inputZone}`} · {selectedEvent.source}
           </p>
         )}
 
         {sorted.length > 0 && (
-          <ul className="space-y-0.5">
-            {sorted.map((event, index) => (
-              <li
-                key={event.id}
-                draggable
-                onDragStart={startDrag(event)}
-                className="flex items-center gap-1 rounded px-0.5 py-0.5 hover:bg-muted/60"
-              >
-                <span
-                  aria-hidden
-                  className="size-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: colorForEvent(event) }}
-                />
-                <span
-                  className="shrink-0 font-mono text-[11px] tabular-nums"
-                  title={`${event.format}${event.hasExplicitOffset ? '' : ` read as ${inputZone}`}`}
+          <ul className="flex flex-col gap-0.5">
+            {sorted.map((event, index) => {
+              const isHovered = hoveredId === event.id
+              const isSelected = selectedId === event.id
+              return (
+                <li
+                  key={event.id}
+                  onMouseEnter={() => setHoveredId(event.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  className={cn(
+                    'flex items-center gap-1 rounded px-0.5 py-0.5 transition-colors',
+                    isHovered && 'bg-muted',
+                    isSelected && 'bg-muted ring-1 ring-ring/40',
+                  )}
                 >
-                  {eventTime(event)}
-                </span>
-                <span className="w-16 shrink-0 text-right font-mono text-[10px] text-muted-foreground tabular-nums">
-                  {index === 0 ? '' : formatDelta(event.ms - sorted[index - 1].ms)}
-                </span>
-                <input
-                  value={event.label}
-                  onChange={(changeEvent) => relabelEvent(event.id, changeEvent.target.value)}
-                  aria-label={`Label for event at ${eventTime(event)}`}
-                  placeholder="label"
-                  className={INLINE_INPUT_CLASS}
-                />
-                <select
-                  value={event.laneId}
-                  onChange={(changeEvent) => moveEvent(event.id, changeEvent.target.value)}
-                  aria-label={`Timeline for event at ${eventTime(event)}`}
-                  className={cn(SELECT_CLASS, 'max-w-24 shrink-0')}
-                >
-                  {lanes.map((lane) => (
-                    <option key={lane.id} value={lane.id}>
-                      {lane.name}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  type="button"
-                  size="icon-xs"
-                  variant="ghost"
-                  aria-label={`Remove event at ${eventTime(event)}`}
-                  onClick={() => removeEvent(event.id)}
-                >
-                  <X />
-                </Button>
-              </li>
-            ))}
+                  <span
+                    draggable
+                    onDragStart={startDrag(event)}
+                    onDragEnd={() => setDraggingId(null)}
+                    title="Drag onto another timeline"
+                    aria-hidden
+                    className="shrink-0 cursor-grab text-muted-foreground/70 hover:text-foreground active:cursor-grabbing"
+                  >
+                    <GripVertical className="size-3" />
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(isSelected ? null : event.id)}
+                    onFocus={() => setHoveredId(event.id)}
+                    onBlur={() => setHoveredId(null)}
+                    aria-pressed={isSelected}
+                    aria-label={`Show details for event at ${eventTime(event)}`}
+                    className="flex shrink-0 items-center gap-1 rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <span
+                      className={cn('size-2 rounded-full transition-transform', isHovered && 'scale-125')}
+                      style={{ backgroundColor: colorForEvent(event) }}
+                    />
+                    <span className="font-mono text-[11px] tabular-nums">{eventTime(event)}</span>
+                  </button>
+                  <span className="w-16 shrink-0 text-right font-mono text-[10px] text-muted-foreground tabular-nums">
+                    {index === 0 ? '' : formatDelta(event.ms - sorted[index - 1].ms)}
+                  </span>
+                  <input
+                    value={event.label}
+                    onChange={(changeEvent) => relabelEvent(event.id, changeEvent.target.value)}
+                    aria-label={`Label for event at ${eventTime(event)}`}
+                    placeholder="label"
+                    className="min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 py-0.5 outline-none placeholder:text-muted-foreground/70 hover:bg-background focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/50"
+                  />
+                  <select
+                    value={event.laneId}
+                    onChange={(changeEvent) => moveEvent(event.id, changeEvent.target.value)}
+                    aria-label={`Timeline for event at ${eventTime(event)}`}
+                    className={cn(SELECT_CLASS, 'max-w-24 shrink-0')}
+                  >
+                    {lanes.map((lane) => (
+                      <option key={lane.id} value={lane.id}>
+                        {lane.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    size="icon-xs"
+                    variant="ghost"
+                    aria-label={`Remove event at ${eventTime(event)}`}
+                    onClick={() => removeEvent(event.id)}
+                  >
+                    <X />
+                  </Button>
+                </li>
+              )
+            })}
           </ul>
         )}
 
         <details className="mt-auto text-[10px] text-muted-foreground">
           <summary className="cursor-pointer select-none">Supported formats</summary>
-          <ul className="mt-1 space-y-0.5 pl-3 font-mono">
+          <ul className="mt-1 flex flex-col gap-0.5 pl-3 font-mono">
             {SUPPORTED_FORMAT_EXAMPLES.map((example) => (
               <li key={example}>{example}</li>
             ))}

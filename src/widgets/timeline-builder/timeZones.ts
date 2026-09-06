@@ -49,7 +49,7 @@ export function getWallClock(ms: number, timeZone: string): WallClock {
     hour: Number(part(parts, 'hour')),
     minute: Number(part(parts, 'minute')),
     second: Number(part(parts, 'second')),
-    millisecond: ((ms % 1000) + 1000) % 1000,
+    millisecond: Math.floor(((ms % 1000) + 1000) % 1000),
   }
 }
 

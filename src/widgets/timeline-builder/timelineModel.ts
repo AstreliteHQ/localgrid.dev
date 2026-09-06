@@ -19,6 +19,9 @@ export interface TimelineEvent {
   /** False when the widget had to assume an input zone to read it, which is
    * worth flagging: it is the usual cause of an event landing an hour off. */
   hasExplicitOffset: boolean
+  /** The line this event was read from, shown when it is selected so a row
+   * can always be traced back to the log it came from. */
+  source: string
 }
 
 /** Fixed hex rather than theme tokens: these are identity colors for user

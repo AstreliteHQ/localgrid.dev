@@ -162,7 +162,7 @@ describe('TimelineBuilderWidget', () => {
     await user.click(screen.getByRole('button', { name: /timeline$/i }))
 
     const marker = screen.getByRole('button', { name: /deploy at 12:34:56\.000 on Timeline 1/i })
-    const secondLane = screen.getByLabelText(/name of timeline 2/i).closest('div[class*="rounded-md"]')!
+    const secondLane = screen.getByRole('group', { name: 'Timeline 2' })
     const dataTransfer = new FakeDataTransfer()
 
     fireEvent.dragStart(marker, { dataTransfer })
@@ -170,6 +170,63 @@ describe('TimelineBuilderWidget', () => {
     fireEvent.drop(secondLane, { dataTransfer })
 
     expect(screen.getByRole('button', { name: /deploy at 12:34:56\.000 on Timeline 2/i })).toBeInTheDocument()
+  })
+
+  it('parses log text dropped straight onto a timeline into that timeline', async () => {
+    const user = userEvent.setup()
+    renderWidget()
+    await showInUtc(user)
+    await user.click(screen.getByRole('button', { name: /timeline$/i }))
+
+    const secondLane = screen.getByRole('group', { name: 'Timeline 2' })
+    const dataTransfer = new FakeDataTransfer()
+    dataTransfer.setData('text/plain', '2024-01-15T12:34:56Z dropped from the log')
+
+    fireEvent.dragOver(secondLane, { dataTransfer })
+    fireEvent.drop(secondLane, { dataTransfer })
+
+    expect(screen.getByLabelText(/label for event at 12:34:56/i)).toHaveValue('dropped from the log')
+    expect(
+      screen.getByRole('button', { name: /dropped from the log at 12:34:56\.000 on Timeline 2/i }),
+    ).toBeInTheDocument()
+  })
+
+  it('lights up the marker for the row under the pointer', async () => {
+    const user = userEvent.setup()
+    renderWidget()
+    await showInUtc(user)
+    await addLines(user, '2024-01-15T12:34:56Z deploy started')
+
+    const marker = screen.getByRole('button', { name: /deploy started at 12:34:56\.000 on Timeline 1/i })
+    expect(within(marker).queryByText(/deploy started/)).not.toBeInTheDocument()
+
+    await user.hover(screen.getByLabelText(/label for event at 12:34:56/i))
+
+    expect(within(marker).getByText(/12:34:56\.000 deploy started/)).toBeInTheDocument()
+  })
+
+  it('shows how a selected event was read and what line it came from', async () => {
+    const user = userEvent.setup()
+    renderWidget()
+    await showInUtc(user)
+    await addLines(user, 'Jan 15 12:35:01 healthcheck ok')
+
+    await user.click(screen.getByRole('button', { name: /show details for event at 12:35:01/i }))
+
+    expect(screen.getByText(/Syslog, read as UTC/)).toBeInTheDocument()
+    expect(screen.getByText(/Jan 15 12:35:01 healthcheck ok/)).toBeInTheDocument()
+  })
+
+  it('names the empty state of a timeline that has no events', async () => {
+    const user = userEvent.setup()
+    renderWidget()
+    await showInUtc(user)
+    expect(screen.getByText(/no events yet/i)).toBeInTheDocument()
+
+    await addLines(user, '2024-01-15T12:34:56Z deploy')
+    await user.click(screen.getByRole('button', { name: /timeline$/i }))
+
+    expect(screen.getByText(/drag events here/i)).toBeInTheDocument()
   })
 
   it('keeps the events of a removed timeline on the remaining one', async () => {
