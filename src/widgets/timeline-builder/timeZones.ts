@@ -66,14 +66,41 @@ export function getUtcOffsetMinutes(ms: number, timeZone: string): number {
  * reading in `timeZone`. Guesses with the offset in force at the UTC
  * interpretation, then re-reads the offset at that candidate instant and
  * corrects once, which is what makes times close to a DST transition land on
- * the right side of it. Ambiguous times (the repeated hour when clocks go
- * back) resolve to the first of the two, matching how `Temporal` and most
- * date libraries pick. */
+ * the right side of it.
+ *
+ * Both awkward cases around a transition have a stated answer, matching
+ * `Temporal`'s `'compatible'` disambiguation:
+ *
+ * - Ambiguous (the hour repeated when clocks go back): the first of the two,
+ *   which is what the correction above already lands on.
+ * - Nonexistent (the hour skipped when clocks go forward, e.g. `02:30` on
+ *   2024-03-10 in `America/New_York`): shifted forward by the length of the
+ *   gap, so `02:30` reads as `03:30`. A log line holding such a time is
+ *   usually a machine writing local time through the transition, and moving
+ *   it forward keeps it in order against its neighbours, where the
+ *   correction alone would push it back before the gap instead. The round
+ *   trip below is what tells the two apart: only a wall clock that never
+ *   happened fails to format back to itself. */
 export function wallClockToEpochMs(wall: WallClock, timeZone: string): number {
   const asUtc = Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute, wall.second, wall.millisecond)
   const firstGuess = asUtc - getUtcOffsetMinutes(asUtc, timeZone) * 60000
   const corrected = asUtc - getUtcOffsetMinutes(firstGuess, timeZone) * 60000
-  return corrected
+  return readsAs(corrected, wall, timeZone) ? corrected : firstGuess
+}
+
+/** Whether an instant formats back to exactly this wall clock in this zone.
+ * Milliseconds are carried through untouched by the conversion, so only the
+ * fields a zone can move are compared. */
+function readsAs(ms: number, wall: WallClock, timeZone: string): boolean {
+  const actual = getWallClock(ms, timeZone)
+  return (
+    actual.year === wall.year &&
+    actual.month === wall.month &&
+    actual.day === wall.day &&
+    actual.hour === wall.hour &&
+    actual.minute === wall.minute &&
+    actual.second === wall.second
+  )
 }
 
 /** e.g. `UTC+05:30`, `UTC-08:00`, `UTC+00:00`. */

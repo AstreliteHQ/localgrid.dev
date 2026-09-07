@@ -19,6 +19,11 @@ export interface TimelineEvent {
   /** False when the widget had to assume an input zone to read it, which is
    * worth flagging: it is the usual cause of an event landing an hour off. */
   hasExplicitOffset: boolean
+  /** The input zone in force when this event was parsed. Recorded per event
+   * rather than read back off the picker, so changing the picker to paste a
+   * second batch from another server never rewrites what the first batch
+   * says about itself. Meaningless when `hasExplicitOffset` is true. */
+  readZone: string
   /** The line this event was read from, shown when it is selected so a row
    * can always be traced back to the log it came from. */
   source: string

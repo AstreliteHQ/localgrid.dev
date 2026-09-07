@@ -19,7 +19,16 @@ import {
 const BASE = Date.UTC(2024, 0, 15, 12)
 
 function event(id: string, offsetMs: number, laneId = 'lane-1', label = id): TimelineEvent {
-  return { id, ms: BASE + offsetMs, label, laneId, format: 'ISO 8601', hasExplicitOffset: true, source: label }
+  return {
+    id,
+    ms: BASE + offsetMs,
+    label,
+    laneId,
+    format: 'ISO 8601',
+    hasExplicitOffset: true,
+    readZone: 'UTC',
+    source: label,
+  }
 }
 
 describe('timelineBounds', () => {

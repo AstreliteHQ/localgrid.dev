@@ -79,6 +79,21 @@ describe('parseTimestamp', () => {
     expect(parseTimestamp('Dec 31 12:34:56', { timeZone: 'UTC', now })?.ms).toBe(Date.UTC(2023, 11, 31, 12, 34, 56))
   })
 
+  it('rejects a clock time whose fields are out of range', () => {
+    const now = Date.UTC(2024, 0, 15, 20)
+    // `Date.UTC` would quietly normalize this into 12:35:39.
+    expect(parseTimestamp('12:34:99', { timeZone: 'UTC', now })).toBeNull()
+    expect(parseTimestamp('25:00:00', { timeZone: 'UTC', now })).toBeNull()
+  })
+
+  it('applies the offset on a syslog line before deciding which year it is from', () => {
+    // Read in the input zone alone the wall clock is 32 hours ahead of the
+    // reference and would roll back a year; the offset it carries puts it
+    // only 18 hours ahead, so it belongs to the reference year after all.
+    const now = Date.UTC(2024, 5, 15, 12)
+    expect(parseTimestamp('Jun 16 20:00:00 +1400', { timeZone: 'UTC', now })?.ms).toBe(Date.UTC(2024, 5, 16, 6))
+  })
+
   it('dates a bare clock time against the reference day in the input zone', () => {
     const now = Date.UTC(2024, 0, 15, 20)
     expect(parseTimestamp('12:34:56.789', { timeZone: 'UTC', now })?.ms).toBe(JAN_15_NOON_UTC + 789)
@@ -115,6 +130,14 @@ describe('parseOffsetToken', () => {
   it('returns null for ordinary words', () => {
     expect(parseOffsetToken('deploy')).toBeNull()
     expect(parseOffsetToken('')).toBeNull()
+  })
+
+  it('rejects an offset no zone could be at', () => {
+    // Left unchecked this reads as +6039 minutes and moves the event four days.
+    expect(parseOffsetToken('+99:99')).toBeNull()
+    expect(parseOffsetToken('+15:00')).toBeNull()
+    expect(parseOffsetToken('+13:75')).toBeNull()
+    expect(parseOffsetToken('+14:00')).toBe(840)
   })
 })
 

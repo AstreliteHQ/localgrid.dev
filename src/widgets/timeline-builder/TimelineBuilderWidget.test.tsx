@@ -217,6 +217,21 @@ describe('TimelineBuilderWidget', () => {
     expect(screen.getByText(/Jan 15 12:35:01 healthcheck ok/)).toBeInTheDocument()
   })
 
+  it('keeps saying which zone an event was read in after the picker moves on', async () => {
+    const user = userEvent.setup()
+    renderWidget()
+    await user.selectOptions(screen.getByLabelText(/display time zone/i), 'UTC')
+    await user.selectOptions(screen.getByLabelText(/input time zone/i), 'Europe/Paris')
+    await addLines(user, '2024-01-15 13:34:56 paris log line')
+
+    // A second batch from another server changes the picker, which must not
+    // rewrite what the first batch says about itself.
+    await user.selectOptions(screen.getByLabelText(/input time zone/i), 'UTC')
+    await user.click(screen.getByRole('button', { name: /show details for event at 12:34:56/i }))
+
+    expect(screen.getByText(/read as Europe\/Paris/)).toBeInTheDocument()
+  })
+
   it('names the empty state of a timeline that has no events', async () => {
     const user = userEvent.setup()
     renderWidget()

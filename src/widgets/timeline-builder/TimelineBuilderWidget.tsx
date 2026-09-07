@@ -96,6 +96,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
           laneId,
           format: event.format,
           hasExplicitOffset: event.hasExplicitOffset,
+          readZone: inputZone,
           source: event.source,
         })),
       ])
@@ -122,6 +123,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
         laneId: activeLaneId,
         format: 'Captured now',
         hasExplicitOffset: true,
+        readZone: inputZone,
         source: formatDateTimeInZone(now, displayZone),
       },
     ])
@@ -344,7 +346,7 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
           <p className="truncate rounded-md bg-muted/60 px-1.5 py-1 font-mono text-[10px] text-muted-foreground">
             <span className="text-foreground">{formatDateTimeInZone(selectedEvent.ms, displayZone)}</span> ·{' '}
             {selectedEvent.format}
-            {selectedEvent.hasExplicitOffset ? '' : `, read as ${inputZone}`} · {selectedEvent.source}
+            {selectedEvent.hasExplicitOffset ? '' : `, read as ${selectedEvent.readZone}`} · {selectedEvent.source}
           </p>
         )}
 

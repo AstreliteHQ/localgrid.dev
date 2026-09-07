@@ -111,8 +111,14 @@ export function parseOffsetToken(token: string): number | null {
   if (named !== undefined) return named
   const numeric = /^([+-])(\d{2}):?(\d{2})?$/.exec(trimmed)
   if (!numeric) return null
+  const hours = Number(numeric[2])
+  const minutes = Number(numeric[3] ?? '0')
+  // No zone has ever been further out than UTC+14, and a token like
+  // `+99:99` is far more likely to be something else the surrounding text
+  // wanted to keep than a four-day shift of the event.
+  if (hours > 14 || minutes > 59) return null
   const sign = numeric[1] === '-' ? -1 : 1
-  return sign * (Number(numeric[2]) * 60 + Number(numeric[3] ?? '0'))
+  return sign * (hours * 60 + minutes)
 }
 
 /** Reads an offset immediately after a date/time core, tolerating one space
@@ -311,25 +317,25 @@ function matchSyslog(text: string, options: ParseOptions): Match | null {
   const reference = getWallClock(now, options.timeZone)
   const build = (year: number) =>
     wall(year, month, Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5]), fractionToMillis(m[6]))
-  let w = build(reference.year)
-  if (!isRealDate(w)) return null
-  let ms = wallClockToEpochMs(w, options.timeZone)
+  if (!isRealDate(build(reference.year))) return null
+  // The offset has to be read before the year is chosen: it can move the
+  // instant by up to a day either way, which is exactly the margin the
+  // rollover below tests against.
+  const offset = consumeOffset(text.slice(m[0].length))
+  const instantFor = (year: number) => {
+    const candidate = build(year)
+    return offset ? fromOffset(candidate, offset.offsetMinutes) : wallClockToEpochMs(candidate, options.timeZone)
+  }
+  let ms = instantFor(reference.year)
   // Syslog omits the year, so a line that would land in the future is
   // really from last year, the same rule log rotators use.
-  if (ms - now > 86400000) {
-    w = build(reference.year - 1)
-    ms = wallClockToEpochMs(w, options.timeZone)
+  if (ms - now > 86400000) ms = instantFor(reference.year - 1)
+  return {
+    ms,
+    format: 'Syslog',
+    hasExplicitOffset: offset !== null,
+    length: m[0].length + (offset?.length ?? 0),
   }
-  const offset = consumeOffset(text.slice(m[0].length))
-  if (offset) {
-    return {
-      ms: fromOffset(w, offset.offsetMinutes),
-      format: 'Syslog',
-      hasExplicitOffset: true,
-      length: m[0].length + offset.length,
-    }
-  }
-  return { ms, format: 'Syslog', hasExplicitOffset: false, length: m[0].length }
 }
 
 function matchTimeOnly(text: string, options: ParseOptions): Match | null {
@@ -337,10 +343,12 @@ function matchTimeOnly(text: string, options: ParseOptions): Match | null {
   if (!m) return null
   const hour = Number(m[1])
   const minute = Number(m[2])
-  if (hour > 23 || minute > 59) return null
+  const second = Number(m[3] ?? 0)
+  // Without this, `Date.UTC` quietly rolls `12:34:99` over into `12:35:39`.
+  if (hour > 23 || minute > 59 || second > 59) return null
   const now = options.now ?? Date.now()
   const today = getWallClock(now, options.timeZone)
-  const w = wall(today.year, today.month, today.day, hour, minute, Number(m[3] ?? 0), fractionToMillis(m[4]))
+  const w = wall(today.year, today.month, today.day, hour, minute, second, fractionToMillis(m[4]))
   return resolve(w, consumeOffset(text.slice(m[0].length)), options, 'Time only', m[0].length)
 }
 
@@ -381,7 +389,11 @@ function matchNumeric(text: string, minDigits: number): Match | null {
  * carried no offset the engine assumed the browser's zone, so the wall clock
  * it produced is re-placed into the zone the visitor actually picked. */
 function matchNative(text: string, options: ParseOptions): ParsedTimestamp | null {
-  if (!/\d/.test(text) || text.length < 6) return null
+  // The engine's legacy parser is far too willing: it reads `12:34:99` as
+  // 1999-01-01 12:34, which would undo the range checks the matchers above
+  // apply. Requiring a four-digit year keeps the useful cases it does cover
+  // (`March 3, 2024 4:05 PM`) without letting it invent one.
+  if (!/\d{4}/.test(text) || text.length < 6) return null
   const parsed = Date.parse(text)
   if (Number.isNaN(parsed)) return null
   if (/(?:\bZ|\bUTC|\bGMT|[+-]\d{2}:?\d{2})\s*$/i.test(text)) {
