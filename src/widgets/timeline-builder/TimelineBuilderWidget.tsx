@@ -309,126 +309,132 @@ export default function TimelineBuilderWidget({ instanceId, mode }: WidgetProps)
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
-        <TimelineTracks
-          lanes={lanes}
-          events={sorted}
-          bounds={bounds}
-          displayZone={displayZone}
-          tickCount={mode === 'overlay' ? 5 : 3}
-          hoveredId={hoveredId}
-          selectedId={selectedId}
-          draggingId={draggingId}
-          onHover={setHoveredId}
-          onSelect={setSelectedId}
-          onDragStart={startDrag}
-          onDragEnd={() => setDraggingId(null)}
-          onDropOnLane={handleDropOnLane}
-          onRenameLane={renameLane}
-          onCycleLaneColor={cycleLaneColor}
-          onRemoveLane={removeLane}
-        />
+      <div className="flex min-h-0 flex-1 flex-col gap-2">
+        {/* Own scroll region: tracks stay in view while the list below scrolls
+         * independently, and only scroll internally once lanes overflow the cap. */}
+        <div className="max-h-64 shrink-0 overflow-y-auto">
+          <TimelineTracks
+            lanes={lanes}
+            events={sorted}
+            bounds={bounds}
+            displayZone={displayZone}
+            tickCount={mode === 'overlay' ? 5 : 3}
+            hoveredId={hoveredId}
+            selectedId={selectedId}
+            draggingId={draggingId}
+            onHover={setHoveredId}
+            onSelect={setSelectedId}
+            onDragStart={startDrag}
+            onDragEnd={() => setDraggingId(null)}
+            onDropOnLane={handleDropOnLane}
+            onRenameLane={renameLane}
+            onCycleLaneColor={cycleLaneColor}
+            onRemoveLane={removeLane}
+          />
+        </div>
 
-        {bounds ? (
-          <p className="text-[11px] text-muted-foreground">
-            {events.length} {events.length === 1 ? 'event' : 'events'} over{' '}
-            <span className="font-mono text-foreground">{formatDuration(bounds.spanMs)}</span>, from{' '}
-            <span className="font-mono">{formatDateTimeInZone(bounds.startMs, displayZone)}</span> in {displayZone}
-          </p>
-        ) : (
-          <p className="text-[11px] text-muted-foreground">
-            Paste timestamps above, one per line, with an optional label. Drop log text straight onto a timeline, and
-            drag events between timelines to group them.
-          </p>
-        )}
+        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+          {bounds ? (
+            <p className="text-[11px] text-muted-foreground">
+              {events.length} {events.length === 1 ? 'event' : 'events'} over{' '}
+              <span className="font-mono text-foreground">{formatDuration(bounds.spanMs)}</span>, from{' '}
+              <span className="font-mono">{formatDateTimeInZone(bounds.startMs, displayZone)}</span> in {displayZone}
+            </p>
+          ) : (
+            <p className="text-[11px] text-muted-foreground">
+              Paste timestamps above, one per line, with an optional label. Drop log text straight onto a timeline,
+              and drag events between timelines to group them.
+            </p>
+          )}
 
-        {selectedEvent && (
-          <p className="truncate rounded-md bg-muted/60 px-1.5 py-1 font-mono text-[10px] text-muted-foreground">
-            <span className="text-foreground">{formatDateTimeInZone(selectedEvent.ms, displayZone)}</span> ·{' '}
-            {selectedEvent.format}
-            {selectedEvent.hasExplicitOffset ? '' : `, read as ${selectedEvent.readZone}`} · {selectedEvent.source}
-          </p>
-        )}
+          {selectedEvent && (
+            <p className="truncate rounded-md bg-muted/60 px-1.5 py-1 font-mono text-[10px] text-muted-foreground">
+              <span className="text-foreground">{formatDateTimeInZone(selectedEvent.ms, displayZone)}</span> ·{' '}
+              {selectedEvent.format}
+              {selectedEvent.hasExplicitOffset ? '' : `, read as ${selectedEvent.readZone}`} · {selectedEvent.source}
+            </p>
+          )}
 
-        {sorted.length > 0 && (
-          <ul className="flex flex-col gap-0.5">
-            {sorted.map((event, index) => {
-              const isHovered = hoveredId === event.id
-              const isSelected = selectedId === event.id
-              return (
-                <li
-                  key={event.id}
-                  onMouseEnter={() => setHoveredId(event.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className={cn(
-                    'flex items-center gap-1 rounded px-0.5 py-0.5 transition-colors',
-                    isHovered && 'bg-muted',
-                    isSelected && 'bg-muted ring-1 ring-ring/40',
-                  )}
-                >
-                  <span
-                    draggable
-                    onDragStart={startDrag(event)}
-                    onDragEnd={() => setDraggingId(null)}
-                    title="Drag onto another timeline"
-                    aria-hidden
-                    className="shrink-0 cursor-grab text-muted-foreground/70 hover:text-foreground active:cursor-grabbing"
-                  >
-                    <GripVertical className="size-3" />
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedId(isSelected ? null : event.id)}
-                    onFocus={() => setHoveredId(event.id)}
-                    onBlur={() => setHoveredId(null)}
-                    aria-pressed={isSelected}
-                    aria-label={`Show details for event at ${eventTime(event)}`}
-                    className="flex shrink-0 items-center gap-1 rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+          {sorted.length > 0 && (
+            <ul className="flex flex-col gap-0.5">
+              {sorted.map((event, index) => {
+                const isHovered = hoveredId === event.id
+                const isSelected = selectedId === event.id
+                return (
+                  <li
+                    key={event.id}
+                    onMouseEnter={() => setHoveredId(event.id)}
+                    onMouseLeave={() => setHoveredId(null)}
+                    className={cn(
+                      'flex items-center gap-1 rounded px-0.5 py-0.5 transition-colors',
+                      isHovered && 'bg-muted',
+                      isSelected && 'bg-muted ring-1 ring-ring/40',
+                    )}
                   >
                     <span
-                      className={cn('size-2 rounded-full transition-transform', isHovered && 'scale-125')}
-                      style={{ backgroundColor: colorForEvent(event) }}
+                      draggable
+                      onDragStart={startDrag(event)}
+                      onDragEnd={() => setDraggingId(null)}
+                      title="Drag onto another timeline"
+                      aria-hidden
+                      className="shrink-0 cursor-grab text-muted-foreground/70 hover:text-foreground active:cursor-grabbing"
+                    >
+                      <GripVertical className="size-3" />
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(isSelected ? null : event.id)}
+                      onFocus={() => setHoveredId(event.id)}
+                      onBlur={() => setHoveredId(null)}
+                      aria-pressed={isSelected}
+                      aria-label={`Show details for event at ${eventTime(event)}`}
+                      className="flex shrink-0 items-center gap-1 rounded-sm focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-none"
+                    >
+                      <span
+                        className={cn('size-2 rounded-full transition-transform', isHovered && 'scale-125')}
+                        style={{ backgroundColor: colorForEvent(event) }}
+                      />
+                      <span className="font-mono text-[11px] tabular-nums">{eventTime(event)}</span>
+                    </button>
+                    <span className="w-16 shrink-0 text-right font-mono text-[10px] text-muted-foreground tabular-nums">
+                      {index === 0 ? '' : formatDelta(event.ms - sorted[index - 1].ms)}
+                    </span>
+                    <input
+                      value={event.label}
+                      onChange={(changeEvent) => relabelEvent(event.id, changeEvent.target.value)}
+                      aria-label={`Label for event at ${eventTime(event)}`}
+                      placeholder="label"
+                      className="min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 py-0.5 outline-none placeholder:text-muted-foreground/70 hover:bg-background focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/50"
                     />
-                    <span className="font-mono text-[11px] tabular-nums">{eventTime(event)}</span>
-                  </button>
-                  <span className="w-16 shrink-0 text-right font-mono text-[10px] text-muted-foreground tabular-nums">
-                    {index === 0 ? '' : formatDelta(event.ms - sorted[index - 1].ms)}
-                  </span>
-                  <input
-                    value={event.label}
-                    onChange={(changeEvent) => relabelEvent(event.id, changeEvent.target.value)}
-                    aria-label={`Label for event at ${eventTime(event)}`}
-                    placeholder="label"
-                    className="min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 py-0.5 outline-none placeholder:text-muted-foreground/70 hover:bg-background focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/50"
-                  />
-                  <select
-                    value={event.laneId}
-                    onChange={(changeEvent) => moveEvent(event.id, changeEvent.target.value)}
-                    aria-label={`Timeline for event at ${eventTime(event)}`}
-                    className={cn(SELECT_CLASS, 'max-w-24 shrink-0')}
-                  >
-                    {lanes.map((lane) => (
-                      <option key={lane.id} value={lane.id}>
-                        {lane.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    type="button"
-                    size="icon-xs"
-                    variant="ghost"
-                    aria-label={`Remove event at ${eventTime(event)}`}
-                    onClick={() => removeEvent(event.id)}
-                  >
-                    <X />
-                  </Button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                    <select
+                      value={event.laneId}
+                      onChange={(changeEvent) => moveEvent(event.id, changeEvent.target.value)}
+                      aria-label={`Timeline for event at ${eventTime(event)}`}
+                      className={cn(SELECT_CLASS, 'max-w-24 shrink-0')}
+                    >
+                      {lanes.map((lane) => (
+                        <option key={lane.id} value={lane.id}>
+                          {lane.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      size="icon-xs"
+                      variant="ghost"
+                      aria-label={`Remove event at ${eventTime(event)}`}
+                      onClick={() => removeEvent(event.id)}
+                    >
+                      <X />
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
 
-        <details className="mt-auto text-[10px] text-muted-foreground">
+        <details className="text-[10px] text-muted-foreground">
           <summary className="cursor-pointer select-none">Supported formats</summary>
           <ul className="mt-1 flex flex-col gap-0.5 pl-3 font-mono">
             {SUPPORTED_FORMAT_EXAMPLES.map((example) => (

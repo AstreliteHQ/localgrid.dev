@@ -94,7 +94,10 @@ export function WidgetSidebar() {
         )}
       </div>
 
-      <BrandFooter collapsed={collapsed} />
+      {/* Stacked icon+label badges don't fit the icon-only rail, and aren't
+       * worth showing squeezed there — skip the footer entirely when
+       * collapsed rather than cramming it in. */}
+      {!collapsed && <BrandFooter />}
     </aside>
   )
 }
@@ -148,38 +151,26 @@ function SidebarWidgetItem({
 
 /** Fixed panel pinned below the (independently scrolling) widget list —
  * a "works offline" callout plus attribution back to the Astrelite site,
- * not part of the tool catalog so it never scrolls out of view with it. */
-function BrandFooter({ collapsed }: { collapsed: boolean }) {
+ * not part of the tool catalog so it never scrolls out of view with it.
+ * Only ever rendered expanded — the caller skips it when the sidebar is
+ * collapsed, since it doesn't fit the icon-only rail. */
+function BrandFooter() {
   return (
     <div className="shrink-0 border-t border-border p-2">
-      <div
-        className={cn(
-          'flex items-center gap-3 px-1 py-1',
-          // Three icon+label badges fit fine in one row at full width, but
-          // not squeezed into the collapsed (icon-only) sidebar — stack
-          // them instead, one per row, matching how the widget list itself
-          // already collapses to a single centered icon per row.
-          collapsed && 'flex-col gap-1 px-0',
-        )}
-      >
-        <CapabilityBadge icon={WifiOff} label="Offline" collapsed={collapsed} />
-        <CapabilityBadge icon={Laptop} label="Run locally" collapsed={collapsed} />
-        <CapabilityBadge icon={Download} label="Installable" collapsed={collapsed} />
+      <div className="flex items-center gap-3 px-1 py-1">
+        <CapabilityBadge icon={WifiOff} label="Offline" />
+        <CapabilityBadge icon={Laptop} label="Run locally" />
+        <CapabilityBadge icon={Download} label="Installable" />
       </div>
       <a
         href="https://astrelite.com"
         target="_blank"
         rel="noreferrer"
         title="Astrelite"
-        className={cn(
-          'flex items-center gap-1.5 rounded-md px-1 py-1 text-foreground hover:bg-accent',
-          collapsed && 'justify-center',
-        )}
+        className="flex items-center gap-1.5 rounded-md px-1 py-1 text-foreground hover:bg-accent"
       >
         <AstreliteIcon className="size-3.5 shrink-0" />
-        {!collapsed && (
-          <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
-        )}
+        <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
       </a>
     </div>
   )
@@ -188,25 +179,11 @@ function BrandFooter({ collapsed }: { collapsed: boolean }) {
 /** One static, muted capability badge in the footer's shared row (e.g.
  * "Offline", "Installable") — not interactive, just a quiet statement of
  * what's already true about this app rather than a control. */
-function CapabilityBadge({
-  icon: Icon,
-  label,
-  collapsed,
-}: {
-  icon: LucideIcon
-  label: string
-  collapsed: boolean
-}) {
+function CapabilityBadge({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
   return (
-    <div
-      title={collapsed ? label : undefined}
-      className={cn(
-        'flex items-center gap-1.5 text-[10px] text-muted-foreground/60',
-        collapsed && 'justify-center',
-      )}
-    >
+    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60">
       <Icon className="size-3 shrink-0" />
-      {!collapsed && <span>{label}</span>}
+      <span>{label}</span>
     </div>
   )
 }

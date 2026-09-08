@@ -138,7 +138,7 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
       {widgets.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg border border-dashed border-input">
           <p className="text-muted-foreground">
-            No widgets yet — drag a tool in from the sidebar, or search tools above.
+            No widgets yet — drag a tool in from the sidebar, or add tools above.
           </p>
         </div>
       )}
