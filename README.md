@@ -69,7 +69,7 @@ always asks before it touches your local dashboard.
 | AI / LLM   | Invisible Character Cleaner, Token Counter                                                                |
 | Color      | Color Converter, WCAG Contrast Checker                                                                    |
 | Network    | Subnet Calculator                                                                                         |
-| Time       | Timer, World Clock                                                                                        |
+| Time       | Timeline Builder, Timer, World Clock                                                                      |
 
 ## How it compares
 
