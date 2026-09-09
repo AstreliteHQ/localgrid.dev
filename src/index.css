@@ -106,8 +106,8 @@
   --success: var(--color-green-600);
   --success-foreground: var(--color-white);
   --highlight: var(--color-amber-200);
-  --border: var(--color-slate-200);
-  --input: var(--color-slate-300);
+  --border: var(--color-slate-300);
+  --input: var(--color-slate-400);
   --ring: var(--color-slate-500);
 
   /* Tree syntax palette (src/components/data-tree). Structural colors rather
@@ -172,6 +172,16 @@
 body {
   margin: 0;
   @apply bg-background text-foreground;
+}
+
+/* Native <select> popups are rendered by the browser, not by our CSS box
+ * model, so a translucent bg-input/30 on the <select> (fine for the closed
+ * control) can paint the open listbox wrong in Chrome, which reads the
+ * value literally instead of falling back to a solid color like Firefox
+ * does. Force a solid, correctly themed color straight on <option>. */
+.dark select option {
+  background-color: var(--popover);
+  color: var(--popover-foreground);
 }
 
 #root {

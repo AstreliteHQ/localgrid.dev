@@ -1,6 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
   "release-type": "node",
+  "pull-request-header": ":rocket: Rolling Release Queue",
+  "include-component-in-tag": false,
   "bootstrap-sha": "79f9a5bc9e36f2494ecffe00203c4e87f888e9a8",
   "draft": false,
   "prerelease": false,
@@ -17,7 +19,7 @@
   ],
   "packages": {
     ".": {
-      "package-name": "devdeck",
+      "package-name": "localgrid",
       "changelog-path": "CHANGELOG.md"
     }
   }
