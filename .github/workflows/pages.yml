@@ -1,10 +1,16 @@
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    tags:
-      - 'v*'
+  # Called from release-please.yml's `deploy` job, only when release-please
+  # actually cut a release, not on every push to main. See that workflow
+  # for why: a tag-push trigger here can't work, since release-please pushes
+  # its tag using the default GITHUB_TOKEN, and GitHub doesn't let events
+  # from that token trigger other workflows.
+  workflow_call:
 
+# Reusable workflows don't grant their own permissions when called via
+# workflow_call, the calling job must request these itself. Kept here as
+# documentation of what the caller needs to grant.
 permissions:
   contents: read
   pages: write

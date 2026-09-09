@@ -20,7 +20,7 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
   const definition = target ? WIDGET_REGISTRY[target.widgetId] : null
   const resetNonce = useWidgetResetNonce(target?.instanceId ?? '')
   // Tracks whether the mousedown that started this click landed on the
-  // backdrop itself, not just where the click bubbled up to — otherwise a
+  // backdrop itself, not just where the click bubbled up to, otherwise a
   // drag that starts inside the widget (text selection, a slider) and
   // releases over the backdrop would count as a backdrop click and close it.
   const mouseDownOnBackdrop = useRef(false)
