@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
@@ -19,6 +19,11 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
   const close = useOverlayStore((state) => state.close)
   const definition = target ? WIDGET_REGISTRY[target.widgetId] : null
   const resetNonce = useWidgetResetNonce(target?.instanceId ?? '')
+  // Tracks whether the mousedown that started this click landed on the
+  // backdrop itself, not just where the click bubbled up to — otherwise a
+  // drag that starts inside the widget (text selection, a slider) and
+  // releases over the backdrop would count as a backdrop click and close it.
+  const mouseDownOnBackdrop = useRef(false)
 
   useEffect(() => {
     if (!target) return
@@ -39,11 +44,16 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
           'fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm',
           target ? '' : 'hidden',
         )}
-        onClick={close}
+        onMouseDown={(event) => {
+          mouseDownOnBackdrop.current = event.target === event.currentTarget
+        }}
+        onClick={(event) => {
+          if (mouseDownOnBackdrop.current && event.target === event.currentTarget) close()
+        }}
       >
         <div
           onClick={(event) => event.stopPropagation()}
-          className="h-full max-h-[85vh] w-full max-w-5xl"
+          className="h-full max-h-[90vh] w-full max-w-7xl"
         >
           {definition && target && (
             <WidgetShell

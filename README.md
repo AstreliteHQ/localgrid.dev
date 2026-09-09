@@ -21,7 +21,7 @@ customizable, shareable screen instead of scattered across two dozen browser tab
 
 ## Why localgrid
 
-Plenty of good developer-utility sites already exist, covering Base64, JSON, colors,
+Plenty of good developer-utility sites [already exist](#how-it-compares), covering Base64, JSON, colors,
 timestamps, JWTs, and everything else on this list. What none of them solve is context
 switching: opening a new tool means a new tab, losing your place, and finding your way back
 to what you were doing. Those small interruptions and context switching add up when you are debugging.
@@ -29,6 +29,7 @@ to what you were doing. Those small interruptions and context switching add up w
 localgrid instead treats tools as widgets on a persistent dashboard. Pin the five or six you
 reach for constantly, arrange them however fits your screen, and keep working across all of
 them at once without losing state or hunting for the next tab.
+
 
 ## Features
 
