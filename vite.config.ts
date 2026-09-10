@@ -16,11 +16,13 @@ import { VitePWA } from 'vite-plugin-pwa'
 // The PWA manifest's start_url is derived from the same BASE rather than
 // hardcoded again, so an installed/home-screen launch opens the dashboard.
 //
-// BASE is overridable via VITE_BASE_PATH so this project can be built and
-// hosted from somewhere other than github.io/localgrid.dev (e.g. an npm
-// consumer building it at its own base path for its own Pages deployment).
-// It must include the leading and trailing slash, e.g. '/some-path/'.
-const BASE = process.env.VITE_BASE_PATH ?? '/localgrid.dev/'
+// BASE defaults to the domain root, since this deploys behind a custom
+// domain rather than github.io/localgrid.dev's own subpath. It's overridable
+// via VITE_BASE_PATH so this project can still be built and hosted from a
+// different base path elsewhere (e.g. an npm consumer building it at its
+// own base path for its own Pages deployment). A non-root value must
+// include the leading and trailing slash, e.g. '/some-path/'.
+const BASE = process.env.VITE_BASE_PATH ?? '/'
 
 // https://vite.dev/config/
 export default defineConfig({
