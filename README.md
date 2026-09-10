@@ -136,52 +136,6 @@ Or just use the [live demo](https://dropsnorz.github.io/localgrid.dev/), nothing
 | `npm run test`         | Run the test suite once                  |
 | `npm run test:watch`   | Run the test suite in watch mode         |
 
-## Deploying your own build
-
-localgrid is published as `@astrelitehq/localgrid` on the [GitHub Packages npm
-registry](https://github.com/AstreliteHQ/localgrid.dev/pkgs/npm/localgrid) on every
-release, as buildable source rather than a prebuilt bundle. This exists for standing
-up a separate deployment of localgrid at a different base path, for example a mirror
-hosted from its own repo/domain. Since the base path is baked into the built assets
-at build time, mirroring it means installing the package and building it yourself
-with your own `VITE_BASE_PATH`, not just copying the `dist` from this repo.
-
-1. Authenticate to GitHub Packages. It requires a token even to read public packages,
-   so add a `.npmrc` in your repo with a
-   [PAT](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
-   that has `read:packages`:
-
-   ```
-   @astrelitehq:registry=https://npm.pkg.github.com
-   //npm.pkg.github.com/:_authToken=${NPM_TOKEN}
-   ```
-
-2. Install the package, plus the build tooling it needs (published as
-   `devDependencies`, so `npm install` alone doesn't pull them in, see the current
-   [package.json](./package.json) for exact versions):
-
-   ```sh
-   npm install @astrelitehq/localgrid
-   npm install -D vite @vitejs/plugin-react @tailwindcss/vite tailwindcss \
-     vite-plugin-pwa typescript
-   ```
-
-3. Build it with your own base path, pointing Vite at the installed package and your
-   own output directory (`--outDir` must be absolute, since the package's own
-   `vite.config.ts` otherwise resolves it relative to `node_modules/...`):
-
-   ```sh
-   VITE_BASE_PATH=/your-path/ npx vite build \
-     --config node_modules/@astrelitehq/localgrid/vite.config.ts \
-     --outDir "$PWD/dist" --emptyOutDir
-   ```
-
-   `VITE_BASE_PATH` needs the leading and trailing slash (e.g. `/localgrid.proxy/`,
-   or `/` for a deployment at a domain root).
-
-4. Host the resulting `dist/` however you like, e.g. GitHub Pages, the same way this
-   repo's own [`pages.yml`](./.github/workflows/pages.yml) does.
-
 ## Architecture
 
 ```text
