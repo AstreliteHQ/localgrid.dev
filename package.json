@@ -1,8 +1,27 @@
 {
-  "name": "localgrid",
-  "private": true,
+  "name": "@astrelitehq/localgrid",
   "version": "0.2.0",
   "type": "module",
+  "description": "A browser-based dashboard for everyday developer tools.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AstreliteHQ/localgrid.dev.git"
+  },
+  "homepage": "https://github.com/AstreliteHQ/localgrid.dev#readme",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "files": [
+    "src",
+    "public",
+    "index.html",
+    "about.html",
+    "vite.config.ts",
+    "tsconfig.json",
+    "tsconfig.app.json",
+    "tsconfig.node.json",
+    "components.json"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

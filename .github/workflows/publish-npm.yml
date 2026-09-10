@@ -1,0 +1,35 @@
+name: Publish npm package
+
+on:
+  # Called from release-please.yml's `deploy` job, only when release-please
+  # actually cut a release, not on every push to main. See pages.yml for why
+  # a tag-push trigger here can't work instead.
+  workflow_call:
+
+# Reusable workflows don't grant their own permissions when called via
+# workflow_call, the calling job must request these itself. Kept here as
+# documentation of what the caller needs to grant.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@astrelitehq'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

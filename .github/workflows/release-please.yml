@@ -31,3 +31,11 @@ jobs:
       contents: read
       pages: write
       id-token: write
+
+  publish-npm:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/publish-npm.yml
+    permissions:
+      contents: read
+      packages: write
