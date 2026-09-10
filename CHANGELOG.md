@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.0...v0.2.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* allow configurable vite path and publish npm package ([#33](https://github.com/AstreliteHQ/localgrid.dev/issues/33)) ([9715585](https://github.com/AstreliteHQ/localgrid.dev/commit/97155856ca0145c08931635a79acf5742cedb032))
+
 ## [0.2.0](https://github.com/DropSnorz/localgrid.dev/compare/v0.1.0...v0.2.0) (2026-09-09)
 
 
