@@ -7,9 +7,9 @@
 Base64, JSON, JWTs, hashing, colors, regex, and more, pinned side by side on one
 customizable, shareable screen instead of scattered across two dozen browser tabs.
 
-[**Live demo**](https://dropsnorz.github.io/localgrid.dev/) · [Report a bug](https://github.com/DropSnorz/localgrid.dev/issues)
+[**Live demo**](https://astrelitehq.github.io/localgrid.dev/) · [Report a bug](https://github.com/AstreliteHQ/localgrid.dev/issues)
 
-[![Deploy](https://img.shields.io/github/actions/workflow/status/DropSnorz/localgrid.dev/pages.yml?branch=main&label=deploy)](https://github.com/DropSnorz/localgrid.dev/actions/workflows/pages.yml)
+[![Deploy](https://img.shields.io/github/actions/workflow/status/AstreliteHQ/localgrid.dev/pages.yml?branch=main&label=deploy)](https://github.com/AstreliteHQ/localgrid.dev/actions/workflows/pages.yml)
 ![React](https://img.shields.io/badge/React-19-149eca?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?logo=tailwindcss&logoColor=white)
@@ -121,7 +121,7 @@ npm install
 npm run dev
 ```
 
-Or just use the [live demo](https://dropsnorz.github.io/localgrid.dev/), nothing to install.
+Or just use the [live demo](https://astrelitehq.github.io/localgrid.dev/), nothing to install.
 
 ### Available scripts
 
