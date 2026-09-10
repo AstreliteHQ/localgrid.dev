@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
         id: release
@@ -39,3 +40,31 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+  # Tells localgrid.proxy to rebuild and redeploy its GitHub Pages mirror
+  # against the package version just published above. This can't be a
+  # `workflow_call` like the two jobs above (those only work for reusable
+  # workflows within this same repo) and a plain tag-push trigger on the
+  # other repo isn't an option either, since there's no push to that repo at
+  # all here. So instead this sends a `repository_dispatch` event to
+  # localgrid.proxy over the GitHub API, using a PAT (the default
+  # GITHUB_TOKEN can't trigger workflows in a different repository) stored
+  # as the PROXY_DISPATCH_TOKEN secret.
+  notify-proxy:
+    needs: [release-please, publish-npm]
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Trigger localgrid.proxy Pages deploy
+        env:
+          DISPATCH_TOKEN: ${{ secrets.PROXY_DISPATCH_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer ${DISPATCH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/AstreliteHQ/localgrid.proxy/dispatches \
+            -d "{\"event_type\":\"localgrid-release\",\"client_payload\":{\"tag_name\":\"${TAG_NAME}\"}}"
