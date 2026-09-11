@@ -97,19 +97,33 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
           dragConfig={{ handle: '.widget-drag-handle' }}
           dropConfig={{
             enabled: true,
-            onDragOver: () => {
+            onDragOver: (event) => {
               const { draggingWidgetId } = useWidgetDragStore.getState()
               if (!draggingWidgetId) return false
               const widget = getWidgetDefinition(draggingWidgetId)
               if (!widget) return false
+              // Pin the cursor to "this will work" for the whole hover —
+              // left unset, the icon falls back to browser/OS heuristics
+              // and can flicker to a "not allowed" badge.
+              if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
               return { w: widget.defaultSize.w, h: widget.defaultSize.h }
             },
           }}
-          onLayoutChange={(nextLayout) => applyLayoutUpdate(dashboardId, nextLayout)}
-          onDrop={(_layout, item) => {
+          // Persist from the gesture-end callbacks (fire once, with the
+          // final settled layout), not onLayoutChange. That one also fires
+          // reactively off react-grid-layout's own internal resync, and its
+          // compactor isn't a stable fixed point for every arrangement, so
+          // writing it straight back to the store can bounce between two
+          // layouts forever (Maximum update depth exceeded).
+          onDragStop={(layout) => applyLayoutUpdate(dashboardId, layout)}
+          onResizeStop={(layout) => applyLayoutUpdate(dashboardId, layout)}
+          onDrop={(layout, item) => {
             const { draggingWidgetId } = useWidgetDragStore.getState()
             // `item` is only defined if onDragOver above accepted the drag.
             if (!draggingWidgetId || !item) return
+            // Persist the collision-resolved positions from the drop
+            // preview, or pushed-aside widgets snap back.
+            applyLayoutUpdate(dashboardId, layout)
             addWidgetAt(dashboardId, draggingWidgetId, {
               x: item.x,
               y: item.y,
