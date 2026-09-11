@@ -193,14 +193,26 @@ export const useDashboardStore = create<DashboardState>()(
       },
 
       applyLayoutUpdate: (dashboardId, layout) => {
-        set((state) => ({
-          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
+        set((state) => {
+          let changed = false
+          const dashboards = updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
             widgets.map((widget) => {
               const updated = layout.find((item) => item.i === widget.instanceId)
-              return updated ? { ...widget, x: updated.x, y: updated.y, w: updated.w, h: updated.h } : widget
+              if (
+                !updated ||
+                (updated.x === widget.x && updated.y === widget.y && updated.w === widget.w && updated.h === widget.h)
+              ) {
+                return widget
+              }
+              changed = true
+              return { ...widget, x: updated.x, y: updated.y, w: updated.w, h: updated.h }
             }),
-          ),
-        }))
+          )
+          // react-grid-layout calls onLayoutChange again for every layout it
+          // renders, echoes included. Returning a changed reference for a
+          // no-op update would re-trigger that forever (max update depth).
+          return changed ? { dashboards } : state
+        })
       },
 
       setWidgetPosition: (dashboardId, instanceId, position) => {

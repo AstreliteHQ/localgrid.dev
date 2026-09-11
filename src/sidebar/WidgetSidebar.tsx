@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download, Laptop, ListFilter, WifiOff, type LucideIcon } from 'lucide-react'
+import { Download, Laptop, ListFilter, WifiOff, X, type LucideIcon } from 'lucide-react'
 import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,27 @@ import type { WidgetDefinition } from '@/widgets/types'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { useSidebarStore } from './useSidebarStore'
 import { useWidgetDragStore } from './useWidgetDragStore'
+
+/** Builds a small icon+name drag image for dataTransfer.setDragImage,
+ * instead of the browser's default full-row snapshot (padding, hover
+ * background and all). Appended off-screen since browsers need the node
+ * present in the document to snapshot it, then removed a tick later — the
+ * snapshot itself happens synchronously inside setDragImage. */
+function createDragPreview(icon: SVGSVGElement | null, name: string): HTMLElement {
+  const preview = document.createElement('div')
+  preview.className =
+    'pointer-events-none fixed left-[-9999px] top-[-9999px] flex items-center gap-2 rounded-md border border-border bg-card px-2 py-1.5 text-xs text-foreground shadow-md'
+  if (icon) {
+    const clonedIcon = icon.cloneNode(true) as SVGSVGElement
+    clonedIcon.setAttribute('class', 'size-4 shrink-0')
+    preview.appendChild(clonedIcon)
+  }
+  const label = document.createElement('span')
+  label.textContent = name
+  preview.appendChild(label)
+  document.body.appendChild(preview)
+  return preview
+}
 
 /** True if a widget matches a search query — checked against its name,
  * description, and search keywords, same fields the command palette
@@ -61,8 +82,18 @@ export function WidgetSidebar() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Filter tools..."
               aria-label="Filter tools"
-              className="h-7 pl-7 text-xs"
+              className="h-7 pl-7 pr-6 text-xs"
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                aria-label="Clear filter"
+                className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-3" />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -126,6 +157,10 @@ function SidebarWidgetItem({
           startDragging(widget.id)
           event.dataTransfer.setData('text/plain', widget.id)
           event.dataTransfer.effectAllowed = 'copy'
+          const icon = event.currentTarget.querySelector('svg')
+          const preview = createDragPreview(icon, widget.name)
+          event.dataTransfer.setDragImage(preview, 12, 12)
+          requestAnimationFrame(() => preview.remove())
         }}
         onDragEnd={stopDragging}
         onClick={handleOpen}
