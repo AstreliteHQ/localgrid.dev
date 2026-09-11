@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.1...v0.2.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* widget dropped from sidebar incorrectly placed ([72abd89](https://github.com/AstreliteHQ/localgrid.dev/commit/72abd897297cf38d2b2ec03ae6fa81518c1ba21a))
+
 ## [0.2.1](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.0...v0.2.1) (2026-09-10)
 
 
