@@ -30,7 +30,6 @@ localgrid instead treats tools as widgets on a persistent dashboard. Pin the fiv
 reach for constantly, arrange them however fits your screen, and keep working across all of
 them at once without losing state or hunting for the next tab.
 
-
 ## Features
 
 ### Client-side, offline, installable
@@ -57,7 +56,7 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-33 tools across 10 categories, and growing.
+34 tools across 10 categories, and growing.
 
 | Category   | Widgets                                                                                                   |
 | ---------- | --------------------------------------------------------------------------------------------------------- |
@@ -68,7 +67,7 @@ always asks before it touches your local dashboard.
 | Text       | Content Type Detector, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff      |
 | Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
 | AI / LLM   | Invisible Character Cleaner, Token Counter                                                                |
-| Color      | Color Converter, WCAG Contrast Checker                                                                    |
+| Color      | Color Converter, Material Color Palette, WCAG Contrast Checker                                            |
 | Network    | Subnet Calculator                                                                                         |
 | Time       | Timeline Builder, Timer, World Clock                                                                      |
 
