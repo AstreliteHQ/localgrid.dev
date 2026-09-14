@@ -8,6 +8,7 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   math: 'Math',
   security: 'Security',
   color: 'Color',
+  image: 'Image',
   text: 'Text',
   network: 'Network',
   time: 'Time',
@@ -25,6 +26,7 @@ export const CATEGORY_ORDER: WidgetCategory[] = [
   'math',
   'ai',
   'color',
+  'image',
   'network',
   'time',
 ]

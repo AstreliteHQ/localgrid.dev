@@ -2,7 +2,17 @@ import type { ComponentType, LazyExoticComponent } from 'react'
 import type { LucideIcon } from 'lucide-react'
 
 export type WidgetCategory =
-  'encoding' | 'formatting' | 'generators' | 'security' | 'color' | 'text' | 'math' | 'network' | 'time' | 'ai'
+  | 'encoding'
+  | 'formatting'
+  | 'generators'
+  | 'security'
+  | 'color'
+  | 'image'
+  | 'text'
+  | 'math'
+  | 'network'
+  | 'time'
+  | 'ai'
 
 export interface WidgetSize {
   w: number
