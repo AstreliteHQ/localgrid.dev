@@ -3,6 +3,16 @@ import { Home, Moon, Plus, Sun, X } from 'lucide-react'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  Combobox,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxPopup,
+  ComboboxPortal,
+  ComboboxPositioner,
+} from '@/components/ui/combobox'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -58,7 +68,11 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
   // the previously-applied time in place instead of falling back to a
   // `liveNow` that's gone stale the moment referenceMode left 'live'.
   const [customDateMs, setCustomDateMs] = useWidgetState<number | null>(instanceId, 'customDateMs', null)
-  const [addPick, setAddPick] = useState('')
+  // The picker holds the actual City object, not just its id, so it can
+  // feed the combobox's `value`/`itemToStringLabel` directly and drive
+  // both display text and the search filter (by city name and country)
+  // off the same object.
+  const [addPick, setAddPick] = useState<City | null>(null)
   // Native `datetime-local` inputs only ever fire `input`/`change` with a
   // complete valid value or an empty string — never a partial one — so the
   // only "invalid" state in practice is empty, typically while the visitor
@@ -88,12 +102,18 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
   const cities = useMemo(() => selectedIds.map(getCity).filter((c): c is City => c !== undefined), [selectedIds])
   const localCity = useMemo(() => WORLD_CITIES.find((c) => c.tz === LOCAL_TIME_ZONE) ?? null, [])
   const availableToAdd = useMemo(() => SORTED_CITIES.filter((c) => !selectedIds.includes(c.id)), [selectedIds])
-  const addValue = availableToAdd.some((c) => c.id === addPick) ? addPick : (availableToAdd[0]?.id ?? '')
+  // A pick that's no longer in `availableToAdd` (already added elsewhere,
+  // e.g. from another tab sharing this instance's state) shouldn't linger
+  // as a stale selection — computed inline rather than synced back with an
+  // effect, the same derive-during-render approach the old plain `<select>`
+  // used for its own `addValue`.
+  const addValue = addPick && availableToAdd.includes(addPick) ? addPick : null
 
   const handleAdd = () => {
     if (!addValue) return
-    setSelectedIds((prev) => (prev.includes(addValue) ? prev : [...prev, addValue]))
-    setAddPick('')
+    const id = addValue.id
+    setSelectedIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+    setAddPick(null)
   }
 
   const handleRemove = (id: string) => {
@@ -142,7 +162,14 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="@container flex h-full flex-col gap-2 text-xs">
-      <div className="hidden @xs:block aspect-[2/1] w-full shrink-0 overflow-hidden rounded-md bg-muted/20">
+      {/* `w-full` lets the map fill the widget at its true 2:1 ratio for
+          any normal size, growing right along with the widget. `max-w-3xl`
+          only ever engages once that full width would push the box past
+          768px, which is where the map would otherwise get tall enough to
+          crowd out the scrollable city list below; below that threshold
+          it's a no-op and the map is genuinely full-size. `self-center`
+          keeps it centered once the cap is in effect. */}
+      <div className="hidden @xs:block aspect-[2/1] w-full max-w-3xl shrink-0 self-center overflow-hidden rounded-md bg-muted/20">
         <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
       </div>
 
@@ -214,31 +241,37 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
 
       <div className="flex flex-wrap items-end gap-1.5">
         <Field label="Add city" htmlFor={addFieldId} className="min-w-0 flex-1">
-          <select
-            id={addFieldId}
+          {/* itemToStringLabel drives both the display text and the
+              built-in search filter, so typing matches against city name
+              and country together (e.g. "jap" finds Tokyo). */}
+          <Combobox<City>
+            items={availableToAdd}
             value={addValue}
-            onChange={(event) => setAddPick(event.target.value)}
+            onValueChange={setAddPick}
+            itemToStringLabel={(city) => `${city.city}, ${city.country}`}
             disabled={availableToAdd.length === 0}
-            className="h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 disabled:opacity-50 dark:bg-input/30"
           >
-            {availableToAdd.length === 0 ? (
-              <option value="">All cities added</option>
-            ) : (
-              availableToAdd.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.city}, {c.country}
-                </option>
-              ))
-            )}
-          </select>
+            <ComboboxInput
+              id={addFieldId}
+              placeholder={availableToAdd.length === 0 ? 'All cities added' : 'Search cities or countries…'}
+            />
+            <ComboboxPortal>
+              <ComboboxPositioner>
+                <ComboboxPopup>
+                  <ComboboxEmpty>No matching cities</ComboboxEmpty>
+                  <ComboboxList>
+                    {(city: City) => (
+                      <ComboboxItem key={city.id} value={city}>
+                        {city.city}, {city.country}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxPopup>
+              </ComboboxPositioner>
+            </ComboboxPortal>
+          </Combobox>
         </Field>
-        <Button
-          type="button"
-          size="sm"
-          onClick={handleAdd}
-          disabled={availableToAdd.length === 0}
-          className="h-8 shrink-0"
-        >
+        <Button type="button" size="sm" onClick={handleAdd} disabled={!addValue} className="h-8 shrink-0">
           <Plus className="size-3.5" />
           Add
         </Button>
