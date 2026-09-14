@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.2...v0.3.0) (2026-09-14)
+
+
+### Features
+
+* add searchable world clock combobox ([07517c2](https://github.com/AstreliteHQ/localgrid.dev/commit/07517c261044fc2684701be1292eadaa31c71549))
+
 ## [0.2.2](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.1...v0.2.2) (2026-09-11)
 
 
