@@ -75,11 +75,11 @@ describe('QrCodeWidget', () => {
     // Typed digit-by-digit without blurring — NumberField reports each
     // intermediate value (99, 999, 9999…) as-is, which is exactly the
     // unclamped, mid-edit state the render path has to defend against.
-    await user.type(sizeField, '99999')
+    await user.type(sizeField, '999999')
 
     const canvas = document.querySelector('canvas')
     expect(canvas).toBeInTheDocument()
-    expect(canvas!.width).toBe(512)
+    expect(canvas!.width).toBe(1024)
   })
 
   it('caps the canvas at the min size for an oversized negative value', async () => {
@@ -94,5 +94,18 @@ describe('QrCodeWidget', () => {
     const canvas = document.querySelector('canvas')
     expect(canvas).toBeInTheDocument()
     expect(canvas!.width).toBe(96)
+  })
+
+  it('scales the canvas to its (fixed-width) preview box rather than a percentage of an auto-sized parent', () => {
+    render(<QrCodeWidget instanceId="test-preview-box" mode="grid" />)
+
+    const canvas = document.querySelector('canvas')!
+    // The box has an explicit width (capped, not shrink-to-fit around the
+    // canvas), and the canvas fills it at 100% — a % width on the canvas
+    // resolving against an auto-width ancestor was what made the on-screen
+    // size (and centering) inconsistent across renders.
+    expect(canvas.parentElement).toHaveClass('w-full', 'max-w-[240px]')
+    expect(canvas.style.width).toBe('100%')
+    expect(canvas.style.height).toBe('auto')
   })
 })
