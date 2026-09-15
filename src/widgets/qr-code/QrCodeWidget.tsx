@@ -43,7 +43,7 @@ const ERROR_LEVEL_DESCRIPTIONS: Record<ErrorLevel, string> = {
   L: 'Recovers from ~7% damage: the smallest, least redundant code.',
   M: 'Recovers from ~15% damage: a good default for most codes.',
   Q: 'Recovers from ~25% damage: safer for printed or handled codes.',
-  H: 'Recovers from ~30% damage: best if you plan to add a logo on top.',
+  H: 'Recovers from ~30% damage: the most durable option, for codes that will be printed small, folded, or scuffed.',
 }
 
 const DEFAULT_TYPE: QrType = 'text'
