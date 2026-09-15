@@ -59,6 +59,12 @@ const escapeWifiValue = (value: string): string => escapeSeparators(value, [';',
 
 const escapeVCardValue = (value: string): string => escapeSeparators(value, [';', ',']).replace(/\n/g, '\\n')
 
+/** The vCard URL property holds a single URI, not TEXT, so the `,`/`;`
+ * escaping every other field gets here would corrupt a query string like
+ * `?tag=a,b` into `?tag=a\,b`. A raw newline would still break the
+ * one-property-per-line format, so that's stripped instead of escaped. */
+const sanitizeVCardUri = (value: string): string => value.replace(/[\r\n]/g, '')
+
 function buildWifiValue(f: WifiFields): string {
   const parts = [`T:${f.encryption}`, `S:${escapeWifiValue(f.ssid)}`]
   if (f.encryption !== 'nopass') parts.push(`P:${escapeWifiValue(f.password)}`)
@@ -66,12 +72,21 @@ function buildWifiValue(f: WifiFields): string {
   return `WIFI:${parts.join(';')};;`
 }
 
+/** A raw recipient like `foo?bar@example.com` (an unusual but valid local
+ * part) would otherwise let a `?` start the query section early, corrupting
+ * the subject/body that follow it. `@` is restored after encoding purely
+ * for readability. It isn't a reserved mailto delimiter, so leaving it
+ * percent-encoded would parse identically. */
+function encodeMailtoRecipient(value: string): string {
+  return encodeURIComponent(value).replace(/%40/gi, '@')
+}
+
 function buildEmailValue(f: EmailFields): string {
   const query = [
     f.subject ? `subject=${encodeURIComponent(f.subject)}` : null,
     f.body ? `body=${encodeURIComponent(f.body)}` : null,
   ].filter((part): part is string => part !== null)
-  return `mailto:${f.to}${query.length ? `?${query.join('&')}` : ''}`
+  return `mailto:${encodeMailtoRecipient(f.to)}${query.length ? `?${query.join('&')}` : ''}`
 }
 
 function buildSmsValue(f: SmsFields): string {
@@ -93,7 +108,7 @@ function buildVCardValue(f: VCardFields): string {
   if (f.organization) lines.push(`ORG:${escapeVCardValue(f.organization)}`)
   if (f.phone) lines.push(`TEL:${escapeVCardValue(f.phone)}`)
   if (f.email) lines.push(`EMAIL:${escapeVCardValue(f.email)}`)
-  if (f.url) lines.push(`URL:${escapeVCardValue(f.url)}`)
+  if (f.url) lines.push(`URL:${sanitizeVCardUri(f.url)}`)
   lines.push('END:VCARD')
   return lines.join('\n')
 }

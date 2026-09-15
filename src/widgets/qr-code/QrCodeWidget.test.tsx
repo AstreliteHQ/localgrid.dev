@@ -63,6 +63,15 @@ describe('QrCodeWidget', () => {
     expect(screen.queryByPlaceholderText('Password')).not.toBeInTheDocument()
   })
 
+  it('masks the Wi-Fi password field so it is not readable at a glance', async () => {
+    const user = userEvent.setup()
+    render(<QrCodeWidget instanceId="test-wifi-mask" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Wi-Fi' }))
+
+    expect(screen.getByPlaceholderText('Password')).toHaveAttribute('type', 'password')
+  })
+
   it('reveals customization controls once the Customize panel is opened', async () => {
     const user = userEvent.setup()
     render(<QrCodeWidget instanceId="test-customize" mode="grid" />)

@@ -30,7 +30,6 @@ localgrid instead treats tools as widgets on a persistent dashboard. Pin the fiv
 reach for constantly, arrange them however fits your screen, and keep working across all of
 them at once without losing state or hunting for the next tab.
 
-
 ## Features
 
 ### Client-side, offline, installable

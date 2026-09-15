@@ -280,6 +280,7 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
                 <Field label="Password" htmlFor={wifiPasswordId}>
                   <Input
                     id={wifiPasswordId}
+                    type="password"
                     value={wifiPassword}
                     onChange={(event) => setWifiPassword(event.target.value)}
                     placeholder="Password"
