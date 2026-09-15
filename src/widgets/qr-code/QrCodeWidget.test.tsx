@@ -74,6 +74,11 @@ describe('QrCodeWidget', () => {
     expect(screen.getByLabelText(/size \(px\)/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/foreground color/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/background color/i)).toBeInTheDocument()
+
+    // One pair each for foreground and background — button behavior itself
+    // is covered by PageColorPicker's and ScreenColorPicker's own tests.
+    expect(screen.getAllByRole('button', { name: /pick color from page/i })).toHaveLength(2)
+    expect(screen.getAllByRole('button', { name: /pick color from screen/i })).toHaveLength(2)
   })
 
   it('spells out the error correction levels and explains the selected one', async () => {
