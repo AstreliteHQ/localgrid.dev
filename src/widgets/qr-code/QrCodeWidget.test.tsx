@@ -64,4 +64,35 @@ describe('QrCodeWidget', () => {
     await user.type(screen.getByLabelText(/first name/i), 'Ada')
     expect(document.querySelector('canvas')).toBeInTheDocument()
   })
+
+  it('caps the rendered canvas at the max size even while typing an oversized value', async () => {
+    const user = userEvent.setup()
+    render(<QrCodeWidget instanceId="test-size-cap" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /customize/i }))
+    const sizeField = screen.getByLabelText(/size \(px\)/i)
+    await user.clear(sizeField)
+    // Typed digit-by-digit without blurring — NumberField reports each
+    // intermediate value (99, 999, 9999…) as-is, which is exactly the
+    // unclamped, mid-edit state the render path has to defend against.
+    await user.type(sizeField, '99999')
+
+    const canvas = document.querySelector('canvas')
+    expect(canvas).toBeInTheDocument()
+    expect(canvas!.width).toBe(512)
+  })
+
+  it('caps the canvas at the min size for an oversized negative value', async () => {
+    const user = userEvent.setup()
+    render(<QrCodeWidget instanceId="test-size-floor" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /customize/i }))
+    const sizeField = screen.getByLabelText(/size \(px\)/i)
+    await user.clear(sizeField)
+    await user.type(sizeField, '-5')
+
+    const canvas = document.querySelector('canvas')
+    expect(canvas).toBeInTheDocument()
+    expect(canvas!.width).toBe(96)
+  })
 })
