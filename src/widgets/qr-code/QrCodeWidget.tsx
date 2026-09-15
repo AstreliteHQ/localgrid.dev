@@ -43,18 +43,13 @@ const DEFAULT_TYPE: QrType = 'text'
 const DEFAULT_TEXT = 'https://localgrid.dev'
 const DEFAULT_SIZE = 200
 const MIN_SIZE = 96
-const MAX_SIZE = 512
+const MAX_SIZE = 1024
 const MIN_MARGIN = 0
 const MAX_MARGIN = 10
 const DEFAULT_FG = '#000000'
 const DEFAULT_BG = '#ffffff'
 const DEFAULT_LEVEL: ErrorLevel = 'M'
 const DEFAULT_MARGIN = 2
-// On-screen cap only — the actual canvas (and what Download saves) always
-// renders at the real, uncapped `size`/`margin` the fields below resolve
-// to; this just keeps a large chosen size from blowing up the widget's
-// layout, the same way an oversized <img> would be constrained.
-const PREVIEW_MAX_PX = 240
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
@@ -383,7 +378,15 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
               {/* Always a plain white surface, regardless of theme — a dark
                * container would hurt scan contrast against a light QR code,
                * same reasoning as ShareModal's own QR preview. */}
-              <div ref={qrContainerRef} className="rounded-lg bg-white p-2">
+              <div ref={qrContainerRef} className="w-full max-w-[240px] rounded-lg bg-white p-2">
+                {/* `size` (up to MAX_SIZE) still sets the canvas' real pixel
+                 * resolution via the width/height attributes qrcode.react
+                 * puts on it — untouched by this. Only the *display* size is
+                 * overridden here, to fill this box's own width (itself
+                 * capped, and never auto/content-dependent — a % width on
+                 * the canvas resolving against an auto-width ancestor is
+                 * what made the on-screen size and centering unreliable
+                 * before). */}
                 <QRCodeCanvas
                   value={value}
                   size={renderSize}
@@ -391,7 +394,7 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
                   bgColor={bgColor}
                   level={errorLevel}
                   marginSize={renderMargin}
-                  style={{ maxWidth: `min(${PREVIEW_MAX_PX}px, 100%)`, maxHeight: PREVIEW_MAX_PX }}
+                  style={{ width: '100%', height: 'auto' }}
                 />
               </div>
               <div className="flex items-center gap-1">
