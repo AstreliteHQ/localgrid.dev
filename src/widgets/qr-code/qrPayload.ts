@@ -41,8 +41,8 @@ export type QrFields =
   | ({ type: 'phone' } & PhoneFields)
   | ({ type: 'vcard' } & VCardFields)
 
-/** WIFI: and vCard payloads are separator-delimited "MECARD-style" formats —
- * a value containing one of those separators (e.g. a Wi-Fi password with a
+/** WIFI: and vCard payloads are separator-delimited "MECARD-style" formats.
+ * A value containing one of those separators (e.g. a Wi-Fi password with a
  * `;` in it) has to be backslash-escaped, or a scanner parsing the payload
  * would treat it as the start of the next field and silently truncate this
  * one. Backslashes are escaped first, so a value's own escape sequences
@@ -98,7 +98,7 @@ function buildVCardValue(f: VCardFields): string {
   return lines.join('\n')
 }
 
-/** Whether `fields` has enough to produce a payload worth rendering — each
+/** Whether `fields` has enough to produce a payload worth rendering: each
  * type's one truly required field (an empty SSID or phone number would
  * still "work" but produce a QR code nobody meant to generate). */
 export function isQrFieldsComplete(fields: QrFields): boolean {
@@ -117,7 +117,7 @@ export function isQrFieldsComplete(fields: QrFields): boolean {
   }
 }
 
-/** Builds the raw string encoded into the QR code — empty once `fields`
+/** Builds the raw string encoded into the QR code, empty once `fields`
  * isn't complete yet, so the widget can tell "nothing to render" apart from
  * a real payload. */
 export function buildQrValue(fields: QrFields): string {
