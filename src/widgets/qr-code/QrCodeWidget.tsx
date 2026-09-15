@@ -33,11 +33,18 @@ const WIFI_ENCRYPTION_OPTIONS: { label: string; value: WifiEncryption }[] = [
 ]
 
 const ERROR_LEVEL_OPTIONS: { label: string; value: ErrorLevel }[] = [
-  { label: 'L', value: 'L' },
-  { label: 'M', value: 'M' },
-  { label: 'Q', value: 'Q' },
-  { label: 'H', value: 'H' },
+  { label: 'Low', value: 'L' },
+  { label: 'Medium', value: 'M' },
+  { label: 'Quartile', value: 'Q' },
+  { label: 'High', value: 'H' },
 ]
+
+const ERROR_LEVEL_DESCRIPTIONS: Record<ErrorLevel, string> = {
+  L: 'Recovers from ~7% damage — the smallest, least redundant code.',
+  M: 'Recovers from ~15% damage — a good default for most codes.',
+  Q: 'Recovers from ~25% damage — safer for printed or handled codes.',
+  H: 'Recovers from ~30% damage — best if you plan to add a logo on top.',
+}
 
 const DEFAULT_TYPE: QrType = 'text'
 const DEFAULT_TEXT = 'https://localgrid.dev'
@@ -506,7 +513,13 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
                 </Field>
               </div>
               <Field label="Error correction">
-                <SegmentedControl value={errorLevel} onChange={setErrorLevel} options={ERROR_LEVEL_OPTIONS} />
+                <SegmentedControl
+                  value={errorLevel}
+                  onChange={setErrorLevel}
+                  options={ERROR_LEVEL_OPTIONS}
+                  className="flex-wrap"
+                />
+                <p className="pt-1 text-[11px] text-muted-foreground">{ERROR_LEVEL_DESCRIPTIONS[errorLevel]}</p>
               </Field>
             </div>
           </CollapsibleContent>
