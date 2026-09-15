@@ -40,10 +40,10 @@ const ERROR_LEVEL_OPTIONS: { label: string; value: ErrorLevel }[] = [
 ]
 
 const ERROR_LEVEL_DESCRIPTIONS: Record<ErrorLevel, string> = {
-  L: 'Recovers from ~7% damage — the smallest, least redundant code.',
-  M: 'Recovers from ~15% damage — a good default for most codes.',
-  Q: 'Recovers from ~25% damage — safer for printed or handled codes.',
-  H: 'Recovers from ~30% damage — best if you plan to add a logo on top.',
+  L: 'Recovers from ~7% damage: the smallest, least redundant code.',
+  M: 'Recovers from ~15% damage: a good default for most codes.',
+  Q: 'Recovers from ~25% damage: safer for printed or handled codes.',
+  H: 'Recovers from ~30% damage: best if you plan to add a logo on top.',
 }
 
 const DEFAULT_TYPE: QrType = 'text'
@@ -143,7 +143,7 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
   )
 
   // One discriminated-union object per render, built from whichever fields
-  // are active for `qrType` — buildQrValue only ever looks at the branch
+  // are active for `qrType`. buildQrValue only ever looks at the branch
   // matching its own `type`, so the other tabs' fields are along for the
   // ride but harmless.
   const fields: QrFields = useMemo(() => {
@@ -199,7 +199,7 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
   const value = useMemo(() => buildQrValue(fields), [fields])
 
   // NumberField reports every keystroke as-typed, clamped only once the
-  // field blurs (see its own comment on why) — so a value mid-edit (e.g.
+  // field blurs (see its own comment on why), so a value mid-edit (e.g.
   // "5" on the way to typing "500") can briefly sit outside
   // [MIN_SIZE, MAX_SIZE]. Rendering that straight into the canvas' `size`
   // would ask the browser to allocate an arbitrarily large bitmap, so the
@@ -221,7 +221,7 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
   const copyImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Hands the ClipboardItem a pending Blob promise rather than awaiting
-  // canvas.toBlob() first — Safari only allows a clipboard write while
+  // canvas.toBlob() first. Safari only allows a clipboard write while
   // still inside the click's own call stack, and toBlob's callback fires
   // after that stack has already unwound. Passing the still-pending
   // promise into `write()` (itself still called synchronously from the
@@ -413,15 +413,15 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
         <div className="flex flex-col items-center gap-2">
           {value ? (
             <>
-              {/* Always a plain white surface, regardless of theme — a dark
+              {/* Always a plain white surface, regardless of theme: a dark
                * container would hurt scan contrast against a light QR code,
                * same reasoning as ShareModal's own QR preview. */}
               <div ref={qrContainerRef} className="w-full max-w-[240px] rounded-lg bg-white p-2">
                 {/* `size` (up to MAX_SIZE) still sets the canvas' real pixel
                  * resolution via the width/height attributes qrcode.react
-                 * puts on it — untouched by this. Only the *display* size is
+                 * puts on it, untouched by this. Only the *display* size is
                  * overridden here, to fill this box's own width (itself
-                 * capped, and never auto/content-dependent — a % width on
+                 * capped, and never auto/content-dependent: a % width on
                  * the canvas resolving against an auto-width ancestor is
                  * what made the on-screen size and centering unreliable
                  * before). */}

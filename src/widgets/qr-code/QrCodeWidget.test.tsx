@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import QrCodeWidget from './QrCodeWidget'
 
 /** jsdom implements neither `canvas.toBlob` nor the Clipboard/ClipboardItem
- * write path — stub both the way WcagCheckerWidget.test.tsx stubs
+ * write path, so stub both the way WcagCheckerWidget.test.tsx stubs
  * `navigator.clipboard.writeText` for its own copy button. */
 function stubImageClipboard() {
   const blob = new Blob(['fake-png'], { type: 'image/png' })
@@ -82,7 +82,7 @@ describe('QrCodeWidget', () => {
 
     await user.click(screen.getByRole('button', { name: /customize/i }))
 
-    // Bare "L"/"M"/"Q"/"H" letters weren't self-explanatory — spelled out now.
+    // Bare "L"/"M"/"Q"/"H" letters weren't self-explanatory, so spelled out now.
     expect(screen.getByRole('button', { name: 'Low' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Medium' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Quartile' })).toBeInTheDocument()
@@ -112,7 +112,7 @@ describe('QrCodeWidget', () => {
     await user.click(screen.getByRole('button', { name: /customize/i }))
     const sizeField = screen.getByLabelText(/size \(px\)/i)
     await user.clear(sizeField)
-    // Typed digit-by-digit without blurring — NumberField reports each
+    // Typed digit-by-digit without blurring: NumberField reports each
     // intermediate value (99, 999, 9999…) as-is, which is exactly the
     // unclamped, mid-edit state the render path has to defend against.
     await user.type(sizeField, '999999')
@@ -141,7 +141,7 @@ describe('QrCodeWidget', () => {
 
     const canvas = document.querySelector('canvas')!
     // The box has an explicit width (capped, not shrink-to-fit around the
-    // canvas), and the canvas fills it at 100% — a % width on the canvas
+    // canvas), and the canvas fills it at 100%. A % width on the canvas
     // resolving against an auto-width ancestor was what made the on-screen
     // size (and centering) inconsistent across renders.
     expect(canvas.parentElement).toHaveClass('w-full', 'max-w-[240px]')
