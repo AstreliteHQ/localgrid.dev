@@ -87,6 +87,11 @@ describe('buildQrValue', () => {
     expect(buildQrValue({ type: 'email', to: 'a@b.com', subject: '', body: '' })).toBe('mailto:a@b.com')
   })
 
+  it('percent-encodes reserved characters in the recipient so they cannot start the query string early', () => {
+    const value = buildQrValue({ type: 'email', to: 'sales?east@example.com', subject: 'Hi', body: '' })
+    expect(value).toBe('mailto:sales%3Feast@example.com?subject=Hi')
+  })
+
   it('builds an SMSTO: payload', () => {
     expect(buildQrValue({ type: 'sms', phone: '+15550100', message: 'hey' })).toBe('SMSTO:+15550100:hey')
   })
@@ -116,6 +121,28 @@ describe('buildQrValue', () => {
         'TEL:+15550100',
         'EMAIL:ada@example.com',
         'URL:https://example.com',
+        'END:VCARD',
+      ].join('\n'),
+    )
+  })
+
+  it('leaves commas and semicolons in the vCard URL unescaped, since it holds a URI not text', () => {
+    const value = buildQrValue({
+      type: 'vcard',
+      firstName: 'Ada',
+      lastName: '',
+      organization: '',
+      phone: '',
+      email: '',
+      url: 'https://example.com/search?tag=a,b;c',
+    })
+    expect(value).toBe(
+      [
+        'BEGIN:VCARD',
+        'VERSION:3.0',
+        'N:;Ada;;;',
+        'FN:Ada',
+        'URL:https://example.com/search?tag=a,b;c',
         'END:VCARD',
       ].join('\n'),
     )
