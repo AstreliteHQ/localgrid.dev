@@ -44,10 +44,21 @@ const DEFAULT_TEXT = 'https://localgrid.dev'
 const DEFAULT_SIZE = 200
 const MIN_SIZE = 96
 const MAX_SIZE = 512
+const MIN_MARGIN = 0
+const MAX_MARGIN = 10
 const DEFAULT_FG = '#000000'
 const DEFAULT_BG = '#ffffff'
 const DEFAULT_LEVEL: ErrorLevel = 'M'
 const DEFAULT_MARGIN = 2
+// On-screen cap only — the actual canvas (and what Download saves) always
+// renders at the real, uncapped `size`/`margin` the fields below resolve
+// to; this just keeps a large chosen size from blowing up the widget's
+// layout, the same way an oversized <img> would be constrained.
+const PREVIEW_MAX_PX = 240
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
 
 export default function QrCodeWidget({ instanceId }: WidgetProps) {
   const [qrType, setQrType] = useWidgetState<QrType>(instanceId, 'qrType', DEFAULT_TYPE)
@@ -182,6 +193,16 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
   ])
 
   const value = useMemo(() => buildQrValue(fields), [fields])
+
+  // NumberField reports every keystroke as-typed, clamped only once the
+  // field blurs (see its own comment on why) — so a value mid-edit (e.g.
+  // "5" on the way to typing "500") can briefly sit outside
+  // [MIN_SIZE, MAX_SIZE]. Rendering that straight into the canvas' `size`
+  // would ask the browser to allocate an arbitrarily large bitmap, so the
+  // real render always goes through this clamp regardless of what the
+  // field currently displays.
+  const renderSize = clamp(size, MIN_SIZE, MAX_SIZE)
+  const renderMargin = clamp(margin, MIN_MARGIN, MAX_MARGIN)
 
   const handleDownload = () => {
     const canvas = qrContainerRef.current?.querySelector('canvas')
@@ -365,12 +386,12 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
               <div ref={qrContainerRef} className="rounded-lg bg-white p-2">
                 <QRCodeCanvas
                   value={value}
-                  size={size}
+                  size={renderSize}
                   fgColor={fgColor}
                   bgColor={bgColor}
                   level={errorLevel}
-                  marginSize={margin}
-                  className="h-auto max-w-full"
+                  marginSize={renderMargin}
+                  style={{ maxWidth: `min(${PREVIEW_MAX_PX}px, 100%)`, maxHeight: PREVIEW_MAX_PX }}
                 />
               </div>
               <div className="flex items-center gap-1">
