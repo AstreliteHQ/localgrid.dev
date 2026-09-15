@@ -3,6 +3,8 @@ import { QRCodeCanvas } from 'qrcode.react'
 import { AlertTriangle, Check, Download, ImageIcon } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { PageColorPicker } from '@/components/PageColorPicker'
+import { ScreenColorPicker } from '@/components/ScreenColorPicker'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -490,8 +492,8 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
             <div className="flex flex-col gap-2 pt-2">
               <NumberField label="Size (px)" value={size} min={MIN_SIZE} max={MAX_SIZE} onChange={setSize} />
               <NumberField label="Margin" value={margin} min={0} max={10} onChange={setMargin} />
-              <div className="flex gap-2">
-                <Field label="Foreground" htmlFor={fgColorId}>
+              <Field label="Foreground" htmlFor={fgColorId}>
+                <div className="flex items-center gap-1.5">
                   <Input
                     id={fgColorId}
                     type="color"
@@ -500,8 +502,12 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
                     className="h-8 w-14 cursor-pointer p-0"
                     aria-label="Foreground color"
                   />
-                </Field>
-                <Field label="Background" htmlFor={bgColorId}>
+                  <PageColorPicker onPick={setFgColor} />
+                  <ScreenColorPicker onPick={setFgColor} />
+                </div>
+              </Field>
+              <Field label="Background" htmlFor={bgColorId}>
+                <div className="flex items-center gap-1.5">
                   <Input
                     id={bgColorId}
                     type="color"
@@ -510,8 +516,10 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
                     className="h-8 w-14 cursor-pointer p-0"
                     aria-label="Background color"
                   />
-                </Field>
-              </div>
+                  <PageColorPicker onPick={setBgColor} />
+                  <ScreenColorPicker onPick={setBgColor} />
+                </div>
+              </Field>
               <Field label="Error correction">
                 <SegmentedControl
                   value={errorLevel}
