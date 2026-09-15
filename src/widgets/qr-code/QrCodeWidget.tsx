@@ -1,6 +1,6 @@
-import { useId, useMemo, useRef } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
-import { Download } from 'lucide-react'
+import { AlertTriangle, Check, Download, ImageIcon } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { Field } from '@/components/Field'
@@ -54,6 +54,8 @@ const DEFAULT_MARGIN = 2
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
+
+type CopyImageStatus = 'idle' | 'copied' | 'failed'
 
 export default function QrCodeWidget({ instanceId }: WidgetProps) {
   const [qrType, setQrType] = useWidgetState<QrType>(instanceId, 'qrType', DEFAULT_TYPE)
@@ -206,6 +208,35 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
     link.download = 'qr-code.png'
     link.href = canvas.toDataURL('image/png')
     link.click()
+  }
+
+  const [copyImageStatus, setCopyImageStatus] = useState<CopyImageStatus>('idle')
+  const copyImageTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  // Hands the ClipboardItem a pending Blob promise rather than awaiting
+  // canvas.toBlob() first — Safari only allows a clipboard write while
+  // still inside the click's own call stack, and toBlob's callback fires
+  // after that stack has already unwound. Passing the still-pending
+  // promise into `write()` (itself still called synchronously from the
+  // click) lets the browser wait on the encode without losing the click's
+  // permission grant.
+  const handleCopyImage = async () => {
+    const canvas = qrContainerRef.current?.querySelector('canvas')
+    if (canvas && typeof ClipboardItem !== 'undefined') {
+      try {
+        const blob = new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob((result) => (result ? resolve(result) : reject(new Error('toBlob failed'))), 'image/png')
+        })
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+        setCopyImageStatus('copied')
+      } catch {
+        setCopyImageStatus('failed')
+      }
+    } else {
+      setCopyImageStatus('failed')
+    }
+    clearTimeout(copyImageTimeoutRef.current)
+    copyImageTimeoutRef.current = setTimeout(() => setCopyImageStatus('idle'), 1200)
   }
 
   return (
@@ -397,8 +428,32 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
                   style={{ width: '100%', height: 'auto' }}
                 />
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex flex-wrap items-center justify-center gap-1">
                 <CopyButton value={value} label="Copy value" />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyImage}
+                  aria-live="polite"
+                  className={cn(
+                    'h-auto gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground',
+                    copyImageStatus === 'failed' && 'text-destructive hover:text-destructive',
+                  )}
+                >
+                  {copyImageStatus === 'copied' ? (
+                    <Check className="size-3.5" />
+                  ) : copyImageStatus === 'failed' ? (
+                    <AlertTriangle className="size-3.5" />
+                  ) : (
+                    <ImageIcon className="size-3.5" />
+                  )}
+                  {copyImageStatus === 'copied'
+                    ? 'Copied'
+                    : copyImageStatus === 'failed'
+                      ? 'Copy failed'
+                      : 'Copy image'}
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"

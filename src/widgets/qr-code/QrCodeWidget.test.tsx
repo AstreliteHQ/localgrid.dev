@@ -1,7 +1,29 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import QrCodeWidget from './QrCodeWidget'
+
+/** jsdom implements neither `canvas.toBlob` nor the Clipboard/ClipboardItem
+ * write path — stub both the way WcagCheckerWidget.test.tsx stubs
+ * `navigator.clipboard.writeText` for its own copy button. */
+function stubImageClipboard() {
+  const blob = new Blob(['fake-png'], { type: 'image/png' })
+  HTMLCanvasElement.prototype.toBlob = function (callback: BlobCallback) {
+    callback(blob)
+  }
+  const write = vi.fn().mockResolvedValue(undefined)
+  Object.defineProperty(navigator, 'clipboard', { value: { write }, configurable: true })
+  vi.stubGlobal(
+    'ClipboardItem',
+    class {
+      items: Record<string, Blob | Promise<Blob>>
+      constructor(items: Record<string, Blob | Promise<Blob>>) {
+        this.items = items
+      }
+    },
+  )
+  return write
+}
 
 describe('QrCodeWidget', () => {
   it('renders a QR code for the default text value', () => {
@@ -107,5 +129,34 @@ describe('QrCodeWidget', () => {
     expect(canvas.parentElement).toHaveClass('w-full', 'max-w-[240px]')
     expect(canvas.style.width).toBe('100%')
     expect(canvas.style.height).toBe('auto')
+  })
+
+  it('copies the QR code as a PNG image to the clipboard', async () => {
+    // userEvent.setup() installs its own clipboard stub, so the real
+    // clipboard override below has to come after it or userEvent clobbers
+    // it right back.
+    const user = userEvent.setup()
+    const write = stubImageClipboard()
+    render(<QrCodeWidget instanceId="test-copy-image" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /copy image/i }))
+
+    expect(write).toHaveBeenCalledTimes(1)
+    const [items] = write.mock.calls[0]
+    expect(items).toHaveLength(1)
+    expect(await items[0].items['image/png']).toBeInstanceOf(Blob)
+    expect(await screen.findByRole('button', { name: /^copied$/i })).toBeInTheDocument()
+  })
+
+  it('shows a failure state when the clipboard write is rejected', async () => {
+    const user = userEvent.setup()
+    stubImageClipboard()
+    const write = vi.fn().mockRejectedValue(new Error('denied'))
+    Object.defineProperty(navigator, 'clipboard', { value: { write }, configurable: true })
+    render(<QrCodeWidget instanceId="test-copy-image-fail" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /copy image/i }))
+
+    expect(await screen.findByRole('button', { name: /copy failed/i })).toBeInTheDocument()
   })
 })
