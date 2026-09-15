@@ -76,6 +76,24 @@ describe('QrCodeWidget', () => {
     expect(screen.getByLabelText(/background color/i)).toBeInTheDocument()
   })
 
+  it('spells out the error correction levels and explains the selected one', async () => {
+    const user = userEvent.setup()
+    render(<QrCodeWidget instanceId="test-error-level" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /customize/i }))
+
+    // Bare "L"/"M"/"Q"/"H" letters weren't self-explanatory — spelled out now.
+    expect(screen.getByRole('button', { name: 'Low' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Medium' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Quartile' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'High' })).toBeInTheDocument()
+
+    expect(screen.getByText(/recovers from ~15% damage/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'High' }))
+    expect(screen.getByText(/recovers from ~30% damage/i)).toBeInTheDocument()
+  })
+
   it('shows a contact-card QR code once a first name is entered', async () => {
     const user = userEvent.setup()
     render(<QrCodeWidget instanceId="test-vcard" mode="grid" />)
