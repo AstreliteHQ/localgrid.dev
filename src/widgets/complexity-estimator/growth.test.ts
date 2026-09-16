@@ -36,6 +36,13 @@ describe('formatGrowth', () => {
     expect(formatGrowth({ kind: 'poly', degree: 12, logs: 0 })).toBe('O(n^12)')
   })
 
+  it('writes a fractional degree instead of swallowing it', () => {
+    // What solveDivideAndConquer(3, 4, CONSTANT) produces: a real growth
+    // rate between constant and linear, which must not read as O(1).
+    expect(formatGrowth({ kind: 'poly', degree: 0.79, logs: 0 })).toBe('O(n^0.79)')
+    expect(formatGrowth(solveDivideAndConquer(3, 4, CONSTANT))).toBe('O(n^0.79)')
+  })
+
   it('writes repeated log factors', () => {
     expect(formatGrowth({ kind: 'poly', degree: 1, logs: 2 })).toBe('O(n log² n)')
     expect(formatGrowth({ kind: 'poly', degree: 0, logs: 2 })).toBe('O(log² n)')
@@ -123,5 +130,10 @@ describe('describeGrowth', () => {
       expect(describeGrowth(growth).length).toBeGreaterThan(10)
     }
     expect(describeGrowth(QUADRATIC)).toContain('quadruples')
+  })
+
+  it('names the base of an exponential rather than always saying it doubles', () => {
+    expect(describeGrowth({ kind: 'exponential', base: 2 })).toContain('multiplies the work by 2')
+    expect(describeGrowth({ kind: 'exponential', base: 3 })).toContain('multiplies the work by 3')
   })
 })

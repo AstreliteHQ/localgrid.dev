@@ -15,6 +15,7 @@
 import { parser } from '@lezer/javascript'
 import type { SyntaxNode } from '@lezer/common'
 import {
+  compareGrowth,
   CONSTANT,
   LINEAR,
   LINEARITHMIC,
@@ -640,7 +641,11 @@ export function analyzeComplexity(source: string): Analysis | AnalysisFailure {
     growth,
     confidence: context.confidence.value,
     // Worst first, so the line driving the verdict is the one at the top.
-    findings: context.findings.sort((a, b) => b.growth.kind.localeCompare(a.growth.kind) || a.line - b.line),
+    // Comparing the growth terms is the only ordering that means anything:
+    // sorting on the name of the kind put every polynomial ahead of every
+    // exponential, and ignored degree entirely, so the line driving the
+    // verdict could fall outside the heaviest few the widget shows.
+    findings: context.findings.sort((a, b) => compareGrowth(b.growth, a.growth) || a.line - b.line),
     functions,
     notes: [...context.notes],
   }

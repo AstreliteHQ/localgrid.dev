@@ -85,7 +85,10 @@ export function formatGrowth(growth: Growth): string {
 
   const parts: string[] = []
   if (growth.degree === 1) parts.push('n')
-  else if (growth.degree > 1) parts.push(`n${superscript(growth.degree)}`)
+  // Any positive degree, not just one above 1: a master-theorem solve can
+  // land on a fraction (n^0.79 for three calls on a quarter of the input),
+  // and dropping those printed such a result as O(1).
+  else if (growth.degree > 0) parts.push(`n${superscript(growth.degree)}`)
   if (growth.logs === 1) parts.push('log n')
   else if (growth.logs > 1) parts.push(`log${superscript(growth.logs)} n`)
 
@@ -97,8 +100,10 @@ export function formatGrowth(growth: Growth): string {
 export function describeGrowth(growth: Growth): string {
   if (growth.kind === 'factorial')
     return 'Factorial: every added item multiplies the work. Unusable beyond a handful of items.'
+  // Named base rather than "doubles": three recursive calls per level give
+  // O(3^n), where each added item triples the work.
   if (growth.kind === 'exponential')
-    return 'Exponential: each added item doubles the work. Only viable for very small inputs.'
+    return `Exponential: each added item multiplies the work by ${growth.base}. Only viable for very small inputs.`
   if (growth.degree === 0 && growth.logs === 0) return 'Constant: the input size does not change the work.'
   if (growth.degree === 0) return 'Logarithmic: doubling the input adds a fixed amount of work.'
   if (growth.degree === 1 && growth.logs === 0) return 'Linear: work grows in step with the input.'
