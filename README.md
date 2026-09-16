@@ -30,7 +30,6 @@ localgrid instead treats tools as widgets on a persistent dashboard. Pin the fiv
 reach for constantly, arrange them however fits your screen, and keep working across all of
 them at once without losing state or hunting for the next tab.
 
-
 ## Features
 
 ### Client-side, offline, installable
@@ -57,20 +56,20 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-33 tools across 10 categories, and growing.
+34 tools across 10 categories, and growing.
 
-| Category   | Widgets                                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------- |
-| Generators | UUID Generator                                                                                            |
-| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter                |
-| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                               |
-| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                                        |
-| Text       | Content Type Detector, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff      |
-| Math       | Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
-| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                |
-| Color      | Color Converter, WCAG Contrast Checker                                                                    |
-| Network    | Subnet Calculator                                                                                         |
-| Time       | Timeline Builder, Timer, World Clock                                                                      |
+| Category   | Widgets                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Generators | UUID Generator                                                                                                                 |
+| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter                                     |
+| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                                                    |
+| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator                                                             |
+| Text       | Content Type Detector, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff                           |
+| Math       | Expression Evaluator, File Size Converter, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
+| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                     |
+| Color      | Color Converter, WCAG Contrast Checker                                                                                         |
+| Network    | Subnet Calculator                                                                                                              |
+| Time       | Timeline Builder, Timer, World Clock                                                                                           |
 
 ## How it compares
 

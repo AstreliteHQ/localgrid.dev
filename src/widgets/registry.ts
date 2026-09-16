@@ -17,6 +17,7 @@ import { numberBaseConverterDefinition } from './number-base-converter/definitio
 import { expressionEvaluatorDefinition } from './expression-evaluator/definition'
 import { percentageCalculatorDefinition } from './percentage-calculator/definition'
 import { unitConverterDefinition } from './unit-converter/definition'
+import { fileSizeConverterDefinition } from './file-size-converter/definition'
 import { statisticsCalculatorDefinition } from './statistics-calculator/definition'
 import { notesDefinition } from './notes/definition'
 import { subnetCalculatorDefinition } from './subnet-calculator/definition'
@@ -56,6 +57,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   expressionEvaluatorDefinition,
   percentageCalculatorDefinition,
   unitConverterDefinition,
+  fileSizeConverterDefinition,
   statisticsCalculatorDefinition,
   notesDefinition,
   subnetCalculatorDefinition,
