@@ -6,17 +6,21 @@ import { openSearchPanel } from '@codemirror/search'
 import { tags } from '@lezer/highlight'
 import { json } from '@codemirror/lang-json'
 import { xml } from '@codemirror/lang-xml'
+import { javascript } from '@codemirror/lang-javascript'
 import { Prec, type Extension } from '@codemirror/state'
 import { Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
 
-export type CodeEditorLanguage = 'json' | 'xml' | 'plaintext'
+export type CodeEditorLanguage = 'json' | 'xml' | 'javascript' | 'plaintext'
 
 const LANGUAGE_EXTENSIONS: Record<CodeEditorLanguage, () => Extension[]> = {
   json: () => [json()],
   xml: () => [xml()],
+  // TypeScript rather than plain JS: the grammar is a superset, so a .ts
+  // snippet keeps its highlighting and a .js one loses nothing.
+  javascript: () => [javascript({ typescript: true })],
   // No language grammar to highlight — just wrap long lines instead of
   // scrolling horizontally, which matters far more for prose than for the
   // structured/single-line inputs the other widgets edit.
@@ -111,11 +115,10 @@ export function useAppEditorTheme(isDark: boolean): Extension {
         // to be matched selector-for-selector to actually override it —
         // this is the state you see any time text is actually selected
         // with the editor focused, i.e. most of the time.
-        '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground':
-          {
-            backgroundColor: 'var(--color-ring)',
-            opacity: 0.35,
-          },
+        '.cm-selectionBackground, &.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+          backgroundColor: 'var(--color-ring)',
+          opacity: 0.35,
+        },
         // Same wash/outline treatment as .cm-selectionMatch below, but on
         // amber so search hits read as a distinct kind of highlight rather
         // than more of the same ring-blue. --color-highlight itself (amber-200
@@ -271,88 +274,86 @@ export function useAppEditorTheme(isDark: boolean): Extension {
  * app's own colors. `readOnly` instances drop the extensions that only
  * matter for editing, since they're the ones most likely to be duplicated
  * across many pinned widgets at once (see the JSON Formatter output pane). */
-export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(
-  function CodeEditor(
-    { value, onChange, language, readOnly, placeholder, className, 'aria-label': ariaLabel, extraExtensions },
-    ref,
-  ) {
-    const isDark = useIsDarkTheme()
-    const appTheme = useAppEditorTheme(isDark)
-    // Captured via onCreateEditor rather than reused from the forwarded
-    // `ref` — a caller may or may not pass one, and this button needs the
-    // live EditorView either way to open the search panel programmatically
-    // (the same panel Mod-F already opens; this is just a discoverable
-    // on-screen trigger for it).
-    const viewRef = useRef<EditorView | null>(null)
-    const extensions = useMemo(() => {
-      const exts = language ? LANGUAGE_EXTENSIONS[language]() : []
-      // React's `aria-label` prop on <CodeMirror> would land on the
-      // component's outer wrapper div, not on `.cm-content` itself (the
-      // element that actually carries role="textbox") — an ancestor's
-      // aria-label doesn't contribute to a descendant's accessible name, so
-      // it has to be set directly on the content element via this facet
-      // instead for `getByRole('textbox', { name })` (tests) and screen
-      // readers alike to pick it up.
-      if (ariaLabel) {
-        exts.push(EditorView.contentAttributes.of({ 'aria-label': ariaLabel }))
-      }
-      if (extraExtensions) {
-        exts.push(...extraExtensions)
-      }
-      return exts
-    }, [language, ariaLabel, extraExtensions])
+export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(function CodeEditor(
+  { value, onChange, language, readOnly, placeholder, className, 'aria-label': ariaLabel, extraExtensions },
+  ref,
+) {
+  const isDark = useIsDarkTheme()
+  const appTheme = useAppEditorTheme(isDark)
+  // Captured via onCreateEditor rather than reused from the forwarded
+  // `ref` — a caller may or may not pass one, and this button needs the
+  // live EditorView either way to open the search panel programmatically
+  // (the same panel Mod-F already opens; this is just a discoverable
+  // on-screen trigger for it).
+  const viewRef = useRef<EditorView | null>(null)
+  const extensions = useMemo(() => {
+    const exts = language ? LANGUAGE_EXTENSIONS[language]() : []
+    // React's `aria-label` prop on <CodeMirror> would land on the
+    // component's outer wrapper div, not on `.cm-content` itself (the
+    // element that actually carries role="textbox") — an ancestor's
+    // aria-label doesn't contribute to a descendant's accessible name, so
+    // it has to be set directly on the content element via this facet
+    // instead for `getByRole('textbox', { name })` (tests) and screen
+    // readers alike to pick it up.
+    if (ariaLabel) {
+      exts.push(EditorView.contentAttributes.of({ 'aria-label': ariaLabel }))
+    }
+    if (extraExtensions) {
+      exts.push(...extraExtensions)
+    }
+    return exts
+  }, [language, ariaLabel, extraExtensions])
 
-    return (
-      <div
-        data-slot="code-editor"
-        className={cn(
-          'relative overflow-hidden rounded-md border border-border bg-background dark:bg-muted/40',
-          className,
-        )}
+  return (
+    <div
+      data-slot="code-editor"
+      className={cn(
+        'relative overflow-hidden rounded-md border border-border bg-background dark:bg-muted/40',
+        className,
+      )}
+    >
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        onClick={() => viewRef.current && openSearchPanel(viewRef.current)}
+        aria-label={readOnly ? 'Find' : 'Find and replace'}
+        title={readOnly ? 'Find' : 'Find and replace'}
+        className="absolute right-1 top-1 z-10 bg-inherit text-muted-foreground"
       >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-xs"
-          onClick={() => viewRef.current && openSearchPanel(viewRef.current)}
-          aria-label={readOnly ? 'Find' : 'Find and replace'}
-          title={readOnly ? 'Find' : 'Find and replace'}
-          className="absolute right-1 top-1 z-10 bg-inherit text-muted-foreground"
-        >
-          <Search className="size-3.5" />
-        </Button>
-        <CodeMirror
-          ref={ref}
-          value={value}
-          onChange={onChange}
-          extensions={extensions}
-          theme={appTheme}
-          readOnly={readOnly}
-          placeholder={placeholder}
-          height="100%"
-          onCreateEditor={(view) => {
-            viewRef.current = view
-          }}
-          // @uiw/react-codemirror renders its own wrapper div (`cm-theme-*`)
-          // around CodeMirror's actual root (`.cm-editor`), one level inside
-          // this component's own wrapper above. That div has no height of
-          // its own by default, so `.cm-editor`'s `height: 100%` (from the
-          // `height` prop below) resolves against an auto-height parent —
-          // which CSS treats as `auto` too — and the editor grows to fit
-          // its content instead of being capped, silently clipped by this
-          // wrapper's `overflow-hidden` with no scrollbar. Forwarding a
-          // `className` here bounds that middle div to this wrapper's own
-          // (correctly flex-bounded) height, so the cap actually reaches
-          // `.cm-editor`.
-          className="h-full"
-          basicSetup={{
-            highlightActiveLine: !readOnly,
-            autocompletion: !readOnly,
-            closeBrackets: !readOnly,
-            foldGutter: !readOnly,
-          }}
-        />
-      </div>
-    )
-  },
-)
+        <Search className="size-3.5" />
+      </Button>
+      <CodeMirror
+        ref={ref}
+        value={value}
+        onChange={onChange}
+        extensions={extensions}
+        theme={appTheme}
+        readOnly={readOnly}
+        placeholder={placeholder}
+        height="100%"
+        onCreateEditor={(view) => {
+          viewRef.current = view
+        }}
+        // @uiw/react-codemirror renders its own wrapper div (`cm-theme-*`)
+        // around CodeMirror's actual root (`.cm-editor`), one level inside
+        // this component's own wrapper above. That div has no height of
+        // its own by default, so `.cm-editor`'s `height: 100%` (from the
+        // `height` prop below) resolves against an auto-height parent —
+        // which CSS treats as `auto` too — and the editor grows to fit
+        // its content instead of being capped, silently clipped by this
+        // wrapper's `overflow-hidden` with no scrollbar. Forwarding a
+        // `className` here bounds that middle div to this wrapper's own
+        // (correctly flex-bounded) height, so the cap actually reaches
+        // `.cm-editor`.
+        className="h-full"
+        basicSetup={{
+          highlightActiveLine: !readOnly,
+          autocompletion: !readOnly,
+          closeBrackets: !readOnly,
+          foldGutter: !readOnly,
+        }}
+      />
+    </div>
+  )
+})
