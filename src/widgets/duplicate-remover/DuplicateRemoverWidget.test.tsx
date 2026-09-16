@@ -126,6 +126,23 @@ describe('DuplicateRemoverWidget', () => {
     expect(screen.queryByRole('button', { name: /use as input/i })).not.toBeInTheDocument()
   })
 
+  it('round-trips an untrimmed comma list through Use as input unchanged', async () => {
+    const user = userEvent.setup()
+    render(<DuplicateRemoverWidget instanceId="test" mode="grid" />)
+
+    await user.click(inputBox())
+    await user.paste('a, b, b')
+    await user.click(screen.getByRole('button', { name: 'Commas' }))
+    await user.click(screen.getByRole('button', { name: /^trim$/i }))
+    expect(outputBox()).toHaveValue('a, b')
+
+    await user.click(screen.getByRole('button', { name: /use as input/i }))
+    expect(inputBox()).toHaveValue('a, b')
+    // The second pass finds nothing new to remove, which is what tells us
+    // the values did not drift.
+    expect(outputBox()).toHaveValue('a, b')
+  })
+
   it('keeps its options and content across a remount of the same instance', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<DuplicateRemoverWidget instanceId="test" mode="grid" />)

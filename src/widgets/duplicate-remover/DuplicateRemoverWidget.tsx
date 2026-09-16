@@ -62,7 +62,7 @@ export default function DuplicateRemoverWidget({ instanceId }: WidgetProps) {
     () => deduplicate(deferredInput, { splitMode, trim, ignoreCase, order }),
     [deferredInput, splitMode, trim, ignoreCase, order],
   )
-  const output = useMemo(() => joinEntries(result.entries, splitMode), [result, splitMode])
+  const output = useMemo(() => joinEntries(result.entries, splitMode, trim), [result, splitMode, trim])
   const duplicates = useMemo(() => topDuplicates(result.entries, MAX_DUPLICATE_ROWS), [result])
 
   return (
@@ -122,7 +122,13 @@ export default function DuplicateRemoverWidget({ instanceId }: WidgetProps) {
             variant="outline"
             size="xs"
             className="ml-auto"
-            onClick={() => setInput(output)}
+            // While a large paste is still being worked through, `output`
+            // belongs to the previous input: writing it back would undo
+            // the edit that is waiting to be processed.
+            disabled={stale}
+            onClick={() => {
+              if (!stale) setInput(output)
+            }}
             title="Replace the input with the deduplicated list"
           >
             Use as input

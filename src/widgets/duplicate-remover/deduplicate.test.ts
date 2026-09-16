@@ -108,6 +108,20 @@ describe('joinEntries', () => {
   it('returns an empty string for no entries', () => {
     expect(joinEntries([], 'lines')).toBe('')
   })
+
+  it('does not grow untrimmed comma values with an extra space', () => {
+    // With trimming off, ' b' keeps the space that followed its comma, so
+    // the separator must not add another one: round-tripping the result
+    // has to give back the same list.
+    const entries = deduplicate('a, b, b', { ...BASE, splitMode: 'comma', trim: false }).entries
+    expect(entries.map((entry) => entry.value)).toEqual(['a', ' b'])
+    const joined = joinEntries(entries, 'comma', false)
+    expect(joined).toBe('a, b')
+    expect(deduplicate(joined, { ...BASE, splitMode: 'comma', trim: false }).entries.map((e) => e.value)).toEqual([
+      'a',
+      ' b',
+    ])
+  })
 })
 
 describe('topDuplicates', () => {

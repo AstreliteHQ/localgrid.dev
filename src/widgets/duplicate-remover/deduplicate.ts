@@ -114,9 +114,15 @@ export function deduplicate(input: string, options: DedupeOptions): DedupeResult
 
 /** Joins unique values back into text using the separator they were split
  * on. Kept out of `deduplicate` so a caller that only needs the counts
- * never pays for building a string the size of its input. */
-export function joinEntries(entries: UniqueEntry[], splitMode: SplitMode): string {
-  return entries.map((entry) => entry.value).join(JOINERS[splitMode])
+ * never pays for building a string the size of its input.
+ *
+ * `trim` matters for comma mode only: with trimming off, the items still
+ * carry the spaces that followed each comma, so adding the usual `', '`
+ * would hand back a list whose values have grown a space, and feeding that
+ * result back in would grow them again. */
+export function joinEntries(entries: UniqueEntry[], splitMode: SplitMode, trim = true): string {
+  const separator = splitMode === 'comma' && !trim ? ',' : JOINERS[splitMode]
+  return entries.map((entry) => entry.value).join(separator)
 }
 
 /** The most-repeated values first, capped at `limit`. The cap is a
