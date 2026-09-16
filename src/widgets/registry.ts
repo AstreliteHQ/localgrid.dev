@@ -34,6 +34,7 @@ import { logViewerDefinition } from './log-viewer/definition'
 import { lzStringDefinition } from './lz-string/definition'
 import { unixPermissionsDefinition } from './unix-permissions/definition'
 import { timelineBuilderDefinition } from './timeline-builder/definition'
+import { protobufDecoderDefinition } from './protobuf-decoder/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -73,6 +74,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   lzStringDefinition,
   unixPermissionsDefinition,
   timelineBuilderDefinition,
+  protobufDecoderDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
