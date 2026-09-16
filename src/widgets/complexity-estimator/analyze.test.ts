@@ -193,6 +193,19 @@ function quadratic(items) { for (const a of items) for (const b of items) work(a
     expect(worst.line).toBe(2)
   })
 
+  it('puts the heaviest finding first, whatever kind it is', () => {
+    // The exponential recursion is found after the linear loop, and its
+    // kind name sorts before "poly" alphabetically: only a real comparison
+    // of the growth terms puts it at the top, where the widget's capped
+    // list will show it.
+    const result = analyzed(`function walk(items) {
+  for (const item of items) work(item)
+  return walk(items.length - 1) + walk(items.length - 2)
+}`)
+    expect(formatGrowth(result.findings[0].growth)).toBe('O(2^n)')
+    expect(formatGrowth(result.findings[result.findings.length - 1].growth)).toBe('O(n)')
+  })
+
   it('lowers confidence and says so when it cannot see into a call', () => {
     const result = analyzed('function run(items) { for (const item of items) mysteryHelper(item) }')
     expect(result.confidence).toBe('medium')
