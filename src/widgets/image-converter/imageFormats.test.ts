@@ -80,6 +80,34 @@ describe('detectImageFormat', () => {
     expect(detectImageFormat(ascii('<!doctype html><html></html>'))).toBeNull()
   })
 
+  it('requires <svg> to be the root element, not merely present', () => {
+    // An HTML page with an inline icon: `<svg` appears early, but the
+    // document is not an image.
+    expect(detectImageFormat(ascii('<!doctype html><html><body><svg viewBox="0 0 8 8"/></body></html>'))).toBeNull()
+    // A comment that only mentions the tag.
+    expect(detectImageFormat(ascii('<!-- not an <svg> file --><html></html>'))).toBeNull()
+    // An XML document of another kind that embeds one.
+    expect(detectImageFormat(ascii('<?xml version="1.0"?><doc><svg /></doc>'))).toBeNull()
+  })
+
+  it('skips a full prologue to reach the root tag', () => {
+    const declaration = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
+    const doctype = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+    const comment = '<!-- Created with a drawing program -->'
+    expect(detectImageFormat(ascii(`${declaration}\n${doctype}\n${comment}\n<svg xmlns="x"></svg>`))).toBe(
+      IMAGE_FORMATS.svg,
+    )
+    // A doctype carrying an internal subset, whose own > must not end it,
+    // followed by a self-closing root written without a space.
+    expect(detectImageFormat(ascii('<!DOCTYPE svg [ <!ENTITY a "b"> ]>\n<svg/>'))).toBe(IMAGE_FORMATS.svg)
+    expect(detectImageFormat(ascii('<svg/>'))).toBe(IMAGE_FORMATS.svg)
+  })
+
+  it('gives up rather than guessing when the prologue is cut off', () => {
+    // The window ends mid-comment: nothing can be said about the root yet.
+    expect(detectImageFormat(ascii('<!-- a comment that never ends'))).toBeNull()
+  })
+
   it('returns null for plain text, empty input, and a truncated signature', () => {
     expect(detectImageFormat(ascii('hello world'))).toBeNull()
     expect(detectImageFormat(new Uint8Array(0))).toBeNull()

@@ -84,9 +84,42 @@ function detectSvg(bytes: Uint8Array): ImageFormat | null {
     .replace(/^\u00ef\u00bb\u00bf/, '')
     .trimStart()
   if (!head.startsWith('<')) return null
-  if (/^<svg[\s>]/i.test(head)) return IMAGE_FORMATS.svg
-  if (/^<(\?xml|!doctype|!--)/i.test(head) && /<svg[\s>]/i.test(head)) return IMAGE_FORMATS.svg
-  return null
+
+  // The prologue (XML declaration, doctype, comments) is consumed one piece
+  // at a time so that `<svg` has to be the *root* element. Accepting it
+  // anywhere in the window instead would classify an HTML page with an
+  // inline icon, or a comment that merely mentions `<svg>`, as an image.
+  let rest = head
+  for (;;) {
+    if (rest.startsWith('<?xml')) {
+      const end = rest.indexOf('?>')
+      if (end === -1) return null
+      rest = rest.slice(end + 2).trimStart()
+      continue
+    }
+    if (rest.startsWith('<!--')) {
+      const end = rest.indexOf('-->')
+      if (end === -1) return null
+      rest = rest.slice(end + 3).trimStart()
+      continue
+    }
+    if (/^<!doctype/i.test(rest)) {
+      // A doctype may carry an internal subset in brackets, whose own `>`
+      // characters do not end it.
+      const subset = rest.indexOf('[')
+      const from = subset !== -1 && subset < rest.indexOf('>') ? rest.indexOf(']', subset) : 0
+      if (from === -1) return null
+      const end = rest.indexOf('>', from)
+      if (end === -1) return null
+      rest = rest.slice(end + 1).trimStart()
+      continue
+    }
+    break
+  }
+
+  // The `/` accepts a self-closing root written without a space,
+  // e.g. a minified `<svg/>`.
+  return /^<svg[\s/>]/i.test(rest) ? IMAGE_FORMATS.svg : null
 }
 
 /** Identifies an image from the first bytes of the file, or returns null
