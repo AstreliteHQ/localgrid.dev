@@ -20,8 +20,10 @@ import {
 const DEFAULT_TARGET: ImageFormatId = 'png'
 const DEFAULT_QUALITY = 90
 /** Only the header is needed to identify a format, and reading the header
- * alone keeps a 40 MB drop from being pulled into memory twice. */
-const HEADER_BYTES = 64
+ * alone keeps a 40 MB drop from being pulled into memory twice. It matches
+ * the window `detectImageFormat` scans for SVG: an XML declaration and a
+ * doctype can push the root tag well past the first few dozen bytes. */
+const HEADER_BYTES = 1024
 /** Painted under images converted to a format with no alpha channel. White
  * rather than black: it is what every other converter does, and it keeps
  * dark-on-transparent logos readable. */
@@ -111,7 +113,7 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
   useEffect(() => {
     if (!file || !sourceFormat) return
     let cancelled = false
-    convertImage(file, targetFormat, { quality: quality / 100, matte: MATTE })
+    convertImage(file, sourceFormat, targetFormat, { quality: quality / 100, matte: MATTE })
       .then((converted) => {
         if (cancelled) return
         const url = URL.createObjectURL(converted.blob)
@@ -137,6 +139,11 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
 
   const accept = (next: File | null | undefined) => {
     if (!next) return
+    // Release the previous result now rather than when the next conversion
+    // finishes: a file that turns out to be unrecognized never starts one,
+    // and its blob would sit in memory until the widget was cleared.
+    publishUrl(null)
+    setConversion(null)
     setFile(next)
   }
 
@@ -202,7 +209,10 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
             <span className="truncate font-medium" title={file.name}>
               {file.name}
             </span>
-            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem] text-muted-foreground">
+            <span
+              aria-label="Detected source format"
+              className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem] text-muted-foreground"
+            >
               {sourceFormat ? sourceFormat.label : 'Unknown'}
             </span>
             <span className="ml-auto shrink-0 text-muted-foreground">{formatFileSize(file.size)}</span>
