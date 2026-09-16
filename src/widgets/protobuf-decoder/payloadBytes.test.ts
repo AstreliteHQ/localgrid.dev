@@ -21,6 +21,22 @@ describe('decodePayload', () => {
     expect(bytesOf(decodePayload('-_8'))).toEqual(bytesOf(decodePayload('+/8=')))
   })
 
+  it('leaves 0x alone in a base64 payload', () => {
+    // 0, x and X are all base64 characters, so stripping "0x" before the
+    // encoding was settled rewrote the payload: '0x' decoded as the empty
+    // input error, and '0xAA' decoded as 'AA'.
+    const fromBase64 = (text: string) =>
+      [...atob(text.padEnd(text.length + ((4 - (text.length % 4)) % 4), '='))].map((character) =>
+        character.charCodeAt(0),
+      )
+    expect(bytesOf(decodePayload('0x', 'base64'))).toEqual(fromBase64('0x'))
+    expect(bytesOf(decodePayload('0xAA', 'base64'))).toEqual(fromBase64('0xAA'))
+    expect(bytesOf(decodePayload('0xAA', 'base64'))).not.toEqual(fromBase64('AA'))
+    // '0x+/' is not valid hex once the marker is removed, so auto keeps it
+    // as base64, and must not have mangled it on the way.
+    expect(bytesOf(decodePayload('0x+/'))).toEqual(fromBase64('0x+/'))
+  })
+
   it('prefers hex when the text is valid as both', () => {
     const result = decodePayload('089601')
     expect('error' in result ? null : result.encoding).toBe('hex')

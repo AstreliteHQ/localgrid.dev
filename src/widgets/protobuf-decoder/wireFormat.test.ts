@@ -160,6 +160,46 @@ describe('decodeWireFormat, payloads that are not what they claim', () => {
   })
 })
 
+describe('decodeWireFormat, groups', () => {
+  // Proto2 groups: 0x0b is field 1 start-group, 0x0c its end-group tag.
+  it('keeps decoding after a group closes, and charges it only its own bytes', () => {
+    // group 1 { 2: 150 }, then field 3 varint 7.
+    const fields = decoded('0b 10 96 01 0c 18 07')
+    expect(fields.map((field) => field.fieldNumber)).toEqual([1, 3])
+
+    const group = fields[0]
+    expect(group.value).toMatchObject({ kind: 'message' })
+    if (group.value.kind !== 'message') throw new Error('expected a group')
+    expect(group.value.fields[0]).toMatchObject({ fieldNumber: 2, value: { kind: 'varint', value: 150n } })
+    // Tag, body and end-group tag: five bytes, not the rest of the payload.
+    expect(group.byteLength).toBe(5)
+
+    expect(fields[1].value).toMatchObject({ kind: 'varint', value: 7n })
+  })
+
+  it('reports a group that never closes', () => {
+    const result = decodeWireFormat(bytes('0b 10 96 01'))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toContain('never closed')
+  })
+
+  it('reports an end-group tag that closes a different field', () => {
+    // Opens group 1, closes group 2.
+    const result = decodeWireFormat(bytes('0b 10 96 01 14'))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toContain('Mismatched end-group')
+  })
+
+  it('stops instead of overflowing the stack on a run of start-group tags', () => {
+    // Every 0x0b opens a group and consumes one byte, so without a depth
+    // guard the recursion depth equals the payload length.
+    const payload = new Uint8Array(5000).fill(0x0b)
+    const result = decodeWireFormat(payload)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.reason).toContain('too deep')
+  })
+})
+
 describe('formatFields', () => {
   it('renders nesting as indented blocks', () => {
     expect(formatFields(decoded('0896011a02082a'))).toBe('1 (varint): 150\n3 (length-delimited) {\n  1 (varint): 42\n}')

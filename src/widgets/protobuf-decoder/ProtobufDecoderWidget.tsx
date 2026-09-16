@@ -68,7 +68,10 @@ export default function ProtobufDecoderWidget({ instanceId }: WidgetProps) {
   }, [mode, bytes, parsedSchema, selectedName, wire])
 
   const copyText = useMemo(() => {
-    if (mode === 'schema' && schemaDecode?.ok) return JSON.stringify(schemaDecode.value, null, 2)
+    // Branching on the mode first matters: with a failed schema decode the
+    // pane shows an error, and falling through to the wire rendering would
+    // have the Copy button hand back output nobody can see.
+    if (mode === 'schema') return schemaDecode?.ok ? JSON.stringify(schemaDecode.value, null, 2) : ''
     return wire ? formatFields(wire.fields) : ''
   }, [mode, schemaDecode, wire])
 

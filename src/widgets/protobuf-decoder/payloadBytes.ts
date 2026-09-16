@@ -20,9 +20,14 @@ export interface PayloadError {
 }
 
 /** Characters that carry no information in either encoding: whitespace from
- * wrapped lines, `0x` prefixes and separators from hex dumps, quotes and
- * commas from a pasted code literal. */
-const NOISE = /[\s,"'`]|0x/gi
+ * wrapped lines, quotes and commas from a pasted code literal. */
+const PRESENTATION_NOISE = /[\s,"'`]/g
+
+/** The `0x` markers of a hex dump. Stripped only once the payload is known
+ * to be hex: `0`, `x` and `X` are all valid base64 characters, so removing
+ * them up front would quietly rewrite a base64 payload that happens to
+ * contain them. */
+const HEX_PREFIX = /0x/gi
 
 /** Both limits are about keeping a paste from stalling the tab rather than
  * about protobuf itself: the decode is linear, but every field becomes a
@@ -84,17 +89,21 @@ export function decodePayload(text: string, encoding: PayloadEncoding = 'auto'):
     }
   }
 
-  const cleaned = text.replace(NOISE, '')
-  if (cleaned.length === 0) return { error: 'Paste a base64 or hex payload.' }
+  const normalized = text.replace(PRESENTATION_NOISE, '')
+  if (normalized.length === 0) return { error: 'Paste a base64 or hex payload.' }
+  const withoutHexPrefixes = normalized.replace(HEX_PREFIX, '')
 
   let resolved: 'base64' | 'hex'
   if (encoding === 'auto') {
     // Hex wins a tie: a string of hex digits is almost always a hex dump,
-    // even though it is also valid base64.
-    resolved = isHexadecimal(cleaned) ? 'hex' : 'base64'
+    // even though it is also valid base64. The candidate tested here is the
+    // one with `0x` markers removed, so `0x08 0x96` is still read as hex.
+    resolved = isHexadecimal(withoutHexPrefixes) ? 'hex' : 'base64'
   } else {
     resolved = encoding
   }
+
+  const cleaned = resolved === 'hex' ? withoutHexPrefixes : normalized
 
   if (resolved === 'hex' && !isHexadecimal(cleaned)) {
     return {

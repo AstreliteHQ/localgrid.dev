@@ -143,41 +143,64 @@ export function describeValue(value: WireValue): string {
 
 interface ParseOutcome {
   fields: WireField[]
+  /** Offset just past the last byte this parse consumed. A group needs it
+   * to know where its own end-group tag left off, so the fields after the
+   * group are not lost and the group's own length is the real one. */
+  end: number
   /** Set when parsing stopped early; absent on a clean parse. */
   failure?: { reason: string; offset: number }
 }
 
 /** Reads fields from `[from, to)`. Stops at the first byte that cannot be a
  * field, reporting where; callers deciding whether a region *is* a message
- * treat any failure as "no". */
-function parseFields(bytes: Uint8Array, from: number, to: number, depth: number): ParseOutcome {
+ * treat any failure as "no".
+ *
+ * `openGroup` is the field number of the group being read, when this call
+ * is reading one: the matching end-group tag then ends this parse cleanly
+ * instead of being the error it is anywhere else. */
+function parseFields(
+  bytes: Uint8Array,
+  from: number,
+  to: number,
+  depth: number,
+  openGroup: number | null = null,
+): ParseOutcome {
   const fields: WireField[] = []
   let offset = from
 
   while (offset < to) {
     const start = offset
     const tag = readVarint(bytes, offset)
-    if (!tag || tag.next > to) return { fields, failure: { reason: 'Truncated field tag.', offset: start } }
+    if (!tag || tag.next > to) return { fields, end: start, failure: { reason: 'Truncated field tag.', offset: start } }
 
     const fieldNumber = Number(tag.value >> 3n)
     const wireType = Number(tag.value & 7n)
     offset = tag.next
 
     if (fieldNumber === 0) {
-      return { fields, failure: { reason: 'Field number 0 is not valid protobuf.', offset: start } }
+      return { fields, end: start, failure: { reason: 'Field number 0 is not valid protobuf.', offset: start } }
     }
     if (wireType === 6 || wireType === 7) {
-      return { fields, failure: { reason: `Wire type ${wireType} is not valid protobuf.`, offset: start } }
+      return { fields, end: start, failure: { reason: `Wire type ${wireType} is not valid protobuf.`, offset: start } }
     }
     if (wireType === 4) {
-      // An end-group marker with no group open.
-      return { fields, failure: { reason: 'Unexpected end-group marker.', offset: start } }
+      // The tag that closes the group this call is reading; anywhere else
+      // it is a payload that does not add up.
+      if (openGroup === fieldNumber) return { fields, end: offset }
+      return {
+        fields,
+        end: start,
+        failure: {
+          reason: openGroup === null ? 'Unexpected end-group marker.' : 'Mismatched end-group marker.',
+          offset: start,
+        },
+      }
     }
 
     if (wireType === 0) {
       const varint = readVarint(bytes, offset)
       if (!varint || varint.next > to) {
-        return { fields, failure: { reason: 'Truncated varint.', offset: start } }
+        return { fields, end: start, failure: { reason: 'Truncated varint.', offset: start } }
       }
       const alternatives: string[] = []
       if (varint.value === 0n || varint.value === 1n) alternatives.push(`bool ${varint.value === 1n}`)
@@ -198,7 +221,7 @@ function parseFields(bytes: Uint8Array, from: number, to: number, depth: number)
     if (wireType === 1 || wireType === 5) {
       const width = wireType === 1 ? 8 : 4
       if (offset + width > to) {
-        return { fields, failure: { reason: `Truncated ${width * 8}-bit value.`, offset: start } }
+        return { fields, end: start, failure: { reason: `Truncated ${width * 8}-bit value.`, offset: start } }
       }
       const view = new DataView(bytes.buffer, bytes.byteOffset + offset, width)
       const value: WireValue =
@@ -215,33 +238,35 @@ function parseFields(bytes: Uint8Array, from: number, to: number, depth: number)
     }
 
     if (wireType === 3) {
+      // A group costs one byte per level, so without this guard a run of
+      // 0x0b bytes recurses once per byte and overflows the stack.
+      if (depth >= MAX_DEPTH) {
+        return { fields, end: start, failure: { reason: 'Group nesting is too deep.', offset: start } }
+      }
       // Groups are a proto2 relic, but they still turn up in old payloads:
       // everything up to the matching end-group tag belongs to this field.
-      const inner = parseFields(bytes, offset, to, depth + 1)
-      const closed = inner.failure?.reason === 'Unexpected end-group marker.'
-      return {
-        fields: [
-          ...fields,
-          {
-            fieldNumber,
-            wireType,
-            offset: start,
-            byteLength: to - start,
-            value: { kind: 'message', fields: inner.fields },
-            alternatives: ['deprecated group encoding'],
-          },
-        ],
-        failure: closed ? undefined : inner.failure,
-      }
+      const inner = parseFields(bytes, offset, to, depth + 1, fieldNumber)
+      fields.push({
+        fieldNumber,
+        wireType,
+        offset: start,
+        byteLength: inner.end - start,
+        value: { kind: 'message', fields: inner.fields },
+        alternatives: ['deprecated group encoding'],
+      })
+      if (inner.failure) return { fields, end: inner.end, failure: inner.failure }
+      // Whatever follows the end-group tag is still part of this message.
+      offset = inner.end
+      continue
     }
 
     // Wire type 2: length-delimited.
     const length = readVarint(bytes, offset)
-    if (!length) return { fields, failure: { reason: 'Truncated length prefix.', offset: start } }
+    if (!length) return { fields, end: start, failure: { reason: 'Truncated length prefix.', offset: start } }
     const contentStart = length.next
     const contentEnd = contentStart + Number(length.value)
     if (contentEnd > to) {
-      return { fields, failure: { reason: 'Length runs past the end of the payload.', offset: start } }
+      return { fields, end: start, failure: { reason: 'Length runs past the end of the payload.', offset: start } }
     }
 
     const interpreted = interpretLengthDelimited(bytes, contentStart, contentEnd, depth)
@@ -256,7 +281,14 @@ function parseFields(bytes: Uint8Array, from: number, to: number, depth: number)
     offset = contentEnd
   }
 
-  return { fields }
+  if (openGroup !== null) {
+    return {
+      fields,
+      end: offset,
+      failure: { reason: 'Group is never closed.', offset: from },
+    }
+  }
+  return { fields, end: offset }
 }
 
 function interpretLengthDelimited(
@@ -273,8 +305,9 @@ function interpretLengthDelimited(
   }
 
   const text = readUtf8(content)
-  const nested = depth < MAX_DEPTH ? parseFields(bytes, from, to, depth + 1) : { fields: [], failure: undefined }
-  const parsesAsMessage = !nested.failure && nested.fields.length > 0
+  const nested =
+    depth < MAX_DEPTH ? parseFields(bytes, from, to, depth + 1) : { fields: [], end: from, failure: undefined }
+  const parsesAsMessage = !nested.failure && nested.fields.length > 0 && nested.end === to
 
   if (parsesAsMessage) {
     // Prefer the structure, and keep the text reading alongside it: the two
