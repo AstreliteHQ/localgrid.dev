@@ -36,6 +36,7 @@ import { unixPermissionsDefinition } from './unix-permissions/definition'
 import { timelineBuilderDefinition } from './timeline-builder/definition'
 import { duplicateRemoverDefinition } from './duplicate-remover/definition'
 import { qrCodeDefinition } from './qr-code/definition'
+import { complexityEstimatorDefinition } from './complexity-estimator/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -77,6 +78,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   timelineBuilderDefinition,
   duplicateRemoverDefinition,
   qrCodeDefinition,
+  complexityEstimatorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
