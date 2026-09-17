@@ -379,7 +379,7 @@ function EntryRow({
         variant="ghost"
         size="icon-xs"
         onClick={onRemove}
-        aria-label="Remove"
+        aria-label={`Remove ${kind.toLowerCase()} ${index + 1}`}
         className="shrink-0 text-muted-foreground"
       >
         <X className="size-3" />
@@ -436,7 +436,7 @@ function FormFieldRow({
         variant="ghost"
         size="icon-xs"
         onClick={onRemove}
-        aria-label="Remove"
+        aria-label={`Remove form field ${index + 1}`}
         className="shrink-0 text-muted-foreground"
       >
         <X className="size-3" />

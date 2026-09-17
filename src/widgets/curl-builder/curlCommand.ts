@@ -115,8 +115,14 @@ function appendQuery(url: string, params: KeyValueEntry[]): string {
   const active = params.filter((param) => param.name.trim() !== '')
   if (active.length === 0) return url
   const query = active.map((param) => `${encodeURIComponent(param.name)}=${encodeURIComponent(param.value)}`).join('&')
-  if (url.endsWith('?') || url.endsWith('&')) return `${url}${query}`
-  return `${url}${url.includes('?') ? '&' : '?'}${query}`
+  // A fragment has to stay at the very end of the URL, so the query string
+  // is inserted before it rather than appended after — curl (and browsers)
+  // never send anything past `#` to the server, query string included.
+  const fragmentIndex = url.indexOf('#')
+  const base = fragmentIndex === -1 ? url : url.slice(0, fragmentIndex)
+  const fragment = fragmentIndex === -1 ? '' : url.slice(fragmentIndex)
+  const separator = base.endsWith('?') || base.endsWith('&') ? '' : base.includes('?') ? '&' : '?'
+  return `${base}${separator}${query}${fragment}`
 }
 
 /** One `curl` argument: a bare flag (`{ flag }`), a flag with its value
@@ -141,7 +147,12 @@ export interface CommandSegment {
  * order means the command doesn't reshuffle itself as blocks are added and
  * removed. */
 export function buildCommandSegments(request: CurlRequest): CommandSegment[] {
-  const segments: CommandSegment[] = [{ flag: '-X', rawValue: request.method }]
+  // HEAD is special-cased to `-I`/`--head`: `-X HEAD` only rewrites the
+  // method string curl sends, but curl still waits on a response body the
+  // server never sends for a real HEAD request, so `-X HEAD` alone hangs or
+  // mis-reports rather than doing what "HEAD" is normally asked for.
+  const segments: CommandSegment[] =
+    request.method === 'HEAD' ? [{ flag: '-I' }] : [{ flag: '-X', rawValue: request.method }]
 
   for (const definition of FLAG_DEFINITIONS) {
     if (request.flagIds.includes(definition.id)) segments.push({ flag: definition.flag })

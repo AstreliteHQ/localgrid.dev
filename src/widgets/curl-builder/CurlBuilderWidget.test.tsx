@@ -46,7 +46,7 @@ describe('CurlBuilderWidget', () => {
     render(<CurlBuilderWidget instanceId="test" mode="grid" />)
 
     expect(preview()).toContain('Accept')
-    await user.click(screen.getByRole('button', { name: 'Remove' }))
+    await user.click(screen.getByRole('button', { name: 'Remove header 1' }))
 
     expect(preview()).not.toContain('Accept')
     expect(screen.queryByText('Headers')).not.toBeInTheDocument()
@@ -67,8 +67,8 @@ describe('CurlBuilderWidget', () => {
     const user = userEvent.setup()
     render(<CurlBuilderWidget instanceId="test" mode="grid" />)
 
-    await user.click(screen.getByRole('button', { name: /cookie/i }))
-    await user.click(screen.getByRole('button', { name: /cookie/i }))
+    await user.click(screen.getByRole('button', { name: /^cookie$/i }))
+    await user.click(screen.getByRole('button', { name: /^cookie$/i }))
     await user.type(screen.getByLabelText('Cookie 1 name'), 'session')
     await user.type(screen.getByLabelText('Cookie 2 name'), 'theme')
 

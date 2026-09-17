@@ -50,10 +50,17 @@ describe('buildCurlCommand, minimal request', () => {
     expect(buildCurlCommand(baseRequest(), 'single-line')).toBe("curl -X GET 'https://api.example.com/users'")
   })
 
-  it('covers every HTTP method', () => {
+  it('covers every HTTP method but HEAD, which has its own -I/--head form', () => {
     for (const method of HTTP_METHODS) {
+      if (method === 'HEAD') continue
       expect(buildCurlCommand(baseRequest({ method }), 'single-line')).toContain(`-X ${method}`)
     }
+  })
+
+  it('sends HEAD as -I rather than -X HEAD, since -X alone still waits on a body', () => {
+    const command = buildCurlCommand(baseRequest({ method: 'HEAD' }), 'single-line')
+    expect(command).toContain('-I ')
+    expect(command).not.toContain('-X HEAD')
   })
 })
 
@@ -100,6 +107,15 @@ describe('buildCurlCommand, query parameters', () => {
     expect(
       buildCurlCommand(baseRequest({ url: 'https://x.test', queryParams: [entry('', '')] }), 'single-line'),
     ).toContain("'https://x.test'")
+  })
+
+  it('inserts the query string before the fragment rather than after it', () => {
+    expect(
+      buildCurlCommand(
+        baseRequest({ url: 'https://x.test/path#section', queryParams: [entry('a', '1')] }),
+        'single-line',
+      ),
+    ).toContain("'https://x.test/path?a=1#section'")
   })
 })
 
