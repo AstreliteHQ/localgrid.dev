@@ -113,8 +113,17 @@ describe('formatDateLabel and formatTimeLabel', () => {
     expect(formatDateLabel(parts)).toBe('Thu, Jan 15')
   })
 
-  it('formats the time as a 12-hour clock', () => {
+  it('formats the time as a 12-hour clock by default', () => {
     expect(formatTimeLabel(parts)).toBe('2:05 PM')
+    expect(formatTimeLabel(parts, '12h')).toBe('2:05 PM')
+  })
+
+  it('formats the time as a zero-padded 24-hour clock on request', () => {
+    expect(formatTimeLabel(parts, '24h')).toBe('14:05')
+  })
+
+  it('pads midnight as 00 in 24-hour form, not 12', () => {
+    expect(formatTimeLabel({ ...parts, hour: 0 }, '24h')).toBe('00:05')
   })
 })
 

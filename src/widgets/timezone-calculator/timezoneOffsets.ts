@@ -114,12 +114,18 @@ export function formatDateLabel(parts: WallClockParts): string {
   )
 }
 
-/** e.g. "2:30 PM". */
-export function formatTimeLabel(parts: WallClockParts): string {
+export type HourFormat = '12h' | '24h'
+
+/** e.g. "2:30 PM" in 12-hour form, or "14:30" in 24-hour form. */
+export function formatTimeLabel(parts: WallClockParts, hourFormat: HourFormat = '12h'): string {
   const asUtc = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute))
-  return new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', hour: 'numeric', minute: '2-digit', hour12: true }).format(
-    asUtc,
-  )
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    hour: hourFormat === '24h' ? '2-digit' : 'numeric',
+    minute: '2-digit',
+    hour12: hourFormat === '12h',
+    hourCycle: hourFormat === '24h' ? 'h23' : undefined,
+  }).format(asUtc)
 }
 
 /** `null` for the same calendar day, otherwise a signed day count (`+1d`,

@@ -14,7 +14,7 @@ async function setTime(user: ReturnType<typeof userEvent.setup>, value: string) 
 }
 
 describe('TimezoneCalculatorWidget', () => {
-  it('converts UTC+2 to UTC, the motivating example', async () => {
+  it('converts UTC+2 to UTC, the motivating example, in 24-hour form by default', async () => {
     const user = userEvent.setup()
     render(<TimezoneCalculatorWidget instanceId="test" mode="grid" />)
 
@@ -22,8 +22,32 @@ describe('TimezoneCalculatorWidget', () => {
     await user.selectOptions(screen.getByLabelText('From'), 'UTC+02:00')
     await user.selectOptions(screen.getByLabelText('To'), 'UTC+00:00')
 
-    expect(screen.getByText('12:00 PM')).toBeInTheDocument()
+    expect(screen.getByText('12:00')).toBeInTheDocument()
     expect(screen.getByText(/Jan 15.*UTC\+00:00/)).toBeInTheDocument()
+  })
+
+  it('switches the result to a 12-hour clock on request', async () => {
+    const user = userEvent.setup()
+    render(<TimezoneCalculatorWidget instanceId="test" mode="grid" />)
+
+    await setTime(user, '2026-01-15T14:00')
+    await user.selectOptions(screen.getByLabelText('From'), 'UTC+02:00')
+    await user.selectOptions(screen.getByLabelText('To'), 'UTC+00:00')
+    await user.click(screen.getByRole('button', { name: '12h' }))
+
+    expect(screen.getByText('12:00 PM')).toBeInTheDocument()
+    expect(screen.queryByText('12:00')).not.toBeInTheDocument()
+  })
+
+  it('pads midnight as 00:00 rather than 24:00 in 24-hour form', async () => {
+    const user = userEvent.setup()
+    render(<TimezoneCalculatorWidget instanceId="test" mode="grid" />)
+
+    await setTime(user, '2026-01-15T00:00')
+    await user.selectOptions(screen.getByLabelText('From'), 'UTC+00:00')
+    await user.selectOptions(screen.getByLabelText('To'), 'UTC+00:00')
+
+    expect(screen.getByText('00:00')).toBeInTheDocument()
   })
 
   it('shows a day-forward badge when the conversion crosses midnight', async () => {
@@ -34,7 +58,7 @@ describe('TimezoneCalculatorWidget', () => {
     await user.selectOptions(screen.getByLabelText('From'), 'UTC+00:00')
     await user.selectOptions(screen.getByLabelText('To'), 'UTC+02:00')
 
-    expect(screen.getByText('1:00 AM')).toBeInTheDocument()
+    expect(screen.getByText('01:00')).toBeInTheDocument()
     expect(screen.getByText('+1d')).toBeInTheDocument()
   })
 

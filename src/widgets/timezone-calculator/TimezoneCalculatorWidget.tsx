@@ -4,6 +4,7 @@ import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/CopyButton'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -16,7 +17,13 @@ import {
   formatOffsetLabel,
   formatTimeLabel,
   parseWallClock,
+  type HourFormat,
 } from './timezoneOffsets'
+
+const HOUR_FORMAT_OPTIONS: { label: string; value: HourFormat }[] = [
+  { label: '24h', value: '24h' },
+  { label: '12h', value: '12h' },
+]
 
 function pad(n: number): string {
   return String(n).padStart(2, '0')
@@ -36,6 +43,10 @@ const DEFAULT_FROM_OFFSET = LOCAL_OFFSET_MINUTES
 // no-op conversion, so the default target is UTC unless that's exactly
 // where "From" already starts.
 const DEFAULT_TO_OFFSET = LOCAL_OFFSET_MINUTES === 0 ? 60 : 0
+// 24-hour by default: the offset labels above the result are already in
+// ISO-style "+02:00" notation, and 24-hour avoids the AM/PM ambiguity that
+// matters most for a tool people reach for across time zones.
+const DEFAULT_HOUR_FORMAT: HourFormat = '24h'
 
 export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
   const [dateInput, setDateInput] = useWidgetState(instanceId, 'dateInput', nowInput)
@@ -45,10 +56,14 @@ export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
   const [initialDateInput] = useWidgetState(instanceId, 'initialDateInput', dateInput)
   const [fromOffset, setFromOffset] = useWidgetState(instanceId, 'fromOffset', DEFAULT_FROM_OFFSET)
   const [toOffset, setToOffset] = useWidgetState(instanceId, 'toOffset', DEFAULT_TO_OFFSET)
+  const [hourFormat, setHourFormat] = useWidgetState<HourFormat>(instanceId, 'hourFormat', DEFAULT_HOUR_FORMAT)
 
   useWidgetDirty(
     instanceId,
-    dateInput !== initialDateInput || fromOffset !== DEFAULT_FROM_OFFSET || toOffset !== DEFAULT_TO_OFFSET,
+    dateInput !== initialDateInput ||
+      fromOffset !== DEFAULT_FROM_OFFSET ||
+      toOffset !== DEFAULT_TO_OFFSET ||
+      hourFormat !== DEFAULT_HOUR_FORMAT,
   )
 
   const dateFieldId = useId()
@@ -69,7 +84,7 @@ export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
   const result = wallClock ? convertOffset(wallClock, fromOffset, toOffset) : null
   const dayDiffLabel = result ? formatDayDiffLabel(result.dayDiff) : null
   const resultText = result
-    ? `${formatDateLabel(result.target)}, ${formatTimeLabel(result.target)} (${formatOffsetLabel(toOffset)})`
+    ? `${formatDateLabel(result.target)}, ${formatTimeLabel(result.target, hourFormat)} (${formatOffsetLabel(toOffset)})`
     : null
 
   return (
@@ -108,11 +123,16 @@ export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
         </Field>
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2 rounded-md bg-background p-2 dark:bg-muted/40">
+      <div className="mt-auto flex items-center gap-1.5">
+        <SegmentedControl value={hourFormat} onChange={setHourFormat} options={HOUR_FORMAT_OPTIONS} />
+        <CopyButton value={resultText ?? ''} label="" className="ml-auto" />
+      </div>
+
+      <div className="flex items-center justify-between gap-2 rounded-md bg-background p-2 dark:bg-muted/40">
         {result ? (
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 font-mono text-base font-semibold text-foreground">
-              <span className="truncate">{formatTimeLabel(result.target)}</span>
+              <span className="truncate">{formatTimeLabel(result.target, hourFormat)}</span>
               {dayDiffLabel && (
                 <span className={dayDiffLabel.startsWith('+') ? 'text-primary' : 'text-destructive'}>
                   {dayDiffLabel}
@@ -126,7 +146,6 @@ export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
         ) : (
           <span className="text-muted-foreground">Enter a time to convert</span>
         )}
-        <CopyButton value={resultText ?? ''} label="" />
       </div>
     </div>
   )
