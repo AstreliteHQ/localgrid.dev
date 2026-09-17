@@ -40,6 +40,7 @@ import { complexityEstimatorDefinition } from './complexity-estimator/definition
 import { curlBuilderDefinition } from './curl-builder/definition'
 import { timezoneCalculatorDefinition } from './timezone-calculator/definition'
 import { imageConverterDefinition } from './image-converter/definition'
+import { jinjaTemplateRendererDefinition } from './jinja-template-renderer/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -85,6 +86,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   curlBuilderDefinition,
   timezoneCalculatorDefinition,
   imageConverterDefinition,
+  jinjaTemplateRendererDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
