@@ -34,7 +34,7 @@ describe('CurlBuilderWidget', () => {
 
     // The sample already opens with one header ("Accept"), so the freshly
     // added block is the second row.
-    await user.click(screen.getByRole('button', { name: /header/i }))
+    await user.click(screen.getByRole('button', { name: 'Header' }))
     await user.type(screen.getByLabelText('Header 2 name'), 'X-Trace-Id')
     await user.type(screen.getByLabelText('Header 2 value'), 'abc123')
 
@@ -126,11 +126,12 @@ describe('CurlBuilderWidget', () => {
     expect(preview()).toContain("-u 'alice:secret'")
   })
 
-  it('toggles a flag on and off', async () => {
+  it('toggles a flag on and off, by its readable label rather than its raw option', async () => {
     const user = userEvent.setup()
     render(<CurlBuilderWidget instanceId="test" mode="grid" />)
 
-    const flag = screen.getByRole('button', { name: '-L' })
+    const flag = screen.getByRole('button', { name: 'Follow redirects' })
+    expect(flag).toHaveAttribute('title', expect.stringContaining('-L'))
     expect(flag).toHaveAttribute('aria-pressed', 'false')
 
     await user.click(flag)
@@ -147,7 +148,7 @@ describe('CurlBuilderWidget', () => {
     render(<CurlBuilderWidget instanceId="test" mode="grid" />)
 
     // Header 2: the sample already carries an "Accept" header as row 1.
-    await user.click(screen.getByRole('button', { name: /header/i }))
+    await user.click(screen.getByRole('button', { name: 'Header' }))
     await user.type(screen.getByLabelText('Header 2 name'), 'Authorization')
     await user.type(screen.getByLabelText('Header 2 value'), 'Bearer manual')
     await user.click(screen.getByRole('button', { name: /^auth$/i }))

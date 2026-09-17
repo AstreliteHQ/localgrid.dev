@@ -150,19 +150,23 @@ export default function CurlBuilderWidget({ instanceId }: WidgetProps) {
             <Button
               key={definition.id}
               type="button"
-              title={definition.description}
+              // The flag itself (e.g. "-v") is in the tooltip rather than on
+              // the button, since it means nothing on sight to anyone who
+              // hasn't memorized curl's short options; the label is what
+              // reads at a glance.
+              title={`${definition.flag} — ${definition.description}`}
               aria-pressed={active}
               onClick={() =>
                 setFlagIds((prev) => (active ? prev.filter((id) => id !== definition.id) : [...prev, definition.id]))
               }
               className={cn(
-                'h-auto rounded px-1.5 py-1 font-mono text-[11px]',
+                'h-auto rounded px-1.5 py-1 text-[11px] font-medium',
                 active
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                   : 'bg-secondary text-muted-foreground hover:bg-secondary/80',
               )}
             >
-              {definition.flag}
+              {definition.label}
             </Button>
           )
         })}
