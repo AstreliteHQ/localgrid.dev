@@ -21,7 +21,7 @@ function dropFile(file: File) {
  * the moment a file is dropped, and so passes before detection has even
  * run. */
 function detectedFormat() {
-  return screen.findByLabelText('Detected source format')
+  return screen.findByLabelText(/^Detected source format/)
 }
 
 describe('ImageConverterWidget', () => {
@@ -38,6 +38,14 @@ describe('ImageConverterWidget', () => {
 
     expect(await detectedFormat()).toHaveTextContent('PNG')
     expect(screen.getByText('mislabelled.jpg')).toBeInTheDocument()
+  })
+
+  it('includes the detected format in the badge’s accessible label, not just its visible text', async () => {
+    render(<ImageConverterWidget instanceId="test" mode="grid" />)
+
+    dropFile(imageFile('mislabelled.jpg', PNG_HEADER))
+
+    expect(await detectedFormat()).toHaveAccessibleName('Detected source format: PNG')
   })
 
   it('detects a format even when the browser reports no MIME type', async () => {
