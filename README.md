@@ -56,20 +56,20 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-38 tools across 10 categories, and growing.
+39 tools across 10 categories, and growing.
 
-| Category   | Widgets                                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------------------- |
-| Generators | QR Code Generator, UUID Generator                                                                         |
-| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter                |
-| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                               |
-| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator, Unix Permissions                      |
-| Text       | Content Type Detector, Duplicate Remover, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff |
+| Category   | Widgets                                                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Generators | QR Code Generator, UUID Generator                                                                                          |
+| Formatting | Cron Expression, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter                                 |
+| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                                                |
+| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator, Unix Permissions                                       |
+| Text       | Content Type Detector, Duplicate Remover, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff    |
 | Math       | Big-O Estimator, Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
-| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                |
-| Color      | Color Converter, WCAG Contrast Checker                                                                    |
-| Network    | Subnet Calculator                                                                                         |
-| Time       | Timeline Builder, Timer, World Clock                                                                      |
+| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                 |
+| Color      | Color Converter, WCAG Contrast Checker                                                                                     |
+| Network    | cURL Builder, Subnet Calculator                                                                                            |
+| Time       | Timeline Builder, Timer, World Clock                                                                                       |
 
 ## How it compares
 
