@@ -37,6 +37,7 @@ import { timelineBuilderDefinition } from './timeline-builder/definition'
 import { duplicateRemoverDefinition } from './duplicate-remover/definition'
 import { qrCodeDefinition } from './qr-code/definition'
 import { complexityEstimatorDefinition } from './complexity-estimator/definition'
+import { jinjaTemplateRendererDefinition } from './jinja-template-renderer/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -79,6 +80,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   duplicateRemoverDefinition,
   qrCodeDefinition,
   complexityEstimatorDefinition,
+  jinjaTemplateRendererDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
