@@ -210,7 +210,7 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
               {file.name}
             </span>
             <span
-              aria-label="Detected source format"
+              aria-label={`Detected source format: ${sourceFormat ? sourceFormat.label : 'Unknown'}`}
               className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem] text-muted-foreground"
             >
               {sourceFormat ? sourceFormat.label : 'Unknown'}
