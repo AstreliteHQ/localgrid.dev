@@ -3,6 +3,7 @@
   "version": "0.2.2",
   "type": "module",
   "description": "A browser-based dashboard for everyday developer tools.",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AstreliteHQ/localgrid.dev.git"

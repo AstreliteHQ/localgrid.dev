@@ -168,4 +168,4 @@ share-link codec, error isolation, and per-widget behavior.
 
 ## License
 
-TBD.
+MIT — see [LICENSE](./LICENSE).
