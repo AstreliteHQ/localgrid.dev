@@ -38,6 +38,7 @@ import { duplicateRemoverDefinition } from './duplicate-remover/definition'
 import { qrCodeDefinition } from './qr-code/definition'
 import { complexityEstimatorDefinition } from './complexity-estimator/definition'
 import { curlBuilderDefinition } from './curl-builder/definition'
+import { timezoneCalculatorDefinition } from './timezone-calculator/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -81,6 +82,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   qrCodeDefinition,
   complexityEstimatorDefinition,
   curlBuilderDefinition,
+  timezoneCalculatorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(

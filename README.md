@@ -56,7 +56,7 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-39 tools across 10 categories, and growing.
+40 tools across 10 categories, and growing.
 
 | Category   | Widgets                                                                                                                    |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ always asks before it touches your local dashboard.
 | AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                 |
 | Color      | Color Converter, WCAG Contrast Checker                                                                                     |
 | Network    | cURL Builder, Subnet Calculator                                                                                            |
-| Time       | Timeline Builder, Timer, World Clock                                                                                       |
+| Time       | Timeline Builder, Time Zone Calculator, Timer, World Clock                                                                 |
 
 ## How it compares
 
