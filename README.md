@@ -81,7 +81,7 @@ _Worth a look before building a new one 👀_
 
 | Tool                                                         | Local first | Offline App | Web app | Multi-tools single page | Persistent workspace | License        |
 | ------------------------------------------------------------ | :---------: | :---------: | :-----: | :---------------------: | :------------------: | -------------- |
-| ⭐ **Localgrid**                                             |     🟢      |     🟢      |   🟢    |           🟢            |          🟢          | **TBD**        |
+| ⭐ **Localgrid**                                             |     🟢      |     🟢      |   🟢    |           🟢            |          🟢          | 🟢 MIT         |
 | [DevToys](https://devtoys.app/)                              |     🟢      |     🟢      |   🔴    |           🔴            |          🔴          | 🟢 MIT         |
 | [DevUtils](https://devutils.com/)                            |     🟢      |     🟢      |   🔴    |           🔴            |          🔴          | 🔴 Proprietary |
 | [devutils.sh](https://devutils.sh/)                          |     🟢      |     🟢      |   🟢    |           🔴            |          🔴          | ❓             |
