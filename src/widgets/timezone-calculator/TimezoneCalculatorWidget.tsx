@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useEffect, useId, useMemo } from 'react'
 import { ArrowLeftRight } from 'lucide-react'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { CopyButton } from '@/components/CopyButton'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
-import { useWidgetState } from '@/widgets/useWidgetState'
+import { useWidgetState, useWidgetStateStore } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import {
   UTC_OFFSETS,
@@ -34,35 +34,60 @@ function nowInput(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-// Captured once at module load, not per render — the browser's own zone
-// doesn't change mid-session, and every widget instance should agree on
-// what "Now" resets back to.
-const LOCAL_OFFSET_MINUTES = closestOffsetMinutes(-new Date().getTimezoneOffset())
-const DEFAULT_FROM_OFFSET = LOCAL_OFFSET_MINUTES
-// A "From" and "To" that already match would make the widget open on a
-// no-op conversion, so the default target is UTC unless that's exactly
-// where "From" already starts.
-const DEFAULT_TO_OFFSET = LOCAL_OFFSET_MINUTES === 0 ? 60 : 0
+// Read fresh rather than cached, so a browser time zone change mid-session
+// (DST, or actually changing the OS zone while the tab stays open) doesn't
+// leave a stale offset baked into an already-open widget or into "Now".
+function currentLocalOffsetMinutes(): number {
+  return closestOffsetMinutes(-new Date().getTimezoneOffset())
+}
+
 // 24-hour by default: the offset labels above the result are already in
 // ISO-style "+02:00" notation, and 24-hour avoids the AM/PM ambiguity that
 // matters most for a tool people reach for across time zones.
 const DEFAULT_HOUR_FORMAT: HourFormat = '24h'
 
 export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
+  // Captured once per mounted instance (not at module load) so every field
+  // that opens on "the browser's current offset" agrees on the same
+  // instant, without baking in a value that could go stale later in the
+  // session — see currentLocalOffsetMinutes above.
+  const localOffsetMinutes = useMemo(() => currentLocalOffsetMinutes(), [])
+  const defaultFromOffset = localOffsetMinutes
+  // A "From" and "To" that already match would make the widget open on a
+  // no-op conversion, so the default target is UTC unless that's exactly
+  // where "From" already starts.
+  const defaultToOffset = localOffsetMinutes === 0 ? 60 : 0
+
   const [dateInput, setDateInput] = useWidgetState(instanceId, 'dateInput', nowInput)
   // Same "capture the mount-time default once" trick WorldClockWidget uses
-  // for its city selection — there's no fixed constant to diff against
-  // here either, since the default itself depends on the current time.
-  const [initialDateInput] = useWidgetState(instanceId, 'initialDateInput', dateInput)
-  const [fromOffset, setFromOffset] = useWidgetState(instanceId, 'fromOffset', DEFAULT_FROM_OFFSET)
-  const [toOffset, setToOffset] = useWidgetState(instanceId, 'toOffset', DEFAULT_TO_OFFSET)
+  // for its city selection — but unlike that one, this default (the current
+  // time) is a moving target, so the naive version of this trick only ever
+  // captures whatever `dateInput` happens to be on THIS mount. That's fine
+  // within one mount's lifetime, but on a remount `dateInput` itself already
+  // reads back the persisted (possibly edited) value, so the naive version
+  // would re-derive its "initial" baseline from the edit itself and quietly
+  // forget that anything changed. The effect below commits a real baseline
+  // to the shared store the one time it doesn't already have one, so it
+  // actually survives a remount instead of re-deriving itself from
+  // whatever `dateInput` is by then.
+  const [initialDateInput, setInitialDateInput] = useWidgetState(instanceId, 'initialDateInput', dateInput)
+  useEffect(() => {
+    const key = `${instanceId}:initialDateInput`
+    if (!(key in useWidgetStateStore.getState().values)) setInitialDateInput(dateInput)
+    // Intentionally instanceId-only: this is a one-time-ever commit guarded
+    // by the store check above, not something that should re-run just
+    // because dateInput or the setter identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instanceId])
+  const [fromOffset, setFromOffset] = useWidgetState(instanceId, 'fromOffset', defaultFromOffset)
+  const [toOffset, setToOffset] = useWidgetState(instanceId, 'toOffset', defaultToOffset)
   const [hourFormat, setHourFormat] = useWidgetState<HourFormat>(instanceId, 'hourFormat', DEFAULT_HOUR_FORMAT)
 
   useWidgetDirty(
     instanceId,
     dateInput !== initialDateInput ||
-      fromOffset !== DEFAULT_FROM_OFFSET ||
-      toOffset !== DEFAULT_TO_OFFSET ||
+      fromOffset !== defaultFromOffset ||
+      toOffset !== defaultToOffset ||
       hourFormat !== DEFAULT_HOUR_FORMAT,
   )
 
@@ -72,7 +97,7 @@ export default function TimezoneCalculatorWidget({ instanceId }: WidgetProps) {
 
   const handleNow = () => {
     setDateInput(nowInput())
-    setFromOffset(LOCAL_OFFSET_MINUTES)
+    setFromOffset(currentLocalOffsetMinutes())
   }
 
   const handleSwap = () => {

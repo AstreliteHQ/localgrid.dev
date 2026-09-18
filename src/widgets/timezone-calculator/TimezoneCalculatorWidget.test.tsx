@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, renderHook, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useIsWidgetDirty } from '@/widgets/useWidgetDirty'
 import TimezoneCalculatorWidget from './TimezoneCalculatorWidget'
 
 function copyButton() {
@@ -115,5 +116,17 @@ describe('TimezoneCalculatorWidget', () => {
     render(<TimezoneCalculatorWidget instanceId="test" mode="grid" />)
     expect(screen.getByLabelText('Time')).toHaveValue('2026-01-15T14:00')
     expect(screen.getByLabelText('From')).toHaveValue('120')
+  })
+
+  it('stays dirty across a remount after only the date was edited', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<TimezoneCalculatorWidget instanceId="dirty-remount-test" mode="grid" />)
+
+    await setTime(user, '2026-01-15T14:00')
+    unmount()
+
+    render(<TimezoneCalculatorWidget instanceId="dirty-remount-test" mode="grid" />)
+
+    expect(renderHook(() => useIsWidgetDirty('dirty-remount-test')).result.current).toBe(true)
   })
 })
