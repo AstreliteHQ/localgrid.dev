@@ -9,7 +9,9 @@ export const jinjaTemplateRendererDefinition: WidgetDefinition = {
   category: 'formatting',
   icon: LayoutTemplate,
   defaultSize: { w: 7, h: 6 },
-  minSize: { w: 6, h: 4 },
+  // Narrower than the default is fine — below the width the widget needs
+  // for 3 side-by-side panes, it falls back to a vertical stack.
+  minSize: { w: 3, h: 6 },
   component: lazy(() => import('./JinjaTemplateRendererWidget')),
   keywords: [
     'jinja',
