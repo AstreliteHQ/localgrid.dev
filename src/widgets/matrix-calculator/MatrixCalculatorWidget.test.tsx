@@ -106,6 +106,32 @@ describe('MatrixCalculatorWidget', () => {
     expect(cell('Matrix A', 3, 1)).toHaveValue('0')
   })
 
+  it('clamps a mid-typed negative row count instead of collapsing the grid', async () => {
+    const user = userEvent.setup()
+    render(<MatrixCalculatorWidget instanceId="test" mode="grid" />)
+
+    const rowsInput = screen.getAllByLabelText('Rows')[0]
+    await user.clear(rowsInput)
+    await user.type(rowsInput, '-1')
+
+    // Clamped to the minimum as soon as it's typed, not just on blur — the
+    // grid still has a real row to edit instead of collapsing to zero.
+    expect(cell('Matrix A', 1, 1)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Matrix A row 2/)).not.toBeInTheDocument()
+  })
+
+  it('clamps a mid-typed oversized column count to the maximum', async () => {
+    const user = userEvent.setup()
+    render(<MatrixCalculatorWidget instanceId="test" mode="grid" />)
+
+    const colsInput = screen.getAllByLabelText('Cols')[0]
+    await user.clear(colsInput)
+    await user.type(colsInput, '99')
+
+    expect(cell('Matrix A', 1, 6)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/Matrix A row 1 column 7/)).not.toBeInTheDocument()
+  })
+
   it('keeps its matrices and operation across a remount of the same instance', async () => {
     const user = userEvent.setup()
     const { unmount } = render(<MatrixCalculatorWidget instanceId="test" mode="grid" />)
