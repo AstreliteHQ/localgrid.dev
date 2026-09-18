@@ -1,0 +1,153 @@
+name: PR labels
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  # There's no Actions trigger for a bare "resolve conversation" click
+  # (pull_request_review_thread is a webhook/GraphQL event only, not a
+  # supported `on:` value). New/edited/deleted inline comments are the
+  # closest re-evaluation point; a thread resolved without any new comment
+  # won't relabel until the next push or review.
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+
+permissions:
+  pull-requests: write
+  issues: write
+  contents: read
+
+jobs:
+  # Sets a single `state: <state>` label reflecting where the PR actually
+  # stands, since GitHub's own PR list doesn't surface this at a glance:
+  #   state: conflict            - can't be merged as-is, needs a rebase/merge
+  #   state: unresolved-threads  - open review conversations, blocking
+  #                                 regardless of the review decision
+  #   state: pending-review      - no open threads, but not yet approved
+  #   state: ready               - approved, no open threads, no conflicts
+  # Priority when more than one applies: conflict > unresolved-threads >
+  # pending-review > ready. No label while still a draft, or once the PR is
+  # closed or merged.
+  state-label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const STATES = {
+              conflict: 'e11d21',
+              'unresolved-threads': 'd93f0b',
+              'pending-review': 'fbca04',
+              ready: '0e8a16',
+            };
+
+            async function ensureLabel(name, color) {
+              try {
+                await github.rest.issues.getLabel({ ...context.repo, name });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+                await github.rest.issues.createLabel({ ...context.repo, name, color });
+              }
+            }
+
+            const issue_number = context.payload.pull_request.number;
+
+            async function setStateLabel(target) {
+              const targetLabel = target ? `state: ${target}` : null;
+              const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+                ...context.repo,
+                issue_number,
+                per_page: 100,
+              });
+              const current = labels.map((label) => label.name).filter((name) => name.startsWith('state: '));
+
+              try {
+                if (targetLabel && !current.includes(targetLabel)) {
+                  await ensureLabel(targetLabel, STATES[target]);
+                  await github.rest.issues.addLabels({ ...context.repo, issue_number, labels: [targetLabel] });
+                }
+                for (const name of current) {
+                  if (name !== targetLabel) {
+                    await github.rest.issues.removeLabel({ ...context.repo, issue_number, name });
+                  }
+                }
+              } catch (error) {
+                // GITHUB_TOKEN is forced read-only for pull requests from forks
+                // and from Dependabot, so these writes 403 there regardless of
+                // the permissions block above. Skip quietly instead of failing
+                // the whole job on every external PR.
+                if (error.status === 403) {
+                  core.notice(`Skipping label update, token is read-only for this PR: ${error.message}`);
+                  return;
+                }
+                throw error;
+              }
+            }
+
+            // The `pull_request` webhook payload doesn't reliably carry
+            // `mergeable` (it's only populated on a direct REST fetch), so
+            // fetch the PR fresh rather than trusting the event payload.
+            let pr = (await github.rest.pulls.get({ ...context.repo, pull_number: issue_number })).data;
+
+            if (pr.state === 'closed' || pr.draft) {
+              await setStateLabel(null);
+              return;
+            }
+
+            // `mergeable` is computed asynchronously by GitHub and can be
+            // `null` right after a push; give it a few short retries.
+            for (let attempt = 0; pr.mergeable === null && attempt < 4; attempt++) {
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+              ({ data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: issue_number }));
+            }
+
+            if (pr.mergeable === null) {
+              // Still unknown after retrying: leave whatever label is
+              // already there rather than risk marking an unmergeable PR
+              // as ready or pending-review.
+              core.notice('Mergeable state still unknown after retries, leaving the current label as-is.');
+              return;
+            }
+
+            if (pr.mergeable === false) {
+              await setStateLabel('conflict');
+              return;
+            }
+
+            let reviewDecision = null;
+            let hasUnresolvedThreads = false;
+            let cursor = null;
+            do {
+              const result = await github.graphql(
+                `
+                  query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        reviewDecision
+                        reviewThreads(first: 100, after: $cursor) {
+                          nodes { isResolved }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }
+                  }
+                `,
+                { ...context.repo, number: issue_number, cursor },
+              );
+              const pull = result.repository.pullRequest;
+              reviewDecision = pull.reviewDecision;
+              if (pull.reviewThreads.nodes.some((thread) => !thread.isResolved)) {
+                hasUnresolvedThreads = true;
+                break;
+              }
+              cursor = pull.reviewThreads.pageInfo.hasNextPage ? pull.reviewThreads.pageInfo.endCursor : null;
+            } while (cursor);
+
+            if (hasUnresolvedThreads) {
+              await setStateLabel('unresolved-threads');
+            } else if (reviewDecision === 'APPROVED') {
+              await setStateLabel('ready');
+            } else {
+              await setStateLabel('pending-review');
+            }
