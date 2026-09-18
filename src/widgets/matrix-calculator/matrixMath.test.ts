@@ -19,6 +19,10 @@ describe('dimensions', () => {
     expect(dimensions([[1, 2, 3]])).toEqual({ rows: 1, cols: 3 })
     expect(dimensions([[1], [2], [3]])).toEqual({ rows: 3, cols: 1 })
   })
+
+  it('rejects a ragged matrix rather than silently reading undefined cells', () => {
+    expect(() => dimensions([[1, 2], [3]])).toThrow(/same number of columns/i)
+  })
 })
 
 describe('add', () => {
@@ -160,6 +164,18 @@ describe('determinant', () => {
     ).toBe(0)
   })
 
+  it('does not mistake a small-magnitude matrix for a singular one', () => {
+    // A fixed absolute threshold (e.g. 1e-12) would call this singular even
+    // though its true determinant (1e-13) is nowhere near zero relative to
+    // its own scale. Checked as a ratio, since toBeCloseTo's default
+    // precision would pass for 0 too at this magnitude.
+    expect(determinant([[1e-13]]) / 1e-13).toBeCloseTo(1, 6)
+  })
+
+  it('still catches an exactly-zero matrix, where a purely relative threshold would miss it', () => {
+    expect(determinant([[0]])).toBe(0)
+  })
+
   it('rejects a non-square matrix', () => {
     expect(() => determinant([[1, 2, 3]])).toThrow(/square matrix/i)
   })
@@ -189,6 +205,10 @@ describe('inverse', () => {
         expect(product[i][j]).toBeCloseTo(i === j ? 1 : 0)
       }
     }
+  })
+
+  it('does not mistake a small-magnitude matrix for a singular one', () => {
+    expect(inverse([[1e-13]])[0][0] / 1e13).toBeCloseTo(1, 6)
   })
 
   it('rejects a singular matrix', () => {
