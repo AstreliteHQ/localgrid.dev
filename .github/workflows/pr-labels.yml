@@ -72,13 +72,14 @@ jobs:
 
   # Sets a single `state: <state>` label reflecting where the PR actually
   # stands, since GitHub's own PR list doesn't surface this at a glance:
-  #   state: conflict        - can't be merged as-is, needs a rebase/merge
-  #   state: pending-review  - open (unresolved) review threads, changes
-  #                             requested, or no approval yet
-  #   state: ready           - approved, no open threads, no conflicts
-  # Conflict wins over pending-review when both are true, since it blocks
-  # merging regardless of review outcome. No label while still a draft, or
-  # once the PR is closed or merged.
+  #   state: conflict            - can't be merged as-is, needs a rebase/merge
+  #   state: unresolved-threads  - open review conversations, blocking
+  #                                 regardless of the review decision
+  #   state: pending-review      - no open threads, but not yet approved
+  #   state: ready               - approved, no open threads, no conflicts
+  # Priority when more than one applies: conflict > unresolved-threads >
+  # pending-review > ready. No label while still a draft, or once the PR is
+  # closed or merged.
   state-label:
     runs-on: ubuntu-latest
     steps:
@@ -87,6 +88,7 @@ jobs:
           script: |
             const STATES = {
               conflict: 'e11d21',
+              'unresolved-threads': 'd93f0b',
               'pending-review': 'fbca04',
               ready: '0e8a16',
             };
@@ -153,6 +155,12 @@ jobs:
             `;
             const result = await github.graphql(query, { ...context.repo, number: issue_number });
             const { reviewDecision, reviewThreads } = result.repository.pullRequest;
-            const unresolvedThreads = reviewThreads.nodes.some((thread) => !thread.isResolved);
+            const hasUnresolvedThreads = reviewThreads.nodes.some((thread) => !thread.isResolved);
 
-            await setStateLabel(reviewDecision === 'APPROVED' && !unresolvedThreads ? 'ready' : 'pending-review');
+            if (hasUnresolvedThreads) {
+              await setStateLabel('unresolved-threads');
+            } else if (reviewDecision === 'APPROVED') {
+              await setStateLabel('ready');
+            } else {
+              await setStateLabel('pending-review');
+            }
