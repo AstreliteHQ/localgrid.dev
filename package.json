@@ -1,6 +1,6 @@
 {
   "name": "@astrelitehq/localgrid",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
   "description": "A browser-based dashboard for everyday developer tools.",
   "repository": {
