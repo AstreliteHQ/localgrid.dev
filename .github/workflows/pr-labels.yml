@@ -72,14 +72,13 @@ jobs:
 
   # Sets a single `state: <state>` label reflecting where the PR actually
   # stands, since GitHub's own PR list doesn't surface this at a glance:
-  #   state: draft              - marked as draft
-  #   state: conflict           - can't be merged as-is, needs a rebase/merge
-  #   state: changes-requested  - a review blocked it
-  #   state: in-review          - open (unresolved) review threads, or a
-  #                                review is pending/requested
-  #   state: ready              - approved (or no review required), no open
-  #                                threads, no conflicts
-  # Removed entirely once the PR is closed or merged.
+  #   state: conflict        - can't be merged as-is, needs a rebase/merge
+  #   state: pending-review  - open (unresolved) review threads, changes
+  #                             requested, or no approval yet
+  #   state: ready           - approved, no open threads, no conflicts
+  # Conflict wins over pending-review when both are true, since it blocks
+  # merging regardless of review outcome. No label while still a draft, or
+  # once the PR is closed or merged.
   state-label:
     runs-on: ubuntu-latest
     steps:
@@ -87,10 +86,8 @@ jobs:
         with:
           script: |
             const STATES = {
-              draft: '6a737d',
               conflict: 'e11d21',
-              'changes-requested': 'd93f0b',
-              'in-review': 'fbca04',
+              'pending-review': 'fbca04',
               ready: '0e8a16',
             };
 
@@ -126,15 +123,8 @@ jobs:
             // fetch the PR fresh rather than trusting the event payload.
             let pr = (await github.rest.pulls.get({ ...context.repo, pull_number: issue_number })).data;
 
-            // PR closed (merged or not): the state labels no longer mean
-            // anything, drop them.
-            if (pr.state === 'closed') {
+            if (pr.state === 'closed' || pr.draft) {
               await setStateLabel(null);
-              return;
-            }
-
-            if (pr.draft) {
-              await setStateLabel('draft');
               return;
             }
 
@@ -163,12 +153,6 @@ jobs:
             `;
             const result = await github.graphql(query, { ...context.repo, number: issue_number });
             const { reviewDecision, reviewThreads } = result.repository.pullRequest;
-            const unresolvedThreads = reviewThreads.nodes.filter((thread) => !thread.isResolved).length;
+            const unresolvedThreads = reviewThreads.nodes.some((thread) => !thread.isResolved);
 
-            if (reviewDecision === 'CHANGES_REQUESTED') {
-              await setStateLabel('changes-requested');
-            } else if (unresolvedThreads > 0 || reviewDecision === 'REVIEW_REQUIRED') {
-              await setStateLabel('in-review');
-            } else {
-              await setStateLabel('ready');
-            }
+            await setStateLabel(reviewDecision === 'APPROVED' && !unresolvedThreads ? 'ready' : 'pending-review');
