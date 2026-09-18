@@ -8,8 +8,8 @@ export const jinjaTemplateRendererDefinition: WidgetDefinition = {
   description: 'Render a Jinja-style template (via Nunjucks) against JSON or YAML data',
   category: 'formatting',
   icon: LayoutTemplate,
-  defaultSize: { w: 4, h: 8 },
-  minSize: { w: 3, h: 6 },
+  defaultSize: { w: 7, h: 6 },
+  minSize: { w: 6, h: 4 },
   component: lazy(() => import('./JinjaTemplateRendererWidget')),
   keywords: [
     'jinja',
