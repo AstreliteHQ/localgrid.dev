@@ -119,12 +119,16 @@ export type HourFormat = '12h' | '24h'
 /** e.g. "2:30 PM" in 12-hour form, or "14:30" in 24-hour form. */
 export function formatTimeLabel(parts: WallClockParts, hourFormat: HourFormat = '12h'): string {
   const asUtc = new Date(Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute))
+  // `hour12` and `hourCycle` can't both be passed: when they are, `hour12`
+  // wins per the Intl spec, silently discarding `hourCycle`. Pin the
+  // 24-hour case with `hourCycle` alone (`hour12` omitted) so midnight
+  // stays "00:00" rather than drifting to "24:00" on newer ICU/CLDR data,
+  // which redefined en-US's default 24-hour cycle to h24.
   return new Intl.DateTimeFormat('en-US', {
     timeZone: 'UTC',
     hour: hourFormat === '24h' ? '2-digit' : 'numeric',
     minute: '2-digit',
-    hour12: hourFormat === '12h',
-    hourCycle: hourFormat === '24h' ? 'h23' : undefined,
+    ...(hourFormat === '24h' ? { hourCycle: 'h23' } : { hour12: true }),
   }).format(asUtc)
 }
 
