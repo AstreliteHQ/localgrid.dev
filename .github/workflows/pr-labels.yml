@@ -2,7 +2,7 @@ name: PR labels
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize, ready_for_review, converted_to_draft, closed]
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
   pull_request_review:
     types: [submitted, edited, dismissed]
   pull_request_review_thread:
@@ -14,62 +14,6 @@ permissions:
   contents: read
 
 jobs:
-  # Sets a `type: <conventional-commit-type>` label from the PR title, e.g.
-  # "feat(widget): add thing" -> `type: feat`. Kept in sync with the types
-  # release-please-config.json changelog-sections knows about, plus the
-  # extra ones amannn/action-semantic-pull-request (pr-title.yml) allows by
-  # default (revert, style) so a valid title never ends up unlabeled.
-  type-label:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-        with:
-          script: |
-            const TYPES = {
-              feat: '1f883d',
-              fix: 'd73a4a',
-              perf: 'fbca04',
-              refactor: '8250df',
-              chore: 'ededed',
-              docs: '0075ca',
-              test: 'bfd4f2',
-              ci: 'c5def5',
-              build: 'd4c5f9',
-              revert: 'b60205',
-              style: 'c2e0c6',
-            };
-
-            async function ensureLabel(name, color) {
-              try {
-                await github.rest.issues.getLabel({ ...context.repo, name });
-              } catch (error) {
-                if (error.status !== 404) throw error;
-                await github.rest.issues.createLabel({ ...context.repo, name, color });
-              }
-            }
-
-            const title = context.payload.pull_request.title;
-            const match = /^(\w+)(?:\([^)]*\))?!?:\s/.exec(title);
-            const type = match && Object.hasOwn(TYPES, match[1]) ? match[1] : null;
-            const targetLabel = type ? `type: ${type}` : null;
-
-            const issue_number = context.payload.pull_request.number;
-            const current = context.payload.pull_request.labels
-              .map((label) => label.name)
-              .filter((name) => name.startsWith('type: '));
-
-            if (targetLabel && !current.includes(targetLabel)) {
-              await ensureLabel(targetLabel, TYPES[type]);
-              await github.rest.issues.addLabels({ ...context.repo, issue_number, labels: [targetLabel] });
-            }
-
-            for (const name of current) {
-              if (name !== targetLabel) {
-                await github.rest.issues.removeLabel({ ...context.repo, issue_number, name }).catch(() => {});
-              }
-            }
-
   # Sets a single `state: <state>` label reflecting where the PR actually
   # stands, since GitHub's own PR list doesn't surface this at a glance:
   #   state: conflict            - can't be merged as-is, needs a rebase/merge
