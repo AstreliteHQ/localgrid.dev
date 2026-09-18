@@ -5,8 +5,13 @@ on:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, closed]
   pull_request_review:
     types: [submitted, edited, dismissed]
-  pull_request_review_thread:
-    types: [resolved, unresolved]
+  # There's no Actions trigger for a bare "resolve conversation" click
+  # (pull_request_review_thread is a webhook/GraphQL event only, not a
+  # supported `on:` value). New/edited/deleted inline comments are the
+  # closest re-evaluation point; a thread resolved without any new comment
+  # won't relabel until the next push or review.
+  pull_request_review_comment:
+    types: [created, edited, deleted]
 
 permissions:
   pull-requests: write
@@ -50,17 +55,33 @@ jobs:
 
             async function setStateLabel(target) {
               const targetLabel = target ? `state: ${target}` : null;
-              const { data: labels } = await github.rest.issues.listLabelsOnIssue({ ...context.repo, issue_number });
+              const labels = await github.paginate(github.rest.issues.listLabelsOnIssue, {
+                ...context.repo,
+                issue_number,
+                per_page: 100,
+              });
               const current = labels.map((label) => label.name).filter((name) => name.startsWith('state: '));
 
-              if (targetLabel && !current.includes(targetLabel)) {
-                await ensureLabel(targetLabel, STATES[target]);
-                await github.rest.issues.addLabels({ ...context.repo, issue_number, labels: [targetLabel] });
-              }
-              for (const name of current) {
-                if (name !== targetLabel) {
-                  await github.rest.issues.removeLabel({ ...context.repo, issue_number, name }).catch(() => {});
+              try {
+                if (targetLabel && !current.includes(targetLabel)) {
+                  await ensureLabel(targetLabel, STATES[target]);
+                  await github.rest.issues.addLabels({ ...context.repo, issue_number, labels: [targetLabel] });
                 }
+                for (const name of current) {
+                  if (name !== targetLabel) {
+                    await github.rest.issues.removeLabel({ ...context.repo, issue_number, name });
+                  }
+                }
+              } catch (error) {
+                // GITHUB_TOKEN is forced read-only for pull requests from forks
+                // and from Dependabot, so these writes 403 there regardless of
+                // the permissions block above. Skip quietly instead of failing
+                // the whole job on every external PR.
+                if (error.status === 403) {
+                  core.notice(`Skipping label update, token is read-only for this PR: ${error.message}`);
+                  return;
+                }
+                throw error;
               }
             }
 
@@ -75,11 +96,18 @@ jobs:
             }
 
             // `mergeable` is computed asynchronously by GitHub and can be
-            // `null` right after a push; give it a few short retries before
-            // falling back to treating it as unknown.
+            // `null` right after a push; give it a few short retries.
             for (let attempt = 0; pr.mergeable === null && attempt < 4; attempt++) {
               await new Promise((resolve) => setTimeout(resolve, 2000));
               ({ data: pr } = await github.rest.pulls.get({ ...context.repo, pull_number: issue_number }));
+            }
+
+            if (pr.mergeable === null) {
+              // Still unknown after retrying: leave whatever label is
+              // already there rather than risk marking an unmergeable PR
+              // as ready or pending-review.
+              core.notice('Mergeable state still unknown after retries, leaving the current label as-is.');
+              return;
             }
 
             if (pr.mergeable === false) {
@@ -87,19 +115,34 @@ jobs:
               return;
             }
 
-            const query = `
-              query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    reviewDecision
-                    reviewThreads(first: 100) { nodes { isResolved } }
+            let reviewDecision = null;
+            let hasUnresolvedThreads = false;
+            let cursor = null;
+            do {
+              const result = await github.graphql(
+                `
+                  query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        reviewDecision
+                        reviewThreads(first: 100, after: $cursor) {
+                          nodes { isResolved }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }
                   }
-                }
+                `,
+                { ...context.repo, number: issue_number, cursor },
+              );
+              const pull = result.repository.pullRequest;
+              reviewDecision = pull.reviewDecision;
+              if (pull.reviewThreads.nodes.some((thread) => !thread.isResolved)) {
+                hasUnresolvedThreads = true;
+                break;
               }
-            `;
-            const result = await github.graphql(query, { ...context.repo, number: issue_number });
-            const { reviewDecision, reviewThreads } = result.repository.pullRequest;
-            const hasUnresolvedThreads = reviewThreads.nodes.some((thread) => !thread.isResolved);
+              cursor = pull.reviewThreads.pageInfo.hasNextPage ? pull.reviewThreads.pageInfo.endCursor : null;
+            } while (cursor);
 
             if (hasUnresolvedThreads) {
               await setStateLabel('unresolved-threads');
