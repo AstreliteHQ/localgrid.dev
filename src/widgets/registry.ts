@@ -48,6 +48,7 @@ import { watermarkDefinition } from './watermark/definition'
 import { pngOptimizerDefinition } from './png-optimizer/definition'
 import { codeSnippetDefinition } from './code-snippet/definition'
 import { semverDefinition } from './semver/definition'
+import { matrixCalculatorDefinition } from './matrix-calculator/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -101,6 +102,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   pngOptimizerDefinition,
   codeSnippetDefinition,
   semverDefinition,
+  matrixCalculatorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
