@@ -9,7 +9,11 @@ export interface Dimensions {
 }
 
 export function dimensions(m: Matrix): Dimensions {
-  return { rows: m.length, cols: m[0]?.length ?? 0 }
+  const cols = m[0]?.length ?? 0
+  if (m.some((row) => row.length !== cols)) {
+    throw new Error('Every matrix row must have the same number of columns.')
+  }
+  return { rows: m.length, cols }
 }
 
 function zeros(rows: number, cols: number): Matrix {
@@ -71,6 +75,31 @@ export function transpose(a: Matrix): Matrix {
   return result
 }
 
+/** Largest absolute entry in the matrix, used to scale the "is this pivot
+ * effectively zero" threshold below to the matrix's own magnitude — a fixed
+ * absolute epsilon would wrongly call a matrix like `[[1e-13]]` singular
+ * (determinant is genuinely `1e-13`, not 0) while being too lenient for a
+ * matrix whose entries are all much larger. */
+function matrixScale(a: Matrix): number {
+  let max = 0
+  for (const row of a) {
+    for (const v of row) {
+      const abs = Math.abs(v)
+      if (abs > max) max = abs
+    }
+  }
+  return max
+}
+
+const RELATIVE_SINGULARITY_EPSILON = 1e-10
+
+/** `Number.EPSILON` floors the threshold for an all-zero matrix (scale 0),
+ * where a purely relative threshold would be 0 and so would never actually
+ * flag a genuinely-zero pivot as singular. */
+function singularityThreshold(a: Matrix): number {
+  return Math.max(matrixScale(a) * RELATIVE_SINGULARITY_EPSILON, Number.EPSILON)
+}
+
 /** Partial-pivot Gaussian elimination to an upper-triangular form, tracking
  * the sign flip from each row swap — the determinant is then just the
  * product of the diagonal. Same O(n³) cost as cofactor expansion's O(n!)
@@ -79,13 +108,14 @@ export function determinant(a: Matrix): number {
   assertSquare(a, 'Determinant')
   const n = a.length
   const m = a.map((row) => [...row])
+  const threshold = singularityThreshold(a)
   let det = 1
   for (let col = 0; col < n; col++) {
     let pivotRow = col
     for (let row = col + 1; row < n; row++) {
       if (Math.abs(m[row][col]) > Math.abs(m[pivotRow][col])) pivotRow = row
     }
-    if (Math.abs(m[pivotRow][col]) < 1e-12) return 0
+    if (Math.abs(m[pivotRow][col]) < threshold) return 0
     if (pivotRow !== col) {
       ;[m[col], m[pivotRow]] = [m[pivotRow], m[col]]
       det *= -1
@@ -107,13 +137,14 @@ export function inverse(a: Matrix): Matrix {
   const left = a.map((row) => [...row])
   const right = zeros(n, n)
   for (let i = 0; i < n; i++) right[i][i] = 1
+  const threshold = singularityThreshold(a)
 
   for (let col = 0; col < n; col++) {
     let pivotRow = col
     for (let row = col + 1; row < n; row++) {
       if (Math.abs(left[row][col]) > Math.abs(left[pivotRow][col])) pivotRow = row
     }
-    if (Math.abs(left[pivotRow][col]) < 1e-12) {
+    if (Math.abs(left[pivotRow][col]) < threshold) {
       throw new Error('Matrix is singular (determinant is 0) and has no inverse.')
     }
     if (pivotRow !== col) {

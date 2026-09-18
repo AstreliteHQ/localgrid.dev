@@ -67,21 +67,32 @@ export default function MatrixCalculatorWidget({ instanceId }: WidgetProps) {
 
   const needsB = NEEDS_B.has(operation)
 
+  // NumberField only clamps to [min, max] on blur — its onChange fires for
+  // any finite value typed so far, negative included (Array.from silently
+  // treats a negative length as 0 rather than throwing, so a stray "-3"
+  // mid-edit would otherwise collapse the grid to nothing before the blur
+  // clamp ever runs).
+  const clampSize = (value: number) => Math.min(MAX_SIZE, Math.max(MIN_SIZE, value))
+
   const handleRowsAChange = (rows: number) => {
-    setRowsA(rows)
-    setValuesA((prev) => resizeGrid(prev, rows, colsA))
+    const next = clampSize(rows)
+    setRowsA(next)
+    setValuesA((prev) => resizeGrid(prev, next, colsA))
   }
   const handleColsAChange = (cols: number) => {
-    setColsA(cols)
-    setValuesA((prev) => resizeGrid(prev, rowsA, cols))
+    const next = clampSize(cols)
+    setColsA(next)
+    setValuesA((prev) => resizeGrid(prev, rowsA, next))
   }
   const handleRowsBChange = (rows: number) => {
-    setRowsB(rows)
-    setValuesB((prev) => resizeGrid(prev, rows, colsB))
+    const next = clampSize(rows)
+    setRowsB(next)
+    setValuesB((prev) => resizeGrid(prev, next, colsB))
   }
   const handleColsBChange = (cols: number) => {
-    setColsB(cols)
-    setValuesB((prev) => resizeGrid(prev, rowsB, cols))
+    const next = clampSize(cols)
+    setColsB(next)
+    setValuesB((prev) => resizeGrid(prev, rowsB, next))
   }
 
   const { result, error } = useMemo(() => {
