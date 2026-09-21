@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.2...v0.3.0) (2026-09-21)
+
+
+### Features
+
+* add qr code generator widget ([#40](https://github.com/AstreliteHQ/localgrid.dev/issues/40)) ([6b68225](https://github.com/AstreliteHQ/localgrid.dev/commit/6b682256b6a643015e7a7192fdab55a3d64c19f4))
+* add searchable world clock combobox ([07517c2](https://github.com/AstreliteHQ/localgrid.dev/commit/07517c261044fc2684701be1292eadaa31c71549))
+* **widgets:** add big-o estimator widget ([#43](https://github.com/AstreliteHQ/localgrid.dev/issues/43)) ([fb1e078](https://github.com/AstreliteHQ/localgrid.dev/commit/fb1e078ced9abffa31fd24dbdf2e8668ac07f6af))
+* **widgets:** add curl command builder widget ([#48](https://github.com/AstreliteHQ/localgrid.dev/issues/48)) ([55b83e9](https://github.com/AstreliteHQ/localgrid.dev/commit/55b83e9a4a049fee0a000772b6865342c9b99c1d))
+* **widgets:** add duplicate remover widget ([#42](https://github.com/AstreliteHQ/localgrid.dev/issues/42)) ([5fa2cfc](https://github.com/AstreliteHQ/localgrid.dev/commit/5fa2cfc75f1ed77a61bfa1efb2ebc3f806906f80))
+* **widgets:** add Time Zone Calculator widget ([#49](https://github.com/AstreliteHQ/localgrid.dev/issues/49)) ([1008cc6](https://github.com/AstreliteHQ/localgrid.dev/commit/1008cc61ca08e1a9ffa6beaa1d5f9342270726f7))
+
 ## [0.2.2](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.1...v0.2.2) (2026-09-11)
 
 
