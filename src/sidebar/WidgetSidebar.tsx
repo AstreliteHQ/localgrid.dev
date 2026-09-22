@@ -197,17 +197,22 @@ function BrandFooter() {
         <CapabilityBadge icon={Laptop} label="Run locally" />
         <CapabilityBadge icon={Download} label="Installable" />
       </div>
-      <a
-        href="https://astrelite.com"
-        target="_blank"
-        rel="noreferrer"
-        title="Astrelite"
-        className="flex items-center gap-1.5 rounded-md px-1 py-1 text-foreground hover:bg-accent"
-      >
-        <AstreliteIcon className="size-3.5 shrink-0" />
-        <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
-      </a>
-      <p className="px-1 text-[9px] text-muted-foreground/50">v{__APP_VERSION__}</p>
+      <div className="flex items-center justify-between gap-1">
+        <a
+          href="https://astrelite.com"
+          target="_blank"
+          rel="noreferrer"
+          title="Astrelite"
+          className="flex min-w-0 items-center gap-1.5 rounded-md px-1 py-1 text-foreground hover:bg-accent"
+        >
+          <AstreliteIcon className="size-3.5 shrink-0" />
+          <span className="truncate text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
+        </a>
+        {/* Sits beside the logo when there's room for it (the sidebar's
+         * fixed width always has room in practice) rather than its own row
+         * below, so it reads as one attribution line instead of two. */}
+        <span className="shrink-0 px-1 text-[9px] text-muted-foreground/50">v{__APP_VERSION__}</span>
+      </div>
     </div>
   )
 }
