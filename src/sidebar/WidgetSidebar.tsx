@@ -207,6 +207,7 @@ function BrandFooter() {
         <AstreliteIcon className="size-3.5 shrink-0" />
         <span className="text-[10px] font-medium tracking-widest uppercase">Astrelite</span>
       </a>
+      <p className="px-1 text-[9px] text-muted-foreground/50">v{__APP_VERSION__}</p>
     </div>
   )
 }

@@ -54,4 +54,17 @@ describe('WidgetSidebar', () => {
       widgetId: 'json-formatter',
     })
   })
+
+  it('shows the app version discreetly in the footer', () => {
+    render(<WidgetSidebar />)
+
+    expect(screen.getByText(/^v\d+\.\d+\.\d+$/)).toBeInTheDocument()
+  })
+
+  it('hides the version footer along with the rest of the brand footer when collapsed', () => {
+    useSidebarStore.setState({ collapsed: true })
+    render(<WidgetSidebar />)
+
+    expect(screen.queryByText(/^v\d+\.\d+\.\d+$/)).not.toBeInTheDocument()
+  })
 })
