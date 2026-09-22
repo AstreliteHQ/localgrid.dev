@@ -134,6 +134,48 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
     const contentAfter = renderHook(() => useWidgetState(instanceId, 'input', 'fresh-default'))
     expect(contentAfter.result.current[0]).toBe('fresh-default')
   })
+
+  it('clearDashboard removes every widget from the targeted dashboard, leaving others untouched', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'uuid-generator')
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    useDashboardStore.getState().addWidget(DASHBOARD_B, 'json-formatter')
+
+    useDashboardStore.getState().clearDashboard(DASHBOARD_A)
+
+    const { dashboards } = useDashboardStore.getState()
+    expect(dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toEqual([])
+    expect(dashboards.find((d) => d.id === DASHBOARD_B)!.widgets).toHaveLength(1)
+  })
+
+  it('clearDashboard keeps the dashboard itself (name, tab) in place', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+
+    useDashboardStore.getState().clearDashboard(DASHBOARD_A)
+
+    const { dashboards } = useDashboardStore.getState()
+    expect(dashboards.map((d) => d.id)).toEqual([DASHBOARD_A, DASHBOARD_B])
+  })
+
+  it('clearDashboard is a no-op on an already-empty dashboard', () => {
+    const before = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!
+
+    useDashboardStore.getState().clearDashboard(DASHBOARD_A)
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!).toBe(before)
+  })
+
+  it('clearDashboard also clears every removed widget from useWidgetState, so none of them leak', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+      .instanceId
+    const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
+    act(() => content.result.current[1]('typed before clearing'))
+
+    useDashboardStore.getState().clearDashboard(DASHBOARD_A)
+
+    const contentAfter = renderHook(() => useWidgetState(instanceId, 'input', 'fresh-default'))
+    expect(contentAfter.result.current[0]).toBe('fresh-default')
+  })
 })
 
 describe('useDashboardStore — dashboard management', () => {
