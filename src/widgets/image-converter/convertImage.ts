@@ -93,6 +93,34 @@ function encode(canvas: HTMLCanvasElement, format: ImageFormat, quality: number)
   })
 }
 
+/** Re-encodes a raster blob as PNG. The Async Clipboard API a browser
+ * exposes to `navigator.clipboard.write` only reliably accepts a
+ * `ClipboardItem` typed `image/png` — writing one typed `image/jpeg` or
+ * `image/webp` is silently rejected in Chrome/Edge, even though those are
+ * exactly the formats this widget can produce. Copying to the clipboard
+ * goes through here regardless of the chosen target format; downloading
+ * the original conversion is unaffected. */
+export async function toPngBlob(blob: Blob): Promise<Blob> {
+  if (blob.type === 'image/png') return blob
+  const bitmap = await createImageBitmap(blob)
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = bitmap.width
+    canvas.height = bitmap.height
+    const context = canvas.getContext('2d')
+    if (!context) throw new Error('This browser does not support canvas rendering.')
+    context.drawImage(bitmap, 0, 0)
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((result) => {
+        if (result) resolve(result)
+        else reject(new Error('This browser cannot encode PNG.'))
+      }, 'image/png')
+    })
+  } finally {
+    bitmap.close()
+  }
+}
+
 /** Decodes `file`, which was identified as `source` by its own bytes, and
  * re-encodes it as `format`. Rejects with a user-presentable message when
  * the source can't be decoded or the target can't be encoded. */
