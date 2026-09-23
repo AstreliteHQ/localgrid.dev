@@ -33,5 +33,8 @@ export const imageConverterDefinition: WidgetDefinition = {
     'quality',
     'resize',
     'drag and drop',
+    'clipboard',
+    'paste',
+    'copy',
   ],
 }

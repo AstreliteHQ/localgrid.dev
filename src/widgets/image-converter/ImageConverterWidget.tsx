@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Download, ImageUp, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent, type FocusEvent } from 'react'
+import { AlertTriangle, Check, Clipboard, ClipboardPaste, Download, FolderOpen, ImageUp, X } from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
-import { convertImage, type ConversionResult } from './convertImage'
+import { convertImage, toPngBlob, type ConversionResult } from './convertImage'
 import {
   detectImageFormat,
   formatFileSize,
@@ -49,6 +49,25 @@ interface Conversion {
   error: string | null
 }
 
+type CopyStatus = 'idle' | 'copied' | 'failed'
+
+/** Picks the file to paste out of a clipboard payload. An image copied from
+ * a browser or another app usually rides alongside a `text/html` or
+ * `text/plain` item describing it, so a `kind === 'file'` item typed
+ * `image/*` is preferred; a same-kind item of another type is kept only as
+ * a fallback, since the actual format is still sniffed from its bytes just
+ * like a dropped file, never trusted from this type string. */
+function fileFromClipboard(items: DataTransferItemList): File | null {
+  let fallback: File | null = null
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index]
+    if (item.kind !== 'file') continue
+    if (item.type.startsWith('image/')) return item.getAsFile()
+    fallback ??= item.getAsFile()
+  }
+  return fallback
+}
+
 export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) {
   const targets = useMemo(() => listEncodableFormats(), [])
   const [file, setFile] = useWidgetState<File | null>(instanceId, 'file', null)
@@ -57,7 +76,14 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
   const [detection, setDetection] = useState<Detection | null>(null)
   const [conversion, setConversion] = useState<Conversion | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
+  // Whether the drop zone / file bar (whichever is currently rendered) is
+  // focused, so the paste hint can say "ready" instead of "click first" —
+  // the two states people actually need to tell apart, since a paste only
+  // reaches whichever element has focus.
+  const [pasteZoneFocused, setPasteZoneFocused] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const copyStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   // Mirrors the currently published object URL so the previous one can be
   // revoked the moment a newer result replaces it.
   const urlRef = useRef<string | null>(null)
@@ -145,6 +171,12 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
     publishUrl(null)
     setConversion(null)
     setFile(next)
+    // The empty-state zone unmounts in favor of the file bar on this
+    // change, taking real DOM focus with it — the freshly mounted bar
+    // hasn't actually been focused yet, whatever this said a moment ago.
+    // Replacing an already-loaded file reuses that same bar element rather
+    // than remounting it, though, so real focus (and this) carry over.
+    if (!file) setPasteZoneFocused(false)
   }
 
   const clear = () => {
@@ -152,7 +184,58 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
     setFile(null)
     setDetection(null)
     setConversion(null)
+    setPasteZoneFocused(false)
     if (inputRef.current) inputRef.current.value = ''
+  }
+
+  // A native `paste` event only reaches the currently focused element, so
+  // both the empty drop zone and the loaded-file bar below carry their own
+  // `tabIndex` and a visible focus ring — clicking into either (anywhere
+  // but the Browse button, which opens the OS file picker instead) focuses
+  // it and readies this handler, which then catches the bubbled event.
+  const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
+    const items = event.clipboardData?.items
+    if (!items) return
+    const pasted = fileFromClipboard(items)
+    if (!pasted) return
+    event.preventDefault()
+    accept(pasted)
+  }
+
+  // Focus moving from the zone to its own child (the Browse button, the
+  // Remove button) still fires a native blur — the same `contains` check
+  // `onDragLeave` above uses for its own zone-vs-child distinction — so
+  // this only reports "unfocused" once focus has actually left the zone.
+  const handlePasteZoneBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+    setPasteZoneFocused(false)
+  }
+
+  const handleCopyImage = async () => {
+    if (result && typeof ClipboardItem !== 'undefined') {
+      try {
+        // Browsers only reliably accept a `ClipboardItem` typed image/png —
+        // writing the JPEG/WebP/AVIF this conversion may have actually
+        // produced is silently rejected, so the clipboard always gets a PNG
+        // regardless of the chosen target format (the download is
+        // unaffected, and stays in the requested format).
+        //
+        // toPngBlob's own promise is handed straight to ClipboardItem
+        // rather than awaited first: Safari only allows a clipboard write
+        // while still inside the click's own call stack, and awaiting here
+        // would already have yielded past it by the time write() runs. The
+        // key is `image/png` unconditionally since that's the only type
+        // toPngBlob ever resolves to.
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': toPngBlob(result.blob) })])
+        setCopyStatus('copied')
+      } catch {
+        setCopyStatus('failed')
+      }
+    } else {
+      setCopyStatus('failed')
+    }
+    clearTimeout(copyStatusTimeoutRef.current)
+    copyStatusTimeoutRef.current = setTimeout(() => setCopyStatus('idle'), 1200)
   }
 
   const sizeDelta = file && result && file.size > 0 ? Math.round((result.blob.size / file.size - 1) * 100) : null
@@ -174,6 +257,7 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
         setDragging(false)
         accept(event.dataTransfer?.files?.[0])
       }}
+      onPaste={handlePaste}
       className="flex h-full flex-col gap-2"
     >
       <input
@@ -186,23 +270,60 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
       />
 
       {!file ? (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
+        // Not a <button>: the whole area is both the drop target and the
+        // focus target a paste needs, and only the small Browse button
+        // inside it should open the OS file picker on click.
+        <div
+          role="group"
+          aria-label="Image drop zone. Click here, then paste with Ctrl or Cmd+V, or drag and drop a file."
+          tabIndex={0}
+          onFocus={() => setPasteZoneFocused(true)}
+          onBlur={handlePasteZoneBlur}
           className={cn(
-            'flex flex-1 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground transition-colors hover:border-ring hover:text-foreground',
+            'flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-center text-xs text-muted-foreground outline-none transition-colors hover:border-ring hover:text-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50',
             dragging && 'border-ring bg-muted/50 text-foreground',
           )}
         >
           <ImageUp className="size-6" />
           <span className="font-medium">Drop an image here</span>
-          <span>or click to browse. PNG, JPEG, WebP, GIF, AVIF, HEIC, BMP, TIFF, ICO, SVG.</span>
-        </button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => inputRef.current?.click()}
+            className="h-auto gap-1 px-2 py-1 text-xs"
+          >
+            <FolderOpen className="size-3.5" />
+            Browse
+          </Button>
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 transition-colors',
+              pasteZoneFocused ? 'border-primary/30 bg-primary/10 text-primary' : 'border-transparent',
+            )}
+          >
+            <ClipboardPaste className={cn('size-3.5', pasteZoneFocused && 'animate-pulse')} />
+            {pasteZoneFocused ? (
+              <span className="inline-flex items-center gap-1">
+                Ready to paste
+                <kbd className="rounded border border-current/30 px-1 text-[10px] leading-4">Ctrl/⌘</kbd>
+                <kbd className="rounded border border-current/30 px-1 text-[10px] leading-4">V</kbd>
+              </span>
+            ) : (
+              'Click, then paste with Ctrl/Cmd+V'
+            )}
+          </span>
+          <span>PNG, JPEG, WebP, GIF, AVIF, HEIC, BMP, TIFF, ICO, SVG.</span>
+        </div>
       ) : (
         <>
           <div
+            tabIndex={0}
+            aria-label={`${file.name}. Click here, then paste with Ctrl or Cmd+V to replace it.`}
+            onFocus={() => setPasteZoneFocused(true)}
+            onBlur={handlePasteZoneBlur}
             className={cn(
-              'flex items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-xs',
+              'flex items-center gap-2 rounded-lg border border-border px-2 py-1.5 text-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50',
               dragging && 'border-ring bg-muted/50',
             )}
           >
@@ -227,6 +348,20 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
               <X />
             </Button>
           </div>
+          {/* Only shown once pasting actually becomes possible, which is
+           * also the moment someone needs telling — hidden the rest of the
+           * time to save space in a small widget. */}
+          {pasteZoneFocused && (
+            <p className="text-[11px] text-primary">
+              <span className="inline-flex items-center gap-1">
+                <ClipboardPaste className="size-3 animate-pulse" />
+                Ready — press
+                <kbd className="rounded border border-primary/30 px-1 text-[10px] leading-4">Ctrl/⌘</kbd>
+                <kbd className="rounded border border-primary/30 px-1 text-[10px] leading-4">V</kbd>
+                to replace
+              </span>
+            </p>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedControl
@@ -282,14 +417,36 @@ export default function ImageConverterWidget({ instanceId, mode }: WidgetProps) 
               </span>
             )}
             {currentConversion?.url && (
-              <a
-                href={currentConversion.url}
-                download={outputFileName(file.name, targetFormat)}
-                className={cn(buttonVariants({ size: 'sm' }), 'ml-auto shrink-0')}
-              >
-                <Download />
-                Download
-              </a>
+              <div className="ml-auto flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyImage}
+                  aria-live="polite"
+                  className={cn(
+                    'h-auto gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground',
+                    copyStatus === 'failed' && 'text-destructive hover:text-destructive',
+                  )}
+                >
+                  {copyStatus === 'copied' ? (
+                    <Check className="size-3.5" />
+                  ) : copyStatus === 'failed' ? (
+                    <AlertTriangle className="size-3.5" />
+                  ) : (
+                    <Clipboard className="size-3.5" />
+                  )}
+                  {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy'}
+                </Button>
+                <a
+                  href={currentConversion.url}
+                  download={outputFileName(file.name, targetFormat)}
+                  className={buttonVariants({ size: 'sm' })}
+                >
+                  <Download />
+                  Download
+                </a>
+              </div>
             )}
           </div>
         </>
