@@ -12,12 +12,12 @@ function dashboardsWithWidgets(instanceId: string): DashboardType[] {
   ]
 }
 
-describe('AppHeader — reset dashboard button', () => {
+describe('AppHeader — clean dashboard button', () => {
   it('is disabled when the active dashboard has no widgets', () => {
     useDashboardStore.setState({ dashboards: dashboardsWithWidgets('reset-1'), activeDashboardId: 'dash-b' })
     render(<AppHeader />)
 
-    expect(screen.getByRole('button', { name: /reset dashboard/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /clean dashboard/i })).toBeDisabled()
   })
 
   it('is enabled when the active dashboard has widgets, but does nothing before confirming', async () => {
@@ -25,11 +25,11 @@ describe('AppHeader — reset dashboard button', () => {
     useDashboardStore.setState({ dashboards: dashboardsWithWidgets('reset-2'), activeDashboardId: 'dash-a' })
     render(<AppHeader />)
 
-    const resetButton = screen.getByRole('button', { name: /reset dashboard/i })
-    expect(resetButton).toBeEnabled()
+    const cleanButton = screen.getByRole('button', { name: /clean dashboard/i })
+    expect(cleanButton).toBeEnabled()
 
-    await user.click(resetButton)
-    expect(screen.getByRole('heading', { name: /reset this dashboard/i })).toBeInTheDocument()
+    await user.click(cleanButton)
+    expect(screen.getByRole('heading', { name: /clean this dashboard/i })).toBeInTheDocument()
     expect(useDashboardStore.getState().dashboards.find((d) => d.id === 'dash-a')!.widgets).toHaveLength(1)
   })
 
@@ -38,10 +38,10 @@ describe('AppHeader — reset dashboard button', () => {
     useDashboardStore.setState({ dashboards: dashboardsWithWidgets('reset-3'), activeDashboardId: 'dash-a' })
     render(<AppHeader />)
 
-    await user.click(screen.getByRole('button', { name: /reset dashboard/i }))
+    await user.click(screen.getByRole('button', { name: /clean dashboard/i }))
     await user.click(screen.getByRole('button', { name: /cancel/i }))
 
-    expect(screen.queryByRole('heading', { name: /reset this dashboard/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /clean this dashboard/i })).not.toBeInTheDocument()
     expect(useDashboardStore.getState().dashboards.find((d) => d.id === 'dash-a')!.widgets).toHaveLength(1)
   })
 
@@ -63,8 +63,8 @@ describe('AppHeader — reset dashboard button', () => {
     })
     render(<AppHeader />)
 
-    await user.click(screen.getByRole('button', { name: /reset dashboard/i }))
-    await user.click(screen.getByRole('button', { name: /^reset$/i }))
+    await user.click(screen.getByRole('button', { name: /clean dashboard/i }))
+    await user.click(screen.getByRole('button', { name: /^clean$/i }))
 
     const { dashboards } = useDashboardStore.getState()
     expect(dashboards.find((d) => d.id === 'dash-a')!.widgets).toEqual([])
@@ -76,9 +76,9 @@ describe('AppHeader — reset dashboard button', () => {
     useDashboardStore.setState({ dashboards: dashboardsWithWidgets('reset-5'), activeDashboardId: 'dash-a' })
     render(<AppHeader />)
 
-    await user.click(screen.getByRole('button', { name: /reset dashboard/i }))
+    await user.click(screen.getByRole('button', { name: /clean dashboard/i }))
 
-    const dialog = screen.getByRole('dialog', { name: /reset this dashboard/i })
+    const dialog = screen.getByRole('dialog', { name: /clean this dashboard/i })
     expect(within(dialog).getByText('Dashboard A')).toBeInTheDocument()
   })
 })

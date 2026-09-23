@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { RotateCcw, Trash2 } from 'lucide-react'
+import { MopSparkles, RotateCcw } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { useAnyWidgetDirty, useResetWidgets } from '@/widgets/useWidgetDirty'
 import { LogoIcon } from '@/components/icons/LogoIcon'
@@ -65,8 +65,8 @@ export function AppHeader() {
           disabled={activeInstanceIds.length === 0}
           title="Remove every widget from this dashboard"
         >
-          <Trash2 className="size-3.5" />
-          <span className="hidden sm:inline">Reset dashboard</span>
+          <MopSparkles className="size-3.5" />
+          <span className="hidden sm:inline">Clean dashboard</span>
         </Button>
         <DashboardToolbar />
       </div>
@@ -74,7 +74,7 @@ export function AppHeader() {
       <Dialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reset this dashboard?</DialogTitle>
+            <DialogTitle>Clean this dashboard?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
             This removes every widget from{' '}
@@ -96,7 +96,7 @@ export function AppHeader() {
               // overrides Base UI's default soft/tinted `destructive` style.
               className="bg-destructive text-white hover:bg-destructive/90"
             >
-              Reset
+              Clean
             </Button>
           </DialogFooter>
         </DialogContent>
