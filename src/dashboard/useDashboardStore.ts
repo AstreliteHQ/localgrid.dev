@@ -35,6 +35,10 @@ interface DashboardState extends PersistedDashboardState {
    * grid from the sidebar. */
   addWidgetAt: (dashboardId: string, widgetId: string, position: GridPosition) => void
   removeWidget: (dashboardId: string, instanceId: string) => void
+  /** Removes every widget from the given dashboard, leaving the dashboard
+   * itself (name, tab) in place — unlike removeDashboard, which drops the
+   * whole tab. A no-op on an already-empty dashboard. */
+  clearDashboard: (dashboardId: string) => void
   applyLayoutUpdate: (dashboardId: string, layout: readonly LayoutUpdate[]) => void
   /** Keyboard-accessible alternative to dragging/resizing a grid item — used
    * by the move/resize dialog in the widget shell's "…" menu. */
@@ -190,6 +194,16 @@ export const useDashboardStore = create<DashboardState>()(
         // coming back, so its content would otherwise leak in useWidgetState's
         // store for the rest of the session.
         useWidgetStateStore.getState().resetInstances([instanceId])
+      },
+
+      clearDashboard: (dashboardId) => {
+        const dashboard = get().dashboards.find((d) => d.id === dashboardId)
+        const removedInstanceIds = dashboard?.widgets.map((widget) => widget.instanceId) ?? []
+        if (removedInstanceIds.length === 0) return
+        set((state) => ({
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, () => []),
+        }))
+        useWidgetStateStore.getState().resetInstances(removedInstanceIds)
       },
 
       applyLayoutUpdate: (dashboardId, layout) => {
