@@ -2,8 +2,15 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
+import packageJson from '../../package.json'
 import { WidgetSidebar } from './WidgetSidebar'
 import { useSidebarStore } from './useSidebarStore'
+
+// Read directly from package.json, the same source __APP_VERSION__ is baked
+// from (see vite.config.ts / vitest.config.ts) — asserting the exact string
+// this way still catches a stale __APP_VERSION__ define, unlike a loose
+// three-part-semver regex, without hardcoding a version that a bump breaks.
+const appVersion = packageJson.version
 
 beforeEach(() => {
   useSidebarStore.setState({ collapsed: false })
@@ -53,5 +60,18 @@ describe('WidgetSidebar', () => {
       kind: 'ephemeral',
       widgetId: 'json-formatter',
     })
+  })
+
+  it('shows the app version discreetly in the footer', () => {
+    render(<WidgetSidebar />)
+
+    expect(screen.getByText(`v${appVersion}`)).toBeInTheDocument()
+  })
+
+  it('hides the version footer along with the rest of the brand footer when collapsed', () => {
+    useSidebarStore.setState({ collapsed: true })
+    render(<WidgetSidebar />)
+
+    expect(screen.queryByText(`v${appVersion}`)).not.toBeInTheDocument()
   })
 })
