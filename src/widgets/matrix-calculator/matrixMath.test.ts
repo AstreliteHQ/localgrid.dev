@@ -176,6 +176,17 @@ describe('determinant', () => {
     expect(determinant([[0]])).toBe(0)
   })
 
+  it('does not mistake a small pivot for singular just because another axis is much larger', () => {
+    // A threshold relative to the whole matrix's scale (its largest entry,
+    // 1) would call the second pivot (1e-11) singular even though the true
+    // determinant (1e-11) is a perfectly valid nonzero value.
+    const det = determinant([
+      [1, 0],
+      [0, 1e-11],
+    ])
+    expect(det / 1e-11).toBeCloseTo(1, 6)
+  })
+
   it('rejects a non-square matrix', () => {
     expect(() => determinant([[1, 2, 3]])).toThrow(/square matrix/i)
   })
@@ -209,6 +220,15 @@ describe('inverse', () => {
 
   it('does not mistake a small-magnitude matrix for a singular one', () => {
     expect(inverse([[1e-13]])[0][0] / 1e13).toBeCloseTo(1, 6)
+  })
+
+  it('does not mistake a small pivot for singular just because another axis is much larger', () => {
+    const result = inverse([
+      [1, 0],
+      [0, 1e-11],
+    ])
+    expect(result[0][0]).toBeCloseTo(1)
+    expect(result[1][1] / 1e11).toBeCloseTo(1, 6)
   })
 
   it('rejects a singular matrix', () => {
