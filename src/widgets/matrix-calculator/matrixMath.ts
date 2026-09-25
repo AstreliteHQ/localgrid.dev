@@ -91,13 +91,17 @@ function matrixScale(a: Matrix): number {
   return max
 }
 
-const RELATIVE_SINGULARITY_EPSILON = 1e-10
-
-/** `Number.EPSILON` floors the threshold for an all-zero matrix (scale 0),
- * where a purely relative threshold would be 0 and so would never actually
- * flag a genuinely-zero pivot as singular. */
+/** `n * Number.EPSILON * scale` is the standard rule of thumb for a
+ * numerically sound singularity tolerance (the error floating-point
+ * elimination can accumulate grows with both the matrix's magnitude and its
+ * size). A fixed relative epsilon like `1e-10` is far too coarse: it called
+ * `[[1, 0], [0, 1e-11]]` singular (its actual determinant is `1e-11`, a
+ * perfectly valid nonzero value) just because that entry is small relative
+ * to the matrix's largest one. `Number.EPSILON` floors the threshold for an
+ * all-zero matrix (scale 0), where a purely relative threshold would be 0
+ * and so would never actually flag a genuinely-zero pivot as singular. */
 function singularityThreshold(a: Matrix): number {
-  return Math.max(matrixScale(a) * RELATIVE_SINGULARITY_EPSILON, Number.EPSILON)
+  return Math.max(matrixScale(a) * a.length * Number.EPSILON, Number.EPSILON)
 }
 
 /** Partial-pivot Gaussian elimination to an upper-triangular form, tracking
