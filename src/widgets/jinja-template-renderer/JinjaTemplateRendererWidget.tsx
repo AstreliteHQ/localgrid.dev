@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
+import { convert } from '@/widgets/yaml-json-converter/yamlJsonConvert'
 import { renderTemplate, type DataFormat } from './renderTemplate'
 
 const SAMPLE_TEMPLATE = `Hello {{ name | capitalize }}!
@@ -42,6 +43,22 @@ export default function JinjaTemplateRendererWidget({ instanceId }: WidgetProps)
     [template, dataInput, dataFormat],
   )
 
+  // Reuses the YAML ↔ JSON Converter widget's own conversion logic so the
+  // data pane doesn't just go blank-looking-wrong on a format switch —
+  // best-effort: if the current input doesn't actually parse as the format
+  // it's in, leave it as-is and let renderTemplate's own error message
+  // explain why, rather than surfacing a second error here.
+  function handleDataFormatChange(next: DataFormat) {
+    if (next !== dataFormat) {
+      const { output: converted, error: convertError } = convert(
+        dataInput,
+        dataFormat === 'json' ? 'json-to-yaml' : 'yaml-to-json',
+      )
+      if (!convertError) setDataInput(converted)
+    }
+    setDataFormat(next)
+  }
+
   return (
     // @container has to live on this outer element and the @lg: breakpoint
     // on the child below — an element can't run a container query against
@@ -70,7 +87,7 @@ export default function JinjaTemplateRendererWidget({ instanceId }: WidgetProps)
         <div className="flex min-h-0 flex-1 flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Data</p>
-            <SegmentedControl value={dataFormat} onChange={setDataFormat} options={DATA_FORMAT_OPTIONS} />
+            <SegmentedControl value={dataFormat} onChange={handleDataFormatChange} options={DATA_FORMAT_OPTIONS} />
           </div>
           <CodeEditor
             value={dataInput}

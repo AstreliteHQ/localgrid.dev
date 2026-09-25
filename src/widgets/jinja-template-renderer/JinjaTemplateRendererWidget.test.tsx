@@ -43,6 +43,30 @@ describe('JinjaTemplateRendererWidget', () => {
     expect(output()).toHaveValue('bonjour')
   })
 
+  it('auto-converts the existing data to the new format on switch, instead of leaving it stale', async () => {
+    const user = userEvent.setup()
+    render(<JinjaTemplateRendererWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'YAML' }))
+
+    expect(dataField()).toHaveTextContent('name: ada')
+    expect(output()?.textContent).toContain('Hello Ada!')
+
+    await user.click(screen.getByRole('button', { name: 'JSON' }))
+
+    expect(output()?.textContent).toContain('Hello Ada!')
+  })
+
+  it('leaves data untouched on a format switch when it does not actually parse as the format it is in', async () => {
+    const user = userEvent.setup()
+    render(<JinjaTemplateRendererWidget instanceId="test" mode="grid" />)
+
+    setCodeMirrorValue(dataField(), '{not valid json')
+    await user.click(screen.getByRole('button', { name: 'YAML' }))
+
+    expect(dataField()).toHaveTextContent('{not valid json')
+  })
+
   it('shows a data error without leaving a stale output field showing', () => {
     render(<JinjaTemplateRendererWidget instanceId="test" mode="grid" />)
 
