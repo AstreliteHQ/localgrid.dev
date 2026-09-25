@@ -30,8 +30,15 @@ export function niceTicks(maxValue: number, tickCount = 4): number[] {
   const niceResidual = residual >= 5 ? 10 : residual >= 2 ? 5 : residual >= 1 ? 2 : 1
   const step = niceResidual * magnitude
   const top = Math.ceil(maxValue / step) * step
+  // A huge finite maxValue (e.g. Number.MAX_VALUE) can make `top` overflow to
+  // Infinity, which would spin the loop below forever — fall back to a plain
+  // two-point axis rather than hanging the widget.
+  if (!Number.isFinite(step) || !Number.isFinite(top)) return [0, maxValue]
   const ticks: number[] = []
-  for (let v = 0; v <= top + step / 2; v += step) ticks.push(Math.round(v * 1e6) / 1e6)
+  // Rounding to a fixed 6 decimals collapses distinct ticks to 0 once step
+  // drops below 1e-6 (duplicate React keys, wrong axis max) — round by
+  // significant digits instead, which scales with the value itself.
+  for (let v = 0; v <= top + step / 2; v += step) ticks.push(Number(v.toPrecision(12)))
   return ticks
 }
 
