@@ -22,6 +22,16 @@ describe('niceTicks', () => {
   it('scales sensibly for small magnitudes', () => {
     expect(niceTicks(0.9, 3)).toEqual([0, 0.5, 1])
   })
+
+  it('falls back to a two-point axis instead of hanging when the ceiling overflows', () => {
+    expect(niceTicks(Number.MAX_VALUE)).toEqual([0, Number.MAX_VALUE])
+  })
+
+  it('keeps ticks distinct for values far below the old fixed rounding precision', () => {
+    const ticks = niceTicks(1e-8, 2)
+    expect(new Set(ticks).size).toBe(ticks.length)
+    expect(ticks[ticks.length - 1]).toBeGreaterThan(0)
+  })
 })
 
 describe('computeBarLayout', () => {
