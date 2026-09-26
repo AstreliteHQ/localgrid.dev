@@ -44,6 +44,7 @@ import { jinjaTemplateRendererDefinition } from './jinja-template-renderer/defin
 import { chartGeneratorDefinition } from './chart-generator/definition'
 import { mergePdfsDefinition } from './merge-pdfs/definition'
 import { splitPdfDefinition } from './split-pdf/definition'
+import { watermarkDefinition } from './watermark/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -93,6 +94,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   chartGeneratorDefinition,
   mergePdfsDefinition,
   splitPdfDefinition,
+  watermarkDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
