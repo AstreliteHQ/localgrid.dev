@@ -45,6 +45,17 @@ describe('SplitPdfWidget', () => {
     expect(await screen.findByText('5 pg')).toBeInTheDocument()
   })
 
+  it('explains that a single-page PDF has nothing to split, instead of offering to split it', async () => {
+    render(<SplitPdfWidget instanceId="test" mode="grid" />)
+
+    dropFile(await makePdf('a.pdf', 1))
+    await screen.findByText('1 pg')
+
+    expect(await screen.findByText(/nothing to split/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^split$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Every page' })).not.toBeInTheDocument()
+  })
+
   it('flags a file that is not a readable PDF', async () => {
     render(<SplitPdfWidget instanceId="test" mode="grid" />)
 

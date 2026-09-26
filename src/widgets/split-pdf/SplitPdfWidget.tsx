@@ -105,7 +105,8 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
   }
 
   const parsedRanges = mode === 'custom' && pageCount !== null ? parsePageRanges(rangesInput, pageCount) : null
-  const canSplit = pageCount !== null && !splitting && (mode === 'every-page' ? pageCount > 0 : !!parsedRanges?.ranges.length)
+  const canSplit =
+    pageCount !== null && pageCount > 1 && !splitting && (mode === 'every-page' ? true : !!parsedRanges?.ranges.length)
 
   const handleSplit = async () => {
     if (!file || pageCount === null) return
@@ -195,7 +196,9 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
 
           {currentDetection?.error && <ErrorMessage>{currentDetection.error}</ErrorMessage>}
 
-          {pageCount !== null && (
+          {pageCount === 1 && <ErrorMessage>This PDF only has 1 page — there's nothing to split.</ErrorMessage>}
+
+          {pageCount !== null && pageCount > 1 && (
             <>
               <SegmentedControl
                 value={mode}
