@@ -1,4 +1,4 @@
-import { forwardRef, useMemo, useRef } from 'react'
+import { forwardRef, useMemo, useRef, useState, type DragEvent } from 'react'
 import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { EditorView } from '@codemirror/view'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
@@ -8,10 +8,11 @@ import { json } from '@codemirror/lang-json'
 import { xml } from '@codemirror/lang-xml'
 import { javascript } from '@codemirror/lang-javascript'
 import { Prec, type Extension } from '@codemirror/state'
-import { Search } from 'lucide-react'
+import { FileUp, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
+import { isFileDrag, readDroppedFile } from '@/components/codeEditorFileDrop'
 
 export type CodeEditorLanguage = 'json' | 'xml' | 'javascript' | 'plaintext'
 
@@ -26,6 +27,14 @@ const LANGUAGE_EXTENSIONS: Record<CodeEditorLanguage, () => Extension[]> = {
   // structured/single-line inputs the other widgets edit.
   plaintext: () => [EditorView.lineWrapping],
 }
+
+/** CodeMirror's built-in drop handler reads a dropped file and *inserts* its
+ * text at the drop point. The wrapper below replaces the whole document
+ * instead, so this just stops the built-in one (returning true skips it)
+ * for file drags. The event still bubbles up to the wrapper's own onDrop. */
+const suppressBuiltInFileDrop = EditorView.domEventHandlers({
+  drop: (event) => isFileDrag(event.dataTransfer),
+})
 
 export interface CodeEditorProps {
   value: string
@@ -271,7 +280,8 @@ export function useAppEditorTheme(isDark: boolean): Extension {
 /** A large, code-editor-like textarea: line-number gutter, in-editor search
  * and search-and-replace (Mod-F), and syntax highlighting based on
  * `language` — all from CodeMirror 6's `basicSetup`, themed to match the
- * app's own colors. `readOnly` instances drop the extensions that only
+ * app's own colors. Dropping a text file onto an editable instance
+ * replaces its content with the file's text. `readOnly` instances drop the extensions that only
  * matter for editing, since they're the ones most likely to be duplicated
  * across many pinned widgets at once (see the JSON Formatter output pane). */
 export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(function CodeEditor(
@@ -286,8 +296,11 @@ export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(functi
   // (the same panel Mod-F already opens; this is just a discoverable
   // on-screen trigger for it).
   const viewRef = useRef<EditorView | null>(null)
+  const [fileDragActive, setFileDragActive] = useState(false)
+  const [dropError, setDropError] = useState<string | null>(null)
   const extensions = useMemo(() => {
     const exts = language ? LANGUAGE_EXTENSIONS[language]() : []
+    exts.push(suppressBuiltInFileDrop)
     // React's `aria-label` prop on <CodeMirror> would land on the
     // component's outer wrapper div, not on `.cm-content` itself (the
     // element that actually carries role="textbox") — an ancestor's
@@ -304,11 +317,59 @@ export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(functi
     return exts
   }, [language, ariaLabel, extraExtensions])
 
+  // Handled on the wrapper rather than only on CodeMirror's content DOM so
+  // a drop on the gutter or the search button fills the editor too, instead
+  // of falling through to the browser (which would navigate to the file).
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(event.dataTransfer)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = readOnly ? 'none' : 'copy'
+    if (!readOnly && !fileDragActive) {
+      setFileDragActive(true)
+      setDropError(null)
+    }
+  }
+
+  const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    // Moving between the editor's own children fires dragleave too; only a
+    // leave of the wrapper itself should clear the highlight.
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
+    setFileDragActive(false)
+  }
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(event.dataTransfer)) return
+    event.preventDefault()
+    setFileDragActive(false)
+    if (readOnly) return
+    void readDroppedFile(event.dataTransfer.files).then((result) => {
+      const view = viewRef.current
+      // The editor may have unmounted while the file was being read.
+      if (!view || !view.dom.isConnected) return
+      if (!result.ok) {
+        setDropError(result.error)
+        return
+      }
+      // A single transaction, so the previous content stays one undo away.
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: result.text },
+        selection: { anchor: 0 },
+        scrollIntoView: true,
+        userEvent: 'input.drop',
+      })
+      view.focus()
+    })
+  }
+
   return (
     <div
       data-slot="code-editor"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       className={cn(
         'relative overflow-hidden rounded-md border border-border bg-background dark:bg-muted/40',
+        fileDragActive && 'border-ring',
         className,
       )}
     >
@@ -326,7 +387,10 @@ export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(functi
       <CodeMirror
         ref={ref}
         value={value}
-        onChange={onChange}
+        onChange={(next) => {
+          if (dropError) setDropError(null)
+          onChange(next)
+        }}
         extensions={extensions}
         theme={appTheme}
         readOnly={readOnly}
@@ -354,6 +418,23 @@ export const CodeEditor = forwardRef<ReactCodeMirrorRef, CodeEditorProps>(functi
           foldGutter: !readOnly,
         }}
       />
+      {fileDragActive && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-1 bg-muted/80 text-xs font-medium text-foreground"
+        >
+          <FileUp className="size-5" />
+          Drop a file to load its text
+        </div>
+      )}
+      {dropError && (
+        <p
+          role="alert"
+          className="absolute inset-x-0 bottom-0 z-20 border-t border-border bg-card px-2 py-1 text-xs text-destructive"
+        >
+          {dropError}
+        </p>
+      )}
     </div>
   )
 })
