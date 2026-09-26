@@ -56,21 +56,21 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-43 tools across 11 categories, and growing.
+44 tools across 11 categories, and growing.
 
-| Category   | Widgets                                                                                                                    |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Generators | Chart Generator, QR Code Generator, UUID Generator                                                                         |
-| Formatting | Cron Expression, Jinja Template Renderer, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter        |
-| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                                                |
-| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator, Unix Permissions                                       |
-| Text       | Content Type Detector, Duplicate Remover, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff    |
-| Math       | Big-O Estimator, Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
-| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                 |
-| Color      | Color Converter, WCAG Contrast Checker                                                                                     |
-| Image      | Image Converter                                                                                                            |
-| Network    | cURL Builder, Subnet Calculator                                                                                            |
-| Time       | Timeline Builder, Time Zone Calculator, Timer, World Clock                                                                 |
+| Category   | Widgets                                                                                                                         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Generators | Chart Generator, QR Code Generator, UUID Generator                                                                              |
+| Formatting | Cron Expression, Jinja Template Renderer, JSON Formatter, Merge PDFs, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter |
+| Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                                                     |
+| Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator, Unix Permissions                                            |
+| Text       | Content Type Detector, Duplicate Remover, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff         |
+| Math       | Big-O Estimator, Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter      |
+| AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                      |
+| Color      | Color Converter, WCAG Contrast Checker                                                                                          |
+| Image      | Image Converter                                                                                                                 |
+| Network    | cURL Builder, Subnet Calculator                                                                                                 |
+| Time       | Timeline Builder, Time Zone Calculator, Timer, World Clock                                                                      |
 
 ## How it compares
 
