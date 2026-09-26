@@ -3,11 +3,12 @@ import { ChevronDown, ChevronUp, Download, FileStack, FileWarning, FolderOpen, L
 import { nanoid } from 'nanoid'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
-import { countPages, mergePdfs } from './mergePdfs'
+import { countPages, mergePdfs, sanitizeFileName } from './mergePdfs'
 
 interface FileEntry {
   id: string
@@ -35,8 +36,11 @@ function formatFileSize(bytes: number): string {
   return `${value < 10 ? value.toFixed(2) : value.toFixed(1)} ${units[unitIndex]}`
 }
 
+const DEFAULT_OUTPUT_NAME = 'merged'
+
 export default function MergePdfsWidget({ instanceId }: WidgetProps) {
   const [entries, setEntries] = useWidgetState<FileEntry[]>(instanceId, 'entries', [])
+  const [outputName, setOutputName] = useWidgetState(instanceId, 'outputName', DEFAULT_OUTPUT_NAME)
   const [detections, setDetections] = useState<Record<string, Detection>>({})
   const [dragging, setDragging] = useState(false)
   const [merging, setMerging] = useState(false)
@@ -47,7 +51,7 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
   // revoked the moment it's replaced or no longer applies.
   const urlRef = useRef<string | null>(null)
 
-  useWidgetDirty(instanceId, entries.length > 0)
+  useWidgetDirty(instanceId, entries.length > 0 || outputName !== DEFAULT_OUTPUT_NAME)
 
   const publishUrl = (url: string | null) => {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current)
@@ -127,6 +131,7 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
   const allDetected = entries.every((entry) => entry.id in detections)
   const hasInvalidFile = entries.some((entry) => detections[entry.id]?.error)
   const canMerge = entries.length >= 2 && allDetected && !hasInvalidFile && !merging
+  const outputFileName = `${sanitizeFileName(outputName, DEFAULT_OUTPUT_NAME)}.pdf`
 
   const handleMerge = async () => {
     setMerging(true)
@@ -269,6 +274,18 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
             <p className="text-muted-foreground">Add one more PDF to merge.</p>
           )}
 
+          <div className="flex items-center gap-1.5">
+            <span className="shrink-0 text-muted-foreground">Save as</span>
+            <Input
+              value={outputName}
+              onChange={(event) => setOutputName(event.target.value)}
+              placeholder={DEFAULT_OUTPUT_NAME}
+              aria-label="Output file name"
+              className="h-7 flex-1 text-xs"
+            />
+            <span className="shrink-0 text-muted-foreground">.pdf</span>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
@@ -296,9 +313,9 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
           </div>
 
           {result && (
-            <a href={result.url} download="merged.pdf" className={cn(buttonVariants({ size: 'sm' }), 'justify-center')}>
+            <a href={result.url} download={outputFileName} className={cn(buttonVariants({ size: 'sm' }), 'justify-center')}>
               <Download className="size-3.5" />
-              Download merged.pdf ({result.pageCount} pages)
+              Download {outputFileName} ({result.pageCount} pages)
             </a>
           )}
         </>

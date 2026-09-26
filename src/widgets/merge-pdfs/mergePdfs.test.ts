@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PDFDocument } from 'pdf-lib'
-import { countPages, mergePdfs } from './mergePdfs'
+import { countPages, mergePdfs, sanitizeFileName } from './mergePdfs'
 
 async function makePdf(name: string, pageCount: number): Promise<File> {
   const doc = await PDFDocument.create()
@@ -53,5 +53,27 @@ describe('mergePdfs', () => {
   it('names the offending file when one is not a readable PDF', async () => {
     const a = await makePdf('a.pdf', 1)
     await expect(mergePdfs([a, notAPdf('broken.pdf')])).rejects.toThrow(/broken\.pdf/)
+  })
+})
+
+describe('sanitizeFileName', () => {
+  it('passes through an already-safe name', () => {
+    expect(sanitizeFileName('quarterly-report')).toBe('quarterly-report')
+  })
+
+  it('trims surrounding whitespace', () => {
+    expect(sanitizeFileName('  report  ')).toBe('report')
+  })
+
+  it('strips path separators and other characters unsafe on common filesystems', () => {
+    expect(sanitizeFileName('../etc/passwd')).toBe('..etcpasswd')
+    expect(sanitizeFileName('a:b*c?d"e<f>g|h')).toBe('abcdefgh')
+  })
+
+  it('falls back to the default when nothing usable is left', () => {
+    expect(sanitizeFileName('')).toBe('merged')
+    expect(sanitizeFileName('   ')).toBe('merged')
+    expect(sanitizeFileName('///')).toBe('merged')
+    expect(sanitizeFileName('', 'custom-default')).toBe('custom-default')
   })
 })
