@@ -76,6 +76,36 @@ describe('MergePdfsWidget', () => {
     expect(download).toHaveAttribute('download', 'merged.pdf')
   })
 
+  it('downloads under a custom name when one is typed in', async () => {
+    const user = userEvent.setup()
+    render(<MergePdfsWidget instanceId="test" mode="grid" />)
+
+    dropFiles([await makePdf('a.pdf', 1), await makePdf('b.pdf', 1)])
+    await waitFor(() => expect(mergeButton()).toBeEnabled())
+
+    await user.clear(screen.getByLabelText('Output file name'))
+    await user.type(screen.getByLabelText('Output file name'), 'quarterly-report')
+    await user.click(mergeButton())
+
+    const download = await screen.findByRole('link', { name: /download quarterly-report\.pdf/i })
+    expect(download).toHaveAttribute('download', 'quarterly-report.pdf')
+  })
+
+  it('falls back to the default name when the typed name is blank or unsafe', async () => {
+    const user = userEvent.setup()
+    render(<MergePdfsWidget instanceId="test" mode="grid" />)
+
+    dropFiles([await makePdf('a.pdf', 1), await makePdf('b.pdf', 1)])
+    await waitFor(() => expect(mergeButton()).toBeEnabled())
+
+    await user.clear(screen.getByLabelText('Output file name'))
+    await user.type(screen.getByLabelText('Output file name'), '///')
+    await user.click(mergeButton())
+
+    const download = await screen.findByRole('link', { name: /download merged\.pdf/i })
+    expect(download).toHaveAttribute('download', 'merged.pdf')
+  })
+
   it('moves a file up or down the list, re-ordering the eventual merge', async () => {
     const user = userEvent.setup()
     render(<MergePdfsWidget instanceId="test" mode="grid" />)

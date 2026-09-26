@@ -12,6 +12,15 @@ export async function countPages(file: File): Promise<number> {
   return doc.getPageCount()
 }
 
+/** Strips characters that aren't safe in a filename on common filesystems
+ * (path separators, Windows' reserved punctuation) from a user-typed output
+ * name, falling back to `fallback` when nothing usable is left — e.g. the
+ * name was blank, or was made up entirely of stripped characters. */
+export function sanitizeFileName(name: string, fallback = 'merged'): string {
+  const cleaned = name.trim().replace(/[/\\:*?"<>|]+/g, '').trim()
+  return cleaned || fallback
+}
+
 export interface MergeResult {
   bytes: Uint8Array
   pageCount: number
