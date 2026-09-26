@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.3.0...v0.4.0) (2026-09-26)
+
+
+### Features
+
+* add clipboard features to image converter widget ([#60](https://github.com/AstreliteHQ/localgrid.dev/issues/60)) ([f3dd75b](https://github.com/AstreliteHQ/localgrid.dev/commit/f3dd75ba7477b5b89ce2381c1bfd98bd79be1150))
+* **code-editor:** fill editor with dropped file text ([#74](https://github.com/AstreliteHQ/localgrid.dev/issues/74)) ([20babb6](https://github.com/AstreliteHQ/localgrid.dev/commit/20babb664c7364f7c18e8bcbac910996d896f31f))
+* **dashboard:** add a Reset dashboard button ([#58](https://github.com/AstreliteHQ/localgrid.dev/issues/58)) ([6a14744](https://github.com/AstreliteHQ/localgrid.dev/commit/6a14744687d21cb4a1ec412042bef47771cce10f))
+* **sidebar:** show the app version discreetly in the footer ([#57](https://github.com/AstreliteHQ/localgrid.dev/issues/57)) ([0f5e712](https://github.com/AstreliteHQ/localgrid.dev/commit/0f5e71259819559465b7a85b10f617294d309080))
+* **widgets:** add image converter widget ([cb5a6a9](https://github.com/AstreliteHQ/localgrid.dev/commit/cb5a6a939c335d13f2fcd1edc610a0ffedd7304d))
+* **widgets:** add Jinja Template Renderer widget ([#50](https://github.com/AstreliteHQ/localgrid.dev/issues/50)) ([0ff12c5](https://github.com/AstreliteHQ/localgrid.dev/commit/0ff12c56a20eaddf0b00b7b88b8bc63e7eb0ab64))
+
+
+### Bug Fixes
+
+* **image-converter:** address review findings ([a8e5df3](https://github.com/AstreliteHQ/localgrid.dev/commit/a8e5df3079a2e6d012280084748001ab324656fb))
+* **image-converter:** include detected format in accessible label ([f2a0cb8](https://github.com/AstreliteHQ/localgrid.dev/commit/f2a0cb8b506e5eea35322375a897f3e9c1cc7463))
+
 ## [0.3.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.2.2...v0.3.0) (2026-09-21)
 
 
