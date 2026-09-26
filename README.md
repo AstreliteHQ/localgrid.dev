@@ -56,7 +56,7 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-42 tools across 11 categories, and growing.
+43 tools across 11 categories, and growing.
 
 | Category   | Widgets                                                                                                                    |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -68,7 +68,7 @@ always asks before it touches your local dashboard.
 | Math       | Big-O Estimator, Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
 | AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                 |
 | Color      | Color Converter, WCAG Contrast Checker                                                                                     |
-| Image      | Image Converter                                                                                                            |
+| Image      | Image Converter, Watermark                                                                                                 |
 | Network    | cURL Builder, Subnet Calculator                                                                                            |
 | Time       | Timeline Builder, Time Zone Calculator, Timer, World Clock                                                                 |
 
