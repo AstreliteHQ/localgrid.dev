@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import WorldClockWidget from './WorldClockWidget'
 
@@ -224,5 +224,51 @@ describe('WorldClockWidget', () => {
     await user.clear(dateField)
 
     expect(screen.getByText(/previewing a custom time/i)).toBeInTheDocument()
+  })
+
+  it('switches to the timeline view with one line per city', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const { name } = await pickFirstAvailableCity(user)
+    await user.click(screen.getByRole('button', { name: /^add$/i }))
+    await user.click(screen.getByRole('button', { name: /^timeline$/i }))
+
+    const timeline = screen.getByRole('region', { name: /timeline/i })
+    expect(within(timeline).getByText(name)).toBeInTheDocument()
+    // 24 hour columns per city row.
+    expect(within(timeline).getAllByRole('button', { name: new RegExp(`^${escapeRegExp(name)}: `) })).toHaveLength(24)
+  })
+
+  it('moves the reference time when a timeline column is clicked', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const dateField = screen.getByLabelText(/reference time/i)
+    await user.clear(dateField)
+    await user.type(dateField, '2024-01-15T10:30')
+    await user.click(screen.getByRole('button', { name: /^timeline$/i }))
+
+    const timeline = screen.getByRole('region', { name: /timeline/i })
+    const firstRowCells = within(timeline)
+      .getAllByRole('button')
+      .filter((b) => b.getAttribute('tabindex') === '-1')
+      .slice(0, 24)
+    // Column 2 is the reference hour, so column 4 is two hours later.
+    await user.click(firstRowCells[4])
+
+    expect(dateField).toHaveValue('2024-01-15T12:30')
+  })
+
+  it('removes a city from the timeline view', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    const { name } = await pickFirstAvailableCity(user)
+    await user.click(screen.getByRole('button', { name: /^add$/i }))
+    await user.click(screen.getByRole('button', { name: /^timeline$/i }))
+    await user.click(screen.getByRole('button', { name: `Remove ${name}` }))
+
+    expect(screen.queryByText(name)).not.toBeInTheDocument()
   })
 })
