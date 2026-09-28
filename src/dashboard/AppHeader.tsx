@@ -21,9 +21,7 @@ export function AppHeader() {
   // "getSnapshot should be cached" / a runaway re-render loop.
   const activeInstanceIds = useDashboardStore(
     useShallow((state) => {
-      const active = state.dashboards.find(
-        (dashboard) => dashboard.id === state.activeDashboardId,
-      )
+      const active = state.dashboards.find((dashboard) => dashboard.id === state.activeDashboardId)
       return active?.widgets.map((widget) => widget.instanceId) ?? []
     }),
   )
@@ -46,29 +44,32 @@ export function AppHeader() {
       <DashboardTabBar />
 
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => resetWidgets(activeInstanceIds)}
-          disabled={!anyDirty}
-          title="Reset every widget on this dashboard back to default"
-        >
-          <RotateCcw className="size-3.5" />
-          <span className="hidden sm:inline">Clear state</span>
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setConfirmResetOpen(true)}
-          disabled={activeInstanceIds.length === 0}
-          title="Remove every widget from this dashboard"
-        >
-          <MopSparkles className="size-3.5" />
-          <span className="hidden sm:inline">Clean dashboard</span>
-        </Button>
-        <DashboardToolbar />
+        <DashboardToolbar>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => resetWidgets(activeInstanceIds)}
+            disabled={!anyDirty}
+            title="Reset every widget on this dashboard back to default"
+            aria-label="Clear state"
+          >
+            <RotateCcw className="size-3.5" />
+            <span className="hidden sm:inline">Clear state</span>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setConfirmResetOpen(true)}
+            disabled={activeInstanceIds.length === 0}
+            title="Remove every widget from this dashboard"
+            aria-label="Clean dashboard"
+          >
+            <MopSparkles className="size-3.5" />
+            <span className="hidden sm:inline">Clean dashboard</span>
+          </Button>
+        </DashboardToolbar>
       </div>
 
       <Dialog open={confirmResetOpen} onOpenChange={setConfirmResetOpen}>
