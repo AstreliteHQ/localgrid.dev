@@ -10,7 +10,57 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <title>localgrid.dev</title>
+    <title>localgrid.dev | Developer tools dashboard in your browser</title>
+    <meta name="description" content="Free, client-side developer toolbox: JSON formatter, JWT decoder, Base64, regex tester, hashes, cron, colors and 40+ more widgets on one dashboard. Works offline." />
+    <link rel="canonical" href="%SITE_URL%" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="localgrid.dev" />
+    <meta property="og:title" content="localgrid.dev | Developer tools dashboard in your browser" />
+    <meta property="og:description" content="Free, client-side developer toolbox: JSON formatter, JWT decoder, Base64, regex tester, hashes, cron, colors and 40+ more widgets on one dashboard. Works offline." />
+    <meta property="og:url" content="%SITE_URL%" />
+    <meta property="og:image" content="%SITE_URL%og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="localgrid.dev logo with the tagline: Everyday developer tools as widgets on one dashboard. Runs entirely in your browser." />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="localgrid.dev | Developer tools dashboard in your browser" />
+    <meta name="twitter:description" content="Free, client-side developer toolbox: JSON formatter, JWT decoder, Base64, regex tester, hashes, cron, colors and 40+ more widgets on one dashboard. Works offline." />
+    <meta name="twitter:image" content="%SITE_URL%og-image.png" />
+    <meta name="twitter:image:alt" content="localgrid.dev logo with the tagline: Everyday developer tools as widgets on one dashboard. Runs entirely in your browser." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "localgrid.dev",
+        "url": "%SITE_URL%",
+        "description": "A browser-based dashboard for everyday developer tools: JSON formatter, JWT decoder, Base64, regex tester, hash generator, cron parser, color converter and 40+ more. Client-side, offline, no account.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any (web browser)",
+        "browserRequirements": "Requires JavaScript",
+        "isAccessibleForFree": true,
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "image": "%SITE_URL%og-image.png",
+        "license": "https://opensource.org/licenses/MIT",
+        "codeRepository": "https://github.com/AstreliteHQ/localgrid.dev",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Astrelite",
+          "url": "https://astrelite.com"
+        }
+      }
+    </script>
     <script>
       // Applies the saved theme before first paint, so there's no flash of
       // the wrong theme while the app bundle loads. Storage key and the
@@ -30,6 +80,15 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>localgrid.dev</h1>
+      <p>
+        A browser-based dashboard for everyday developer tools: JSON formatter, JWT decoder,
+        Base64, regex tester, hash generator, cron parser, color converter and more, all running
+        client-side. localgrid needs JavaScript to run.
+      </p>
+      <p><a href="about.html">Learn more about localgrid</a></p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

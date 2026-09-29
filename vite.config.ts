@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
@@ -29,6 +29,38 @@ const appVersion = (JSON.parse(readFileSync(fileURLToPath(new URL('./package.jso
 // include the leading and trailing slash, e.g. '/some-path/'.
 const BASE = process.env.VITE_BASE_PATH ?? '/'
 
+// Absolute public URL of the deployed app, used where crawlers and social
+// link previews need a full URL rather than a path: canonical links, Open
+// Graph/Twitter image and page URLs, robots.txt, and sitemap.xml. Defaults to
+// the custom domain plus BASE. Overridable via VITE_SITE_URL (origin only, no
+// trailing slash) for a deployment on another host.
+const SITE_URL = (process.env.VITE_SITE_URL ?? 'https://localgrid.dev') + BASE
+
+/** Fills the `%SITE_URL%` placeholder in index.html and about.html, and emits
+ * robots.txt and sitemap.xml listing both pages, all derived from SITE_URL so
+ * they can't drift from each other or from the base path. */
+function seo(): Plugin {
+  return {
+    name: 'localgrid-seo',
+    transformIndexHtml: (html) => html.replaceAll('%SITE_URL%', SITE_URL),
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'robots.txt',
+        source: `User-agent: *\nAllow: /\n\nSitemap: ${SITE_URL}sitemap.xml\n`,
+      })
+      const urls = [SITE_URL, `${SITE_URL}about.html`]
+        .map((loc) => `  <url>\n    <loc>${loc}</loc>\n  </url>`)
+        .join('\n')
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sitemap.xml',
+        source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: BASE,
@@ -40,9 +72,10 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    seo(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'localgrid.dev',
         short_name: 'localgrid',
