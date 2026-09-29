@@ -14,6 +14,10 @@ export const TIMELINE_HOURS = 24
 // The theme's primary is monochrome, so the warm `highlight` token carries
 // "daytime" here. Night uses the same fixed dark tint as the map's night
 // side so it reads as night in both light and dark mode.
+// Width of the sticky city column (`w-36`) plus the row gap (`gap-1`), so
+// the reference-hour frame below can line up with the hour strips.
+const LABEL_COLUMN = '9.25rem'
+
 const BAND_CLASSES: Record<HourBand, string> = {
   work: 'bg-highlight/70 text-foreground',
   edge: 'bg-highlight/25 text-foreground',
@@ -57,13 +61,16 @@ export function WorldClockTimeline({ date, cities, homeCityId, onRemove, onShift
 
   return (
     <div className="min-h-0 flex-1 overflow-auto" role="region" aria-label="Timeline of local hours per city">
-      <div className="flex min-w-max flex-col gap-1">
+      <div className="relative flex min-w-max flex-col gap-1">
         {cities.map((city) => {
           const cells = buildTimelineRow(date, city.tz, TIMELINE_HOURS_BEFORE, TIMELINE_HOURS)
           const isHome = city.id === homeCityId
           return (
             <div key={city.id} className="flex items-stretch gap-1">
-              <div className="sticky left-0 z-10 flex w-36 shrink-0 items-center justify-between gap-1 rounded-md bg-card px-2 py-1">
+              {/* The before/after strips paint over the row gaps next to and
+                  below the label, so the reference-hour frame never peeks
+                  through them when the hours are scrolled underneath. */}
+              <div className="sticky left-0 z-10 flex w-36 shrink-0 items-center justify-between gap-1 rounded-md bg-card px-2 py-1 before:absolute before:inset-y-0 before:left-full before:w-1 before:bg-card after:absolute after:inset-x-0 after:top-full after:h-1 after:bg-card">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1 font-medium text-foreground">
                     <span className="truncate">{city.city}</span>
@@ -126,6 +133,19 @@ export function WorldClockTimeline({ date, cities, homeCityId, onRemove, onShift
             </div>
           )
         })}
+        {/* One frame around the whole reference hour, spanning every row,
+            so the selected (or current) hour reads as a column rather than
+            just the thin minute marker. Stays under the sticky city column
+            when the strips are scrolled sideways. */}
+        <span
+          data-testid="timeline-reference-hour"
+          className="pointer-events-none absolute inset-y-0 z-[5] rounded-sm border-2 border-primary"
+          style={{
+            left: `calc(${LABEL_COLUMN} + (100% - ${LABEL_COLUMN}) * ${TIMELINE_HOURS_BEFORE / TIMELINE_HOURS})`,
+            width: `calc((100% - ${LABEL_COLUMN}) / ${TIMELINE_HOURS})`,
+          }}
+          aria-hidden="true"
+        />
       </div>
     </div>
   )

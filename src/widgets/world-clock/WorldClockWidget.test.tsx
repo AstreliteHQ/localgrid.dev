@@ -271,4 +271,14 @@ describe('WorldClockWidget', () => {
 
     expect(screen.queryByText(name)).not.toBeInTheDocument()
   })
+
+  it('frames the whole reference hour column in the timeline view', async () => {
+    const user = userEvent.setup()
+    render(<WorldClockWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /^timeline$/i }))
+
+    // One frame for the column, shared by every city row.
+    expect(screen.getAllByTestId('timeline-reference-hour')).toHaveLength(1)
+  })
 })
