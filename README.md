@@ -56,11 +56,11 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-42 tools across 11 categories, and growing.
+43 tools across 11 categories, and growing.
 
 | Category   | Widgets                                                                                                                    |
 | ---------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Generators | QR Code Generator, UUID Generator                                                                                          |
+| Generators | Chart Generator, QR Code Generator, UUID Generator                                                                         |
 | Formatting | Cron Expression, Jinja Template Renderer, JSON Formatter, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter        |
 | Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                                                |
 | Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator, Unix Permissions                                       |
