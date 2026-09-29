@@ -38,11 +38,6 @@ export function referenceHourStart(date: Date): number {
   return Math.floor(date.getTime() / HOUR_MS) * HOUR_MS
 }
 
-/** Where `date` falls inside its reference column, from 0 to 1. */
-export function referenceFraction(date: Date): number {
-  return (date.getTime() - referenceHourStart(date)) / HOUR_MS
-}
-
 const weekdayFormatters = new Map<string, Intl.DateTimeFormat>()
 
 function weekdayLabel(ms: number, timeZone: string): string {

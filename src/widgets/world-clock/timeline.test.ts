@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildTimelineRow, hourBand, referenceFraction, referenceHourStart } from './timeline'
+import { buildTimelineRow, hourBand, referenceHourStart } from './timeline'
 
 describe('hourBand', () => {
   it('classifies office hours, edges and night', () => {
@@ -14,11 +14,10 @@ describe('hourBand', () => {
   })
 })
 
-describe('referenceHourStart / referenceFraction', () => {
-  it('floors to the UTC hour and reports the position inside it', () => {
+describe('referenceHourStart', () => {
+  it('floors to the UTC hour', () => {
     const date = new Date('2024-01-15T10:45:00Z')
     expect(referenceHourStart(date)).toBe(Date.parse('2024-01-15T10:00:00Z'))
-    expect(referenceFraction(date)).toBeCloseTo(0.75)
   })
 })
 

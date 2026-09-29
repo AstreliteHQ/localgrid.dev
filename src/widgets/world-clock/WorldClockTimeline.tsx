@@ -2,7 +2,7 @@ import { Home, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { City } from './cities'
-import { buildTimelineRow, referenceFraction, type HourBand } from './timeline'
+import { buildTimelineRow, type HourBand } from './timeline'
 import { formatOffsetLabel, formatZonedTime, getUtcOffsetMinutes } from './timeZoneMath'
 
 /** Hours shown before the reference hour, then the rest of a full day
@@ -57,8 +57,6 @@ interface WorldClockTimelineProps {
  * everywhere". Cells are shaded by office hours / evening / night to make a
  * good meeting slot easy to spot. */
 export function WorldClockTimeline({ date, cities, homeCityId, onRemove, onShiftHours }: WorldClockTimelineProps) {
-  const markerLeft = `${((TIMELINE_HOURS_BEFORE + referenceFraction(date)) / TIMELINE_HOURS) * 100}%`
-
   return (
     <div className="min-h-0 flex-1 overflow-auto" role="region" aria-label="Timeline of local hours per city">
       <div className="relative flex min-w-max flex-col gap-1">
@@ -94,7 +92,7 @@ export function WorldClockTimeline({ date, cities, homeCityId, onRemove, onShift
                 </Button>
               </div>
 
-              <div className="relative flex flex-1 overflow-hidden rounded-md">
+              <div className="flex flex-1 overflow-hidden rounded-md">
                 {cells.map((cell) => {
                   const isReference = cell.offset === 0
                   const title = formatCellTitle(cell.startMs, city.tz)
@@ -124,19 +122,14 @@ export function WorldClockTimeline({ date, cities, homeCityId, onRemove, onShift
                     </button>
                   )
                 })}
-                <span
-                  className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-primary"
-                  style={{ left: markerLeft }}
-                  aria-hidden="true"
-                />
               </div>
             </div>
           )
         })}
         {/* One frame around the whole reference hour, spanning every row,
-            so the selected (or current) hour reads as a column rather than
-            just the thin minute marker. Stays under the sticky city column
-            when the strips are scrolled sideways. */}
+            so the selected (or current) hour reads as a single column.
+            Stays under the sticky city column when the strips are scrolled
+            sideways. */}
         <span
           data-testid="timeline-reference-hour"
           className="pointer-events-none absolute inset-y-0 z-[5] rounded-sm border-2 border-primary"
