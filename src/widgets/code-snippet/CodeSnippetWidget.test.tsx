@@ -30,7 +30,9 @@ function stubImageClipboard() {
 }
 
 beforeEach(() => {
-  mockedRenderSnippetImage.mockReset().mockResolvedValue(new Blob(['png-bytes'], { type: 'image/png' }))
+  mockedRenderSnippetImage
+    .mockReset()
+    .mockResolvedValue({ blob: new Blob(['png-bytes'], { type: 'image/png' }), width: 240, height: 96 })
   // jsdom has no object-URL implementation at all.
   URL.createObjectURL = vi.fn(() => 'blob:mock-url')
   URL.revokeObjectURL = vi.fn()
@@ -93,11 +95,40 @@ describe('CodeSnippetWidget', () => {
     expect(download).toHaveAttribute('download', 'snippet.png')
   })
 
+  it('shows the preview at its own display size rather than the doubled export resolution', async () => {
+    render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+
+    const preview = await screen.findByAltText('Syntax-highlighted code preview')
+    expect(preview).toHaveAttribute('width', '240')
+    expect(preview).toHaveAttribute('height', '96')
+  })
+
+  it('offers more than just a dark/light choice of snippet theme', () => {
+    render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+
+    const select = screen.getByLabelText('Theme') as HTMLSelectElement
+    const labels = Array.from(select.options).map((option) => option.textContent)
+    expect(labels).toEqual(['Dark', 'Dracula', 'Nord', 'Monokai', 'Light', 'Solarized Light'])
+  })
+
+  it('re-renders with the newly picked theme', async () => {
+    const user = userEvent.setup()
+    render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+    await screen.findByAltText('Syntax-highlighted code preview')
+    mockedRenderSnippetImage.mockClear()
+
+    await user.selectOptions(screen.getByLabelText('Theme'), 'Nord')
+
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
+    const [, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
+    expect(options.theme.id).toBe('nord')
+  })
+
   it('copies the rendered image to the clipboard', async () => {
     const user = userEvent.setup()
     const write = stubImageClipboard()
     const blob = new Blob(['png-bytes'], { type: 'image/png' })
-    mockedRenderSnippetImage.mockResolvedValue(blob)
+    mockedRenderSnippetImage.mockResolvedValue({ blob, width: 240, height: 96 })
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
 

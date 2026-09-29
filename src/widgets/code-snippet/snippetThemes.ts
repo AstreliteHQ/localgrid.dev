@@ -6,6 +6,8 @@
 
 import type { TokenCategory } from './tokenizeCode'
 
+export type SnippetThemeId = 'dark' | 'light' | 'dracula' | 'nord' | 'monokai' | 'solarized-light'
+
 export interface CategoryStyle {
   color: string
   italic?: boolean
@@ -13,7 +15,7 @@ export interface CategoryStyle {
 }
 
 export interface SnippetTheme {
-  id: 'dark' | 'light'
+  id: SnippetThemeId
   label: string
   background: string
   /** Plain/uncategorized text, and the fallback for any category below
@@ -23,7 +25,11 @@ export interface SnippetTheme {
   categories: Partial<Record<TokenCategory, CategoryStyle>>
 }
 
-export const SNIPPET_THEMES: Record<'dark' | 'light', SnippetTheme> = {
+/** Display order for the theme picker — not alphabetical, dark themes
+ * first since that's the more common choice for a code screenshot. */
+export const SNIPPET_THEME_ORDER: SnippetThemeId[] = ['dark', 'dracula', 'nord', 'monokai', 'light', 'solarized-light']
+
+export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
   dark: {
     id: 'dark',
     label: 'Dark',
@@ -78,6 +84,118 @@ export const SNIPPET_THEMES: Record<'dark' | 'light', SnippetTheme> = {
       code: { color: '#0a3069' },
       quote: { color: '#6e7781', italic: true },
       list: { color: '#953800' },
+    },
+  },
+  dracula: {
+    id: 'dracula',
+    label: 'Dracula',
+    background: '#282a36',
+    foreground: '#f8f8f2',
+    categories: {
+      comment: { color: '#6272a4', italic: true },
+      keyword: { color: '#ff79c6' },
+      string: { color: '#f1fa8c' },
+      number: { color: '#bd93f9' },
+      function: { color: '#50fa7b' },
+      type: { color: '#8be9fd' },
+      property: { color: '#8be9fd' },
+      variable: { color: '#f8f8f2' },
+      tag: { color: '#ff79c6' },
+      attribute: { color: '#50fa7b' },
+      punctuation: { color: '#f8f8f2' },
+      meta: { color: '#6272a4' },
+      heading: { color: '#bd93f9', bold: true },
+      strong: { color: '#f8f8f2', bold: true },
+      emphasis: { color: '#f8f8f2', italic: true },
+      link: { color: '#8be9fd' },
+      url: { color: '#f1fa8c' },
+      code: { color: '#f1fa8c' },
+      quote: { color: '#6272a4', italic: true },
+      list: { color: '#ffb86c' },
+    },
+  },
+  nord: {
+    id: 'nord',
+    label: 'Nord',
+    background: '#2e3440',
+    foreground: '#d8dee9',
+    categories: {
+      comment: { color: '#4c566a', italic: true },
+      keyword: { color: '#81a1c1' },
+      string: { color: '#a3be8c' },
+      number: { color: '#b48ead' },
+      function: { color: '#88c0d0' },
+      type: { color: '#8fbcbb' },
+      property: { color: '#8fbcbb' },
+      variable: { color: '#d8dee9' },
+      tag: { color: '#81a1c1' },
+      attribute: { color: '#88c0d0' },
+      punctuation: { color: '#4c566a' },
+      meta: { color: '#4c566a' },
+      heading: { color: '#88c0d0', bold: true },
+      strong: { color: '#d8dee9', bold: true },
+      emphasis: { color: '#d8dee9', italic: true },
+      link: { color: '#88c0d0' },
+      url: { color: '#a3be8c' },
+      code: { color: '#a3be8c' },
+      quote: { color: '#4c566a', italic: true },
+      list: { color: '#8fbcbb' },
+    },
+  },
+  monokai: {
+    id: 'monokai',
+    label: 'Monokai',
+    background: '#272822',
+    foreground: '#f8f8f2',
+    categories: {
+      comment: { color: '#75715e', italic: true },
+      keyword: { color: '#f92672' },
+      string: { color: '#e6db74' },
+      number: { color: '#ae81ff' },
+      function: { color: '#a6e22e' },
+      type: { color: '#66d9ef' },
+      property: { color: '#66d9ef' },
+      variable: { color: '#f8f8f2' },
+      tag: { color: '#f92672' },
+      attribute: { color: '#a6e22e' },
+      punctuation: { color: '#f8f8f2' },
+      meta: { color: '#75715e' },
+      heading: { color: '#66d9ef', bold: true },
+      strong: { color: '#f8f8f2', bold: true },
+      emphasis: { color: '#f8f8f2', italic: true },
+      link: { color: '#66d9ef' },
+      url: { color: '#e6db74' },
+      code: { color: '#e6db74' },
+      quote: { color: '#75715e', italic: true },
+      list: { color: '#fd971f' },
+    },
+  },
+  'solarized-light': {
+    id: 'solarized-light',
+    label: 'Solarized Light',
+    background: '#fdf6e3',
+    foreground: '#657b83',
+    categories: {
+      comment: { color: '#93a1a1', italic: true },
+      keyword: { color: '#859900' },
+      string: { color: '#2aa198' },
+      number: { color: '#d33682' },
+      function: { color: '#268bd2' },
+      type: { color: '#b58900' },
+      property: { color: '#268bd2' },
+      variable: { color: '#657b83' },
+      tag: { color: '#268bd2' },
+      attribute: { color: '#2aa198' },
+      punctuation: { color: '#93a1a1' },
+      meta: { color: '#93a1a1' },
+      heading: { color: '#268bd2', bold: true },
+      strong: { color: '#657b83', bold: true },
+      emphasis: { color: '#657b83', italic: true },
+      link: { color: '#268bd2' },
+      url: { color: '#2aa198' },
+      code: { color: '#2aa198' },
+      quote: { color: '#93a1a1', italic: true },
+      list: { color: '#b58900' },
     },
   },
 }
