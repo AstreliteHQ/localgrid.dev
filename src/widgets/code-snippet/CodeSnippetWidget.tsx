@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/combobox'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
-import { SegmentedControl } from '@/components/SegmentedControl'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
@@ -21,12 +20,12 @@ import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { LANGUAGES, loadParser, type LanguageOption } from './languages'
 import { renderSnippetImage } from './renderSnippetImage'
-import { SNIPPET_THEMES, type SnippetTheme } from './snippetThemes'
+import { SNIPPET_THEME_ORDER, SNIPPET_THEMES, type SnippetThemeId } from './snippetThemes'
 import { tokenizeCode } from './tokenizeCode'
 
 const DEFAULT_CODE = `function greet(name) {\n  return \`Hello, \${name}!\`\n}`
 const DEFAULT_LANGUAGE = 'javascript'
-const DEFAULT_THEME: SnippetTheme['id'] = 'dark'
+const DEFAULT_THEME: SnippetThemeId = 'dark'
 const DEFAULT_FONT_SIZE = 16
 // Redraws on every keystroke would re-tokenize and re-encode a PNG each
 // time — cheap for a short snippet, but there's no reason to do it faster
@@ -35,15 +34,22 @@ const RENDER_DEBOUNCE_MS = 150
 
 type CopyStatus = 'idle' | 'copied' | 'failed'
 
+interface SnippetResult {
+  url: string
+  width: number
+  height: number
+}
+
 export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
   const languageFieldId = useId()
+  const themeFieldId = useId()
   const [code, setCode] = useWidgetState(instanceId, 'code', DEFAULT_CODE)
   const [languageId, setLanguageId] = useWidgetState(instanceId, 'languageId', DEFAULT_LANGUAGE)
-  const [themeId, setThemeId] = useWidgetState<SnippetTheme['id']>(instanceId, 'themeId', DEFAULT_THEME)
+  const [themeId, setThemeId] = useWidgetState<SnippetThemeId>(instanceId, 'themeId', DEFAULT_THEME)
   const [fontSize, setFontSize] = useWidgetState(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
   const [rendering, setRendering] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [resultUrl, setResultUrl] = useState<string | null>(null)
+  const [result, setResult] = useState<SnippetResult | null>(null)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const blobRef = useRef<Blob | null>(null)
   const urlRef = useRef<string | null>(null)
@@ -80,12 +86,12 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
           const tokens = tokenizeCode(code, parser)
           return renderSnippetImage(tokens, { theme: SNIPPET_THEMES[themeId], fontSize })
         })
-        .then((blob) => {
-          if (cancelled || !blob) return
-          blobRef.current = blob
-          const url = URL.createObjectURL(blob)
+        .then((image) => {
+          if (cancelled || !image) return
+          blobRef.current = image.blob
+          const url = URL.createObjectURL(image.blob)
           publishUrl(url)
-          setResultUrl(url)
+          setResult({ url, width: image.width, height: image.height })
           setError(null)
         })
         .catch((err: unknown) => {
@@ -151,15 +157,19 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
             </ComboboxPortal>
           </Combobox>
         </Field>
-        <Field label="Theme">
-          <SegmentedControl
+        <Field label="Theme" htmlFor={themeFieldId} className="min-w-32">
+          <select
+            id={themeFieldId}
             value={themeId}
-            onChange={setThemeId}
-            options={[
-              { label: 'Dark', value: 'dark' },
-              { label: 'Light', value: 'light' },
-            ]}
-          />
+            onChange={(event) => setThemeId(event.target.value as SnippetThemeId)}
+            className="h-7 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 text-xs outline-none transition-colors focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50 dark:bg-input/30"
+          >
+            {SNIPPET_THEME_ORDER.map((id) => (
+              <option key={id} value={id}>
+                {SNIPPET_THEMES[id].label}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 
@@ -190,7 +200,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
-          {hasCode && resultUrl && (
+          {hasCode && result && (
             <div className="flex items-center gap-1">
               <Button
                 type="button"
@@ -213,7 +223,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
                 {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy image'}
               </Button>
               <a
-                href={resultUrl}
+                href={result.url}
                 download="snippet.png"
                 className={cn(buttonVariants({ size: 'sm' }), 'h-auto gap-1 px-2 py-1')}
               >
@@ -224,8 +234,19 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
           )}
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg border border-border bg-muted/30 p-2">
-          {hasCode && resultUrl ? (
-            <img src={resultUrl} alt="Syntax-highlighted code preview" className="max-w-full" />
+          {hasCode && result ? (
+            <img
+              src={result.url}
+              alt="Syntax-highlighted code preview"
+              width={result.width}
+              height={result.height}
+              // The rendered PNG is 2x result.width/height (see
+              // renderSnippetImage's EXPORT_SCALE, for a crisp download on
+              // HiDPI screens) — without these explicit intrinsic
+              // dimensions, the browser shows it at that doubled pixel
+              // size instead of the size it was actually designed at.
+              className="h-auto max-h-full w-auto max-w-full"
+            />
           ) : (
             <p className="flex items-center gap-1.5 text-muted-foreground">
               <Code2 className="size-3.5" />

@@ -47,10 +47,19 @@ function splitIntoLines(tokens: Token[]): Token[][] {
   return lines
 }
 
+export interface SnippetImage {
+  blob: Blob
+  /** The card's *display* size in CSS px — `canvas.width`/`height` divided
+   * back out of `EXPORT_SCALE` — so a caller can show the PNG at the size
+   * it actually reads as, rather than at its doubled pixel-buffer size. */
+  width: number
+  height: number
+}
+
 /** Renders `tokens` as a themed snippet card and resolves a PNG `Blob`.
  * Rejects if the browser can't give a 2D canvas context or can't encode
  * PNG (both effectively never happen in a real browser). */
-export async function renderSnippetImage(tokens: Token[], options: RenderOptions): Promise<Blob> {
+export async function renderSnippetImage(tokens: Token[], options: RenderOptions): Promise<SnippetImage> {
   const { theme, fontSize } = options
   const lineHeight = fontSize * LINE_HEIGHT_RATIO
   const padding = fontSize
@@ -99,10 +108,11 @@ export async function renderSnippetImage(tokens: Token[], options: RenderOptions
     }
   })
 
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob)
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) resolve(result)
       else reject(new Error('This browser cannot encode PNG.'))
     }, 'image/png')
   })
+  return { blob, width, height }
 }
