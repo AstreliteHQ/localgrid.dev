@@ -10,7 +10,52 @@
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <title>About localgrid.dev</title>
+    <title>About localgrid.dev | Developer tools without the tab switching</title>
+    <meta name="description" content="Why localgrid exists: developer and designer tools as widgets on one persistent dashboard. No backend, no account, nothing leaves your browser. Installable and offline." />
+    <link rel="canonical" href="%SITE_URL%about.html" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="localgrid.dev" />
+    <meta property="og:title" content="About localgrid.dev | Developer tools without the tab switching" />
+    <meta property="og:description" content="Why localgrid exists: developer and designer tools as widgets on one persistent dashboard. No backend, no account, nothing leaves your browser. Installable and offline." />
+    <meta property="og:url" content="%SITE_URL%about.html" />
+    <meta property="og:image" content="%SITE_URL%og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1022" />
+    <meta property="og:image:height" content="640" />
+    <meta property="og:image:alt" content="localgrid.dev: developer tools in one browser tab, shown next to a screenshot of the widget dashboard. Runs locally, offline, no account." />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="About localgrid.dev | Developer tools without the tab switching" />
+    <meta name="twitter:description" content="Why localgrid exists: developer and designer tools as widgets on one persistent dashboard. No backend, no account, nothing leaves your browser. Installable and offline." />
+    <meta name="twitter:image" content="%SITE_URL%og-image.png" />
+    <meta name="twitter:image:alt" content="localgrid.dev: developer tools in one browser tab, shown next to a screenshot of the widget dashboard. Runs locally, offline, no account." />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        "name": "About localgrid.dev",
+        "url": "%SITE_URL%about.html",
+        "description": "Why localgrid exists and what it does: developer and designer tools as widgets on one persistent dashboard, running entirely in your browser.",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "localgrid.dev",
+          "url": "%SITE_URL%"
+        },
+        "about": {
+          "@type": "WebApplication",
+          "name": "localgrid.dev",
+          "url": "%SITE_URL%",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "Any (web browser)"
+        }
+      }
+    </script>
     <script>
       // Applies the saved theme before first paint, so there's no flash of
       // the wrong theme while the app bundle loads. Storage key and the
@@ -30,6 +75,16 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>About localgrid.dev</h1>
+      <p>
+        localgrid treats developer tools as widgets on a persistent dashboard, so you can keep
+        several of them open side by side without switching tabs or losing state. No backend, no
+        account, nothing you paste ever leaves your browser. This page needs JavaScript for its
+        live previews.
+      </p>
+      <p><a href="./">Open the dashboard</a></p>
+    </noscript>
     <script type="module" src="/src/about/main.tsx"></script>
   </body>
 </html>
