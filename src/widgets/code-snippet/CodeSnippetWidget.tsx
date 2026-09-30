@@ -1,5 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { EditorView } from '@codemirror/view'
 import { AlertTriangle, Check, Clipboard, Code2, Download } from 'lucide-react'
+import { CodeEditor } from '@/components/CodeEditor'
+import { CopyButton } from '@/components/CopyButton'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Combobox,
@@ -13,12 +16,13 @@ import {
 } from '@/components/ui/combobox'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
-import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
-import { LANGUAGES, loadParser, type LanguageOption } from './languages'
+import { LANGUAGES, loadLanguage, type LanguageOption, type LoadedLanguage } from './languages'
+import { parseLineNumbers } from './lineRanges'
 import { renderSnippetImage } from './renderSnippetImage'
 import { SNIPPET_THEME_ORDER, SNIPPET_THEMES, type SnippetThemeId } from './snippetThemes'
 import { tokenizeCode } from './tokenizeCode'
@@ -27,10 +31,18 @@ const DEFAULT_CODE = `function greet(name) {\n  return \`Hello, \${name}!\`\n}`
 const DEFAULT_LANGUAGE = 'javascript'
 const DEFAULT_THEME: SnippetThemeId = 'dark'
 const DEFAULT_FONT_SIZE = 16
+const DEFAULT_LINE_INPUT = ''
 // Redraws on every keystroke would re-tokenize and re-encode a PNG each
 // time — cheap for a short snippet, but there's no reason to do it faster
 // than a human can actually perceive while typing/pasting a longer one.
 const RENDER_DEBOUNCE_MS = 150
+// A plain `EditorView.lineWrapping` stand-in while a language's grammar is
+// still being dynamically imported (or for plaintext, which has none) —
+// CodeEditor's own `extraExtensions` escape hatch, not its built-in
+// `language` map, since that map only covers the handful of languages
+// other widgets need and would otherwise have to grow to cover this
+// widget's full 15-language catalog for every widget that uses it.
+const FALLBACK_EXTENSIONS = [EditorView.lineWrapping]
 
 type CopyStatus = 'idle' | 'copied' | 'failed'
 
@@ -43,10 +55,15 @@ interface SnippetResult {
 export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
   const languageFieldId = useId()
   const themeFieldId = useId()
+  const highlightFieldId = useId()
+  const blurFieldId = useId()
   const [code, setCode] = useWidgetState(instanceId, 'code', DEFAULT_CODE)
   const [languageId, setLanguageId] = useWidgetState(instanceId, 'languageId', DEFAULT_LANGUAGE)
   const [themeId, setThemeId] = useWidgetState<SnippetThemeId>(instanceId, 'themeId', DEFAULT_THEME)
   const [fontSize, setFontSize] = useWidgetState(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
+  const [highlightLines, setHighlightLines] = useWidgetState(instanceId, 'highlightLines', DEFAULT_LINE_INPUT)
+  const [blurLines, setBlurLines] = useWidgetState(instanceId, 'blurLines', DEFAULT_LINE_INPUT)
+  const [loadedLanguage, setLoadedLanguage] = useState<LoadedLanguage | null>(null)
   const [rendering, setRendering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<SnippetResult | null>(null)
@@ -60,7 +77,9 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
     code !== DEFAULT_CODE ||
       languageId !== DEFAULT_LANGUAGE ||
       themeId !== DEFAULT_THEME ||
-      fontSize !== DEFAULT_FONT_SIZE,
+      fontSize !== DEFAULT_FONT_SIZE ||
+      highlightLines !== DEFAULT_LINE_INPUT ||
+      blurLines !== DEFAULT_LINE_INPUT,
   )
 
   const publishUrl = (url: string | null) => {
@@ -69,6 +88,21 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
   }
 
   useEffect(() => () => publishUrl(null), [])
+
+  // Drives the input editor's own live highlighting. Kept separate from the
+  // debounced export effect below so switching languages restyles the
+  // editor immediately, rather than waiting out the export's own debounce —
+  // the resolved parser is then reused for tokenizeCode rather than
+  // re-importing the same package a second time.
+  useEffect(() => {
+    let cancelled = false
+    loadLanguage(languageId).then((loaded) => {
+      if (!cancelled) setLoadedLanguage(loaded)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [languageId])
 
   const hasCode = code.trim().length > 0
 
@@ -80,14 +114,15 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
     let cancelled = false
     const timer = setTimeout(() => {
       setRendering(true)
-      loadParser(languageId)
-        .then((parser) => {
-          if (cancelled) return null
-          const tokens = tokenizeCode(code, parser)
-          return renderSnippetImage(tokens, { theme: SNIPPET_THEMES[themeId], fontSize })
-        })
+      const tokens = tokenizeCode(code, loadedLanguage?.parser ?? null)
+      renderSnippetImage(tokens, {
+        theme: SNIPPET_THEMES[themeId],
+        fontSize,
+        highlightedLines: parseLineNumbers(highlightLines),
+        blurredLines: parseLineNumbers(blurLines),
+      })
         .then((image) => {
-          if (cancelled || !image) return
+          if (cancelled) return
           blobRef.current = image.blob
           const url = URL.createObjectURL(image.blob)
           publishUrl(url)
@@ -106,7 +141,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [code, hasCode, languageId, themeId, fontSize])
+  }, [code, hasCode, loadedLanguage, themeId, fontSize, highlightLines, blurLines])
 
   const handleCopyImage = async () => {
     const blob = blobRef.current
@@ -129,6 +164,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
   }
 
   const selectedLanguage = LANGUAGES.find((language) => language.id === languageId) ?? null
+  const editorExtensions = loadedLanguage ? [loadedLanguage.extension] : FALLBACK_EXTENSIONS
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
@@ -173,35 +209,56 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
         </Field>
       </div>
 
-      <Field label="Size" layout="row">
-        <input
-          type="range"
-          min={12}
-          max={28}
-          value={fontSize}
-          onChange={(event) => setFontSize(Number(event.target.value))}
-          aria-label="Snippet font size"
-          className="h-1 min-w-16 flex-1 accent-primary"
-        />
-        <span className="w-8 shrink-0 text-right font-mono tabular-nums">{fontSize}</span>
-      </Field>
+      <div className="flex flex-wrap items-center gap-2">
+        <Field label="Size" layout="row" className="min-w-28 flex-1">
+          <input
+            type="range"
+            min={12}
+            max={28}
+            value={fontSize}
+            onChange={(event) => setFontSize(Number(event.target.value))}
+            aria-label="Snippet font size"
+            className="h-1 min-w-16 flex-1 accent-primary"
+          />
+          <span className="w-8 shrink-0 text-right font-mono tabular-nums">{fontSize}</span>
+        </Field>
+        <Field label="Highlight lines" htmlFor={highlightFieldId} className="min-w-28 flex-1">
+          <Input
+            id={highlightFieldId}
+            value={highlightLines}
+            onChange={(event) => setHighlightLines(event.target.value)}
+            placeholder="e.g. 3, 5-7"
+            className="h-7 text-xs"
+          />
+        </Field>
+        <Field label="Blur lines" htmlFor={blurFieldId} className="min-w-28 flex-1">
+          <Input
+            id={blurFieldId}
+            value={blurLines}
+            onChange={(event) => setBlurLines(event.target.value)}
+            placeholder="e.g. 4"
+            className="h-7 text-xs"
+          />
+        </Field>
+      </div>
 
-      <Textarea
+      <CodeEditor
         value={code}
-        onChange={(event) => setCode(event.target.value)}
+        onChange={setCode}
+        extraExtensions={editorExtensions}
         placeholder="Paste or type your code here…"
         aria-label="Code"
-        spellCheck={false}
-        className="min-h-24 flex-1 resize-none font-mono text-xs"
+        className="min-h-32 flex-[2]"
       />
 
       {hasCode && error && <ErrorMessage>{error}</ErrorMessage>}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-1">
+      <div className="flex shrink-0 flex-col gap-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
           {hasCode && result && (
             <div className="flex items-center gap-1">
+              <CopyButton value={code} label="Copy code" className="px-2 py-1" />
               <Button
                 type="button"
                 variant="ghost"
@@ -233,7 +290,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
             </div>
           )}
         </div>
-        <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto rounded-lg border border-border bg-muted/30 p-2">
+        <div className="flex max-h-40 items-center justify-center overflow-auto rounded-lg border border-border bg-muted/30 p-2">
           {hasCode && result ? (
             <img
               src={result.url}
@@ -244,7 +301,10 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
               // renderSnippetImage's EXPORT_SCALE, for a crisp download on
               // HiDPI screens) — without these explicit intrinsic
               // dimensions, the browser shows it at that doubled pixel
-              // size instead of the size it was actually designed at.
+              // size instead of the size it was actually designed at. The
+              // max-h/max-w below then shrink it further to fit this
+              // fixed-height preview strip, so a large snippet reads as a
+              // thumbnail here rather than dominating the widget.
               className="h-auto max-h-full w-auto max-w-full"
             />
           ) : (

@@ -22,6 +22,10 @@ export interface SnippetTheme {
    * that doesn't set its own color (none currently do, but keeps
    * `categories` safe to use as a `Partial`). */
   foreground: string
+  /** Background band painted behind a highlighted line — a translucent
+   * `rgba(...)`, tuned per theme rather than derived, so it reads as an
+   * intentional accent rather than a generic overlay on every background. */
+  highlightBackground: string
   categories: Partial<Record<TokenCategory, CategoryStyle>>
 }
 
@@ -35,6 +39,7 @@ export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
     label: 'Dark',
     background: '#1e1e2e',
     foreground: '#cdd6f4',
+    highlightBackground: 'rgba(137, 180, 250, 0.12)',
     categories: {
       comment: { color: '#6c7086', italic: true },
       keyword: { color: '#cba6f7' },
@@ -63,6 +68,7 @@ export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
     label: 'Light',
     background: '#ffffff',
     foreground: '#24292f',
+    highlightBackground: 'rgba(9, 105, 218, 0.08)',
     categories: {
       comment: { color: '#6e7781', italic: true },
       keyword: { color: '#cf222e' },
@@ -91,6 +97,7 @@ export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
     label: 'Dracula',
     background: '#282a36',
     foreground: '#f8f8f2',
+    highlightBackground: 'rgba(189, 147, 249, 0.15)',
     categories: {
       comment: { color: '#6272a4', italic: true },
       keyword: { color: '#ff79c6' },
@@ -119,6 +126,7 @@ export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
     label: 'Nord',
     background: '#2e3440',
     foreground: '#d8dee9',
+    highlightBackground: 'rgba(136, 192, 208, 0.14)',
     categories: {
       comment: { color: '#4c566a', italic: true },
       keyword: { color: '#81a1c1' },
@@ -147,6 +155,7 @@ export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
     label: 'Monokai',
     background: '#272822',
     foreground: '#f8f8f2',
+    highlightBackground: 'rgba(249, 38, 114, 0.10)',
     categories: {
       comment: { color: '#75715e', italic: true },
       keyword: { color: '#f92672' },
@@ -175,6 +184,7 @@ export const SNIPPET_THEMES: Record<SnippetThemeId, SnippetTheme> = {
     label: 'Solarized Light',
     background: '#fdf6e3',
     foreground: '#657b83',
+    highlightBackground: 'rgba(38, 139, 210, 0.08)',
     categories: {
       comment: { color: '#93a1a1', italic: true },
       keyword: { color: '#859900' },

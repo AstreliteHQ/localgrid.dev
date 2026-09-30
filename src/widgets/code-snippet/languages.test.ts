@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { LANGUAGES, loadParser } from './languages'
+import { LANGUAGES, loadLanguage } from './languages'
 
 describe('LANGUAGES', () => {
   it('lists plaintext first, and every id exactly once', () => {
@@ -9,24 +9,25 @@ describe('LANGUAGES', () => {
   })
 })
 
-describe('loadParser', () => {
+describe('loadLanguage', () => {
   it('resolves null for plaintext', async () => {
-    expect(await loadParser('plaintext')).toBeNull()
+    expect(await loadLanguage('plaintext')).toBeNull()
   })
 
   it('resolves null for an unrecognized id', async () => {
-    expect(await loadParser('not-a-real-language')).toBeNull()
+    expect(await loadLanguage('not-a-real-language')).toBeNull()
   })
 
-  it('resolves a real parser for every listed language other than plaintext', async () => {
+  it('resolves a real parser and extension for every listed language other than plaintext', async () => {
     const languageIds = LANGUAGES.map((language) => language.id).filter((id) => id !== 'plaintext')
     for (const id of languageIds) {
-      const parser = await loadParser(id)
-      expect(parser, `expected a parser for "${id}"`).not.toBeNull()
+      const loaded = await loadLanguage(id)
+      expect(loaded, `expected a language for "${id}"`).not.toBeNull()
+      expect(loaded!.extension, `expected an extension for "${id}"`).toBeTruthy()
       // Confirm it's a real, usable @lezer/common Parser rather than just
       // some truthy object — every one of these should parse an empty
       // document without throwing.
-      expect(() => parser!.parse('')).not.toThrow()
+      expect(() => loaded!.parser.parse('')).not.toThrow()
     }
   })
 })
