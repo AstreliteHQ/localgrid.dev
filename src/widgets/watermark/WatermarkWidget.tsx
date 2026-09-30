@@ -4,7 +4,10 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
+import { PageColorPicker } from '@/components/PageColorPicker'
+import { ScreenColorPicker } from '@/components/ScreenColorPicker'
 import { SegmentedControl } from '@/components/SegmentedControl'
+import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -67,6 +70,11 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
   // Both the result's own download URL and (for an image) its preview URL,
   // so they can be revoked together the moment a newer result replaces them.
   const urlsRef = useRef<string[]>([])
+  // Bumped whenever the input is invalidated (file/text/position/opacity/
+  // size/color change, or unmount), so a watermark that was already in
+  // flight can tell its own result is stale once it resolves and skip
+  // publishing an output that no longer matches the current settings.
+  const applyTokenRef = useRef(0)
 
   useWidgetDirty(
     instanceId,
@@ -83,7 +91,13 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
     urlsRef.current = urls
   }
 
-  useEffect(() => () => publishUrls([]), [])
+  useEffect(
+    () => () => {
+      applyTokenRef.current += 1
+      publishUrls([])
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!file) return
@@ -106,6 +120,7 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
   const kind = currentDetection?.kind ?? null
 
   const invalidateResult = () => {
+    applyTokenRef.current += 1
     publishUrls([])
     setResult(null)
     setError(null)
@@ -129,25 +144,34 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
 
   const handleApply = async () => {
     if (!file || kind === null) return
+    const token = ++applyTokenRef.current
     setWorking(true)
     setError(null)
     const options = { text, opacity: opacity / 100, color, fontSize, position }
     try {
       if (kind === 'pdf') {
         const bytes = await watermarkPdf(file, options)
+        // The file or any setting can change (or the widget can unmount)
+        // while the watermarking above is in flight — a result for a token
+        // that's no longer current belongs to settings the user can't even
+        // see anymore.
+        if (token !== applyTokenRef.current) return
         const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }))
         publishUrls([url])
         setResult({ fileName: watermarkedFileName(file.name, 'pdf'), url, previewUrl: null })
       } else {
         const watermarked = await watermarkImage(file, options)
+        if (token !== applyTokenRef.current) return
         const url = URL.createObjectURL(watermarked.blob)
         publishUrls([url])
         setResult({ fileName: watermarkedFileName(file.name, 'png'), url, previewUrl: url })
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add a watermark to this file.')
+      if (token === applyTokenRef.current) {
+        setError(err instanceof Error ? err.message : 'Could not add a watermark to this file.')
+      }
     } finally {
-      setWorking(false)
+      if (token === applyTokenRef.current) setWorking(false)
     }
   }
 
@@ -250,50 +274,62 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                 />
               </Field>
 
-              <Field label="Opacity" layout="row">
-                <input
-                  type="range"
+              <Field label="Opacity" layout="row" className="min-w-0">
+                <Slider
                   min={5}
                   max={100}
                   value={opacity}
-                  onChange={(event) => {
-                    setOpacity(Number(event.target.value))
+                  onValueChange={(value) => {
+                    setOpacity(value)
                     invalidateResult()
                   }}
                   aria-label="Watermark opacity"
-                  className="h-1 min-w-16 flex-1 accent-primary"
+                  className="min-w-16 flex-1"
                 />
                 <span className="w-8 shrink-0 text-right font-mono tabular-nums">{opacity}</span>
               </Field>
 
-              <Field label="Size" layout="row">
-                <input
-                  type="range"
+              <Field label="Size" layout="row" className="min-w-0">
+                <Slider
                   min={12}
                   max={120}
                   value={fontSize}
-                  onChange={(event) => {
-                    setFontSize(Number(event.target.value))
+                  onValueChange={(value) => {
+                    setFontSize(value)
                     invalidateResult()
                   }}
                   aria-label="Watermark text size"
-                  className="h-1 min-w-16 flex-1 accent-primary"
+                  className="min-w-16 flex-1"
                 />
                 <span className="w-8 shrink-0 text-right font-mono tabular-nums">{fontSize}</span>
               </Field>
 
               <Field label="Color" htmlFor={`${instanceId}-color`}>
-                <Input
-                  id={`${instanceId}-color`}
-                  type="color"
-                  value={color}
-                  onChange={(event) => {
-                    setColor(event.target.value)
-                    invalidateResult()
-                  }}
-                  aria-label="Watermark color"
-                  className="h-8 w-14 cursor-pointer p-0"
-                />
+                <div className="flex items-center gap-1.5">
+                  <Input
+                    id={`${instanceId}-color`}
+                    type="color"
+                    value={color}
+                    onChange={(event) => {
+                      setColor(event.target.value)
+                      invalidateResult()
+                    }}
+                    aria-label="Watermark color"
+                    className="h-8 w-14 cursor-pointer p-0"
+                  />
+                  <PageColorPicker
+                    onPick={(hex) => {
+                      setColor(hex)
+                      invalidateResult()
+                    }}
+                  />
+                  <ScreenColorPicker
+                    onPick={(hex) => {
+                      setColor(hex)
+                      invalidateResult()
+                    }}
+                  />
+                </div>
               </Field>
 
               {error && <ErrorMessage>{error}</ErrorMessage>}

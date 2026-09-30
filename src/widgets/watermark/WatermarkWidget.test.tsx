@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PDFDocument } from 'pdf-lib'
 import { watermarkImage } from './watermarkImage'
@@ -128,6 +128,30 @@ describe('WatermarkWidget', () => {
     await user.type(screen.getByLabelText('Watermark text'), '!')
 
     expect(screen.queryByRole('link', { name: /download/i })).not.toBeInTheDocument()
+  })
+
+  it('discards a watermark result that finishes after the file was removed', async () => {
+    const user = userEvent.setup()
+    let resolveWatermark: (value: { blob: Blob; width: number; height: number }) => void = () => {}
+    mockedWatermarkImage.mockReset().mockImplementationOnce(
+      () => new Promise((resolve) => (resolveWatermark = resolve)),
+    )
+    render(<WatermarkWidget instanceId="test" mode="grid" />)
+
+    dropFile(pngFile('photo.png'))
+    await screen.findByText('Image')
+    await user.type(screen.getByLabelText('Watermark text'), 'CONFIDENTIAL')
+    await user.click(applyButton())
+
+    // The watermark is still in flight — removing the file invalidates it.
+    await user.click(screen.getByRole('button', { name: /remove file/i }))
+    await act(async () => {
+      resolveWatermark({ blob: new Blob(['png-bytes'], { type: 'image/png' }), width: 10, height: 10 })
+      await Promise.resolve()
+    })
+
+    expect(screen.getByText(/drop an image or pdf here/i)).toBeInTheDocument()
+    expect(screen.queryByAltText('Watermarked preview')).not.toBeInTheDocument()
   })
 
   it('removing the file resets back to the empty drop zone', async () => {

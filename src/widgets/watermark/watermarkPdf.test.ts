@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PDFDocument } from 'pdf-lib'
-import { hexToRgb01, watermarkPdf } from './watermarkPdf'
+import { centeredStampOrigin, hexToRgb01, watermarkPdf } from './watermarkPdf'
 
 async function makePdf(pageCount: number, size: [number, number] = [200, 200]): Promise<File> {
   const doc = await PDFDocument.create()
@@ -24,6 +24,26 @@ describe('hexToRgb01', () => {
 
   it('tolerates a hex color without the leading #', () => {
     expect(hexToRgb01('00ff00')).toEqual({ r: 0, g: 1, b: 0 })
+  })
+})
+
+describe('centeredStampOrigin', () => {
+  it('places the middle of the 45°-rotated text at the page center, not its un-rotated start point', () => {
+    // A zero-width string has no offset to correct for, so its start point
+    // and its middle are the same place: the page's own center.
+    expect(centeredStampOrigin(200, 100, 0)).toEqual({ x: 100, y: 50 })
+  })
+
+  it('walks the start point back along the rotated baseline, not the horizontal one', () => {
+    const origin = centeredStampOrigin(200, 100, 100)
+    // Walking back purely horizontally (the pre-fix behavior) would give
+    // x: 50, y: 50 — the middle of a 45°-rotated string instead lands
+    // textWidth/2 away from the start point diagonally, so both
+    // coordinates move back by the same, smaller amount.
+    const half = 50 / Math.SQRT2
+    expect(origin).toEqual({ x: 100 - half, y: 50 - half })
+    expect(origin.x).toBeCloseTo(64.64, 1)
+    expect(origin.y).toBeCloseTo(14.64, 1)
   })
 })
 

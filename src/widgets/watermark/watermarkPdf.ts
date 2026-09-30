@@ -27,6 +27,17 @@ export function hexToRgb01(hex: string): { r: number; g: number; b: number } {
   return { r, g, b }
 }
 
+/** `drawText`'s `(x, y)` is a 45°-rotated string's own start point, not its
+ * middle, and pdf-lib rotates around that point rather than around where
+ * the text visually ends up — so centering it in a page of the given size
+ * means walking back half the text's width along the rotated (not
+ * horizontal) baseline from the page's center, not just subtracting half
+ * the width from `x`. */
+export function centeredStampOrigin(pageWidth: number, pageHeight: number, textWidth: number): { x: number; y: number } {
+  const half = textWidth / 2 / Math.SQRT2
+  return { x: pageWidth / 2 - half, y: pageHeight / 2 - half }
+}
+
 /** Stamps `options.text` across every page of `file`, diagonally, either
  * once through the center or repeated in a tiled grid — the two common
  * "confidential stamp" layouts. Throws if `file` isn't a readable PDF. */
@@ -50,7 +61,8 @@ export async function watermarkPdf(file: File, options: WatermarkOptions): Promi
       })
 
     if (options.position === 'center') {
-      draw(width / 2 - textWidth / 2, height / 2)
+      const origin = centeredStampOrigin(width, height, textWidth)
+      draw(origin.x, origin.y)
       continue
     }
 
