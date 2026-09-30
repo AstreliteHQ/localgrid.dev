@@ -227,6 +227,7 @@ describe('CodeSnippetWidget', () => {
     setCodeMirrorValue(codeField(), 'const x = 1')
 
     expect(await screen.findByText('This browser cannot encode PNG.')).toBeInTheDocument()
+    expect(screen.queryByAltText('Syntax-highlighted code preview')).not.toBeInTheDocument()
   })
 
   it('keeps its code and settings across a remount of the same instance', async () => {
