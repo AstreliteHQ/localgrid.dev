@@ -155,6 +155,13 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
         })
         .catch((err: unknown) => {
           if (cancelled) return
+          // Without this, a failed re-render (e.g. after editing already-
+          // rendered code down to something that errors) would leave the
+          // previous success's blob/URL in place — the error message would
+          // show, but Copy/Download would still hand out the stale PNG.
+          blobRef.current = null
+          publishUrl(null)
+          setResult(null)
           setError(err instanceof Error ? err.message : 'Could not render this snippet.')
         })
         .finally(() => {
