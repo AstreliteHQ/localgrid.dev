@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { EditorView } from '@codemirror/view'
 import { AlertTriangle, Check, Clipboard, Code2, Download } from 'lucide-react'
 import { CodeEditor } from '@/components/CodeEditor'
@@ -16,13 +16,13 @@ import {
 } from '@/components/ui/combobox'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { LANGUAGES, loadLanguage, type LanguageOption, type LoadedLanguage } from './languages'
-import { parseLineNumbers } from './lineRanges'
+import { lineMarkExtension } from './lineMarkExtension'
+import { cycleLineMark, toggleLineMark } from './lineMarks'
 import { renderSnippetImage } from './renderSnippetImage'
 import { SNIPPET_THEME_ORDER, SNIPPET_THEMES, type SnippetThemeId } from './snippetThemes'
 import { tokenizeCode } from './tokenizeCode'
@@ -30,8 +30,11 @@ import { tokenizeCode } from './tokenizeCode'
 const DEFAULT_CODE = `function greet(name) {\n  return \`Hello, \${name}!\`\n}`
 const DEFAULT_LANGUAGE = 'javascript'
 const DEFAULT_THEME: SnippetThemeId = 'dark'
-const DEFAULT_FONT_SIZE = 16
-const DEFAULT_LINE_INPUT = ''
+// Not exposed as a control (see the removal of the old "Size" field). A
+// screenshot meant for pasting into a doc or a slide reads fine at one
+// sensible size, and the deck/doc itself is what actually needs resizing.
+const SNIPPET_FONT_SIZE = 16
+const DEFAULT_MARKED_LINES: number[] = []
 // Redraws on every keystroke would re-tokenize and re-encode a PNG each
 // time — cheap for a short snippet, but there's no reason to do it faster
 // than a human can actually perceive while typing/pasting a longer one.
@@ -44,6 +47,10 @@ const RENDER_DEBOUNCE_MS = 150
 // widget's full 15-language catalog for every widget that uses it.
 const FALLBACK_EXTENSIONS = [EditorView.lineWrapping]
 
+function sortedUnique(lines: Iterable<number>): number[] {
+  return Array.from(new Set(lines)).sort((a, b) => a - b)
+}
+
 type CopyStatus = 'idle' | 'copied' | 'failed'
 
 interface SnippetResult {
@@ -55,14 +62,11 @@ interface SnippetResult {
 export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
   const languageFieldId = useId()
   const themeFieldId = useId()
-  const highlightFieldId = useId()
-  const blurFieldId = useId()
   const [code, setCode] = useWidgetState(instanceId, 'code', DEFAULT_CODE)
   const [languageId, setLanguageId] = useWidgetState(instanceId, 'languageId', DEFAULT_LANGUAGE)
   const [themeId, setThemeId] = useWidgetState<SnippetThemeId>(instanceId, 'themeId', DEFAULT_THEME)
-  const [fontSize, setFontSize] = useWidgetState(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
-  const [highlightLines, setHighlightLines] = useWidgetState(instanceId, 'highlightLines', DEFAULT_LINE_INPUT)
-  const [blurLines, setBlurLines] = useWidgetState(instanceId, 'blurLines', DEFAULT_LINE_INPUT)
+  const [highlightedLines, setHighlightedLines] = useWidgetState(instanceId, 'highlightedLines', DEFAULT_MARKED_LINES)
+  const [blurredLines, setBlurredLines] = useWidgetState(instanceId, 'blurredLines', DEFAULT_MARKED_LINES)
   const [loadedLanguage, setLoadedLanguage] = useState<LoadedLanguage | null>(null)
   const [rendering, setRendering] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,10 +81,30 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
     code !== DEFAULT_CODE ||
       languageId !== DEFAULT_LANGUAGE ||
       themeId !== DEFAULT_THEME ||
-      fontSize !== DEFAULT_FONT_SIZE ||
-      highlightLines !== DEFAULT_LINE_INPUT ||
-      blurLines !== DEFAULT_LINE_INPUT,
+      highlightedLines.length > 0 ||
+      blurredLines.length > 0,
   )
+
+  const highlightedSet = useMemo(() => new Set(highlightedLines), [highlightedLines])
+  const blurredSet = useMemo(() => new Set(blurredLines), [blurredLines])
+
+  const handleLineNumberClick = (lineNumber: number) => {
+    const next = cycleLineMark(lineNumber, { highlighted: highlightedSet, blurred: blurredSet })
+    setHighlightedLines(sortedUnique(next.highlighted))
+    setBlurredLines(sortedUnique(next.blurred))
+  }
+
+  const handleToggleHighlightShortcut = (lineNumbers: number[]) => {
+    const next = toggleLineMark(lineNumbers, 'highlight', { highlighted: highlightedSet, blurred: blurredSet })
+    setHighlightedLines(sortedUnique(next.highlighted))
+    setBlurredLines(sortedUnique(next.blurred))
+  }
+
+  const handleToggleBlurShortcut = (lineNumbers: number[]) => {
+    const next = toggleLineMark(lineNumbers, 'blur', { highlighted: highlightedSet, blurred: blurredSet })
+    setHighlightedLines(sortedUnique(next.highlighted))
+    setBlurredLines(sortedUnique(next.blurred))
+  }
 
   const publishUrl = (url: string | null) => {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current)
@@ -117,9 +141,9 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
       const tokens = tokenizeCode(code, loadedLanguage?.parser ?? null)
       renderSnippetImage(tokens, {
         theme: SNIPPET_THEMES[themeId],
-        fontSize,
-        highlightedLines: parseLineNumbers(highlightLines),
-        blurredLines: parseLineNumbers(blurLines),
+        fontSize: SNIPPET_FONT_SIZE,
+        highlightedLines: highlightedSet,
+        blurredLines: blurredSet,
       })
         .then((image) => {
           if (cancelled) return
@@ -141,7 +165,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [code, hasCode, loadedLanguage, themeId, fontSize, highlightLines, blurLines])
+  }, [code, hasCode, loadedLanguage, themeId, highlightedSet, blurredSet])
 
   const handleCopyImage = async () => {
     const blob = blobRef.current
@@ -164,7 +188,16 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
   }
 
   const selectedLanguage = LANGUAGES.find((language) => language.id === languageId) ?? null
-  const editorExtensions = loadedLanguage ? [loadedLanguage.extension] : FALLBACK_EXTENSIONS
+  const editorExtensions = [
+    ...(loadedLanguage ? [loadedLanguage.extension] : FALLBACK_EXTENSIONS),
+    lineMarkExtension({
+      highlighted: highlightedSet,
+      blurred: blurredSet,
+      onLineNumberClick: handleLineNumberClick,
+      onToggleHighlightShortcut: handleToggleHighlightShortcut,
+      onToggleBlurShortcut: handleToggleBlurShortcut,
+    }),
+  ]
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
@@ -209,38 +242,11 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
         </Field>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Field label="Size" layout="row" className="min-w-28 flex-1">
-          <input
-            type="range"
-            min={12}
-            max={28}
-            value={fontSize}
-            onChange={(event) => setFontSize(Number(event.target.value))}
-            aria-label="Snippet font size"
-            className="h-1 min-w-16 flex-1 accent-primary"
-          />
-          <span className="w-8 shrink-0 text-right font-mono tabular-nums">{fontSize}</span>
-        </Field>
-        <Field label="Highlight lines" htmlFor={highlightFieldId} className="min-w-28 flex-1">
-          <Input
-            id={highlightFieldId}
-            value={highlightLines}
-            onChange={(event) => setHighlightLines(event.target.value)}
-            placeholder="e.g. 3, 5-7"
-            className="h-7 text-xs"
-          />
-        </Field>
-        <Field label="Blur lines" htmlFor={blurFieldId} className="min-w-28 flex-1">
-          <Input
-            id={blurFieldId}
-            value={blurLines}
-            onChange={(event) => setBlurLines(event.target.value)}
-            placeholder="e.g. 4"
-            className="h-7 text-xs"
-          />
-        </Field>
-      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Click a line number to highlight it, click again to blur it. Or select lines and press{' '}
+        <kbd className="rounded border border-border bg-muted px-1 py-px font-mono">Ctrl/⌘+Shift+H</kbd> to highlight,{' '}
+        <kbd className="rounded border border-border bg-muted px-1 py-px font-mono">Ctrl/⌘+Shift+B</kbd> to blur.
+      </p>
 
       <CodeEditor
         value={code}
@@ -254,19 +260,21 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
       {hasCode && error && <ErrorMessage>{error}</ErrorMessage>}
 
       <div className="flex shrink-0 flex-col gap-1">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
           {hasCode && result && (
-            <div className="flex items-center gap-1">
-              <CopyButton value={code} label="Copy code" className="px-2 py-1" />
+            <div className="flex flex-wrap items-center gap-1">
+              <CopyButton value={code} label="" ariaLabel="Copy code" className="size-7 gap-0 p-0" />
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
+                size="icon-sm"
                 onClick={handleCopyImage}
                 aria-live="polite"
+                aria-label={copyStatus === 'idle' ? 'Copy image' : undefined}
+                title="Copy image"
                 className={cn(
-                  'h-auto gap-1 px-2 py-1 text-muted-foreground hover:text-foreground',
+                  'text-muted-foreground hover:text-foreground',
                   copyStatus === 'failed' && 'text-destructive hover:text-destructive',
                 )}
               >
@@ -277,15 +285,18 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
                 ) : (
                   <Clipboard className="size-3.5" />
                 )}
-                {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy image'}
+                <span className="sr-only">
+                  {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy image'}
+                </span>
               </Button>
               <a
                 href={result.url}
                 download="snippet.png"
-                className={cn(buttonVariants({ size: 'sm' }), 'h-auto gap-1 px-2 py-1')}
+                aria-label="Download PNG"
+                title="Download PNG"
+                className={buttonVariants({ size: 'icon-sm' })}
               >
                 <Download className="size-3.5" />
-                Download
               </a>
             </div>
           )}

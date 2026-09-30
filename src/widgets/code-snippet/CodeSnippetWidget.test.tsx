@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { EditorView } from '@codemirror/view'
 import { setCodeMirrorValue } from '@/test/codemirror'
 import { renderSnippetImage } from './renderSnippetImage'
 import CodeSnippetWidget from './CodeSnippetWidget'
@@ -102,19 +103,71 @@ describe('CodeSnippetWidget', () => {
     expect(preview).toHaveAttribute('height', '96')
   })
 
-  it('passes parsed highlight/blur line numbers through to the renderer', async () => {
-    const user = userEvent.setup()
+  function lineNumberGutterElement(container: HTMLElement, lineNumber: number) {
+    const candidates = Array.from(container.querySelectorAll('.cm-lineNumbers .cm-gutterElement'))
+    const match = candidates.find((element) => element.textContent === String(lineNumber))
+    if (!match) throw new Error(`no gutter element found for line ${lineNumber}`)
+    return match
+  }
+
+  it('cycles a clicked line number through unmarked, highlighted, and blurred', async () => {
+    const { container } = render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+    await screen.findByAltText('Syntax-highlighted code preview')
+    mockedRenderSnippetImage.mockClear()
+
+    fireEvent.click(lineNumberGutterElement(container, 1))
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
+    let [, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
+    expect(options.highlightedLines).toEqual(new Set([1]))
+    expect(options.blurredLines).toEqual(new Set())
+
+    mockedRenderSnippetImage.mockClear()
+    fireEvent.click(lineNumberGutterElement(container, 1))
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
+    ;[, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
+    expect(options.highlightedLines).toEqual(new Set())
+    expect(options.blurredLines).toEqual(new Set([1]))
+
+    mockedRenderSnippetImage.mockClear()
+    fireEvent.click(lineNumberGutterElement(container, 1))
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
+    ;[, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
+    expect(options.highlightedLines).toEqual(new Set())
+    expect(options.blurredLines).toEqual(new Set())
+  })
+
+  it('highlights every selected line with the Mod-Shift-h shortcut', async () => {
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
     mockedRenderSnippetImage.mockClear()
 
-    await user.type(screen.getByLabelText('Highlight lines'), '1, 3-4')
-    await user.type(screen.getByLabelText('Blur lines'), '2')
+    const view = EditorView.findFromDOM(codeField())!
+    act(() => {
+      view.dispatch({ selection: { anchor: 0, head: view.state.doc.line(2).to } })
+    })
+    fireEvent.keyDown(codeField(), { key: 'h', code: 'KeyH', ctrlKey: true, shiftKey: true })
 
     await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
     const [, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
-    expect(options.highlightedLines).toEqual(new Set([1, 3, 4]))
-    expect(options.blurredLines).toEqual(new Set([2]))
+    expect(options.highlightedLines).toEqual(new Set([1, 2]))
+    expect(options.blurredLines).toEqual(new Set())
+  })
+
+  it('blurs every selected line with the Mod-Shift-b shortcut', async () => {
+    render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+    await screen.findByAltText('Syntax-highlighted code preview')
+    mockedRenderSnippetImage.mockClear()
+
+    const view = EditorView.findFromDOM(codeField())!
+    act(() => {
+      view.dispatch({ selection: { anchor: 0, head: view.state.doc.line(2).to } })
+    })
+    fireEvent.keyDown(codeField(), { key: 'b', code: 'KeyB', ctrlKey: true, shiftKey: true })
+
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
+    const [, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
+    expect(options.blurredLines).toEqual(new Set([1, 2]))
+    expect(options.highlightedLines).toEqual(new Set())
   })
 
   it('offers more than just a dark/light choice of snippet theme', () => {
