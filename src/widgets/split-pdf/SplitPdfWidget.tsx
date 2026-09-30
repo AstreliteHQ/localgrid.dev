@@ -54,6 +54,11 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
   // once the moment a newer split (or a cleared/replaced file) replaces
   // them.
   const urlsRef = useRef<string[]>([])
+  // Bumped whenever the input (file, mode, or ranges) is invalidated, or the
+  // widget unmounts, so a split that was already in flight can tell its own
+  // result is stale once it resolves and skip publishing parts that no
+  // longer match what's on screen.
+  const splitTokenRef = useRef(0)
 
   useWidgetDirty(instanceId, file !== null || mode !== DEFAULT_MODE || rangesInput !== DEFAULT_RANGES_INPUT)
 
@@ -62,7 +67,13 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
     urlsRef.current = urls
   }
 
-  useEffect(() => () => publishUrls([]), [])
+  useEffect(
+    () => () => {
+      splitTokenRef.current += 1
+      publishUrls([])
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!file) return
@@ -85,6 +96,7 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
   const pageCount = currentDetection?.pageCount ?? null
 
   const invalidateResult = () => {
+    splitTokenRef.current += 1
     publishUrls([])
     setParts(null)
     setSplitError(null)
@@ -112,17 +124,27 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
     if (!file || pageCount === null) return
     const ranges = mode === 'every-page' ? everyPageRanges(pageCount) : (parsedRanges?.ranges ?? [])
     if (ranges.length === 0) return
+    const token = ++splitTokenRef.current
     setSplitting(true)
     setSplitError(null)
     try {
       const split: SplitPart[] = await splitPdf(file, ranges)
       const urls = split.map((part) => URL.createObjectURL(new Blob([new Uint8Array(part.bytes)], { type: 'application/pdf' })))
+      // The file, mode, or ranges can change (or the widget can unmount)
+      // while the split above is in flight — a result for a token that's no
+      // longer current belongs to inputs the user can't even see anymore.
+      if (token !== splitTokenRef.current) {
+        for (const url of urls) URL.revokeObjectURL(url)
+        return
+      }
       publishUrls(urls)
       setParts(split.map((part, index) => ({ label: part.label, pageCount: part.pageCount, url: urls[index] })))
     } catch (err) {
-      setSplitError(err instanceof Error ? err.message : 'Could not split this PDF.')
+      if (token === splitTokenRef.current) {
+        setSplitError(err instanceof Error ? err.message : 'Could not split this PDF.')
+      }
     } finally {
-      setSplitting(false)
+      if (token === splitTokenRef.current) setSplitting(false)
     }
   }
 
@@ -236,8 +258,11 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
 
               {parts && (
                 <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-                  {parts.map((part) => (
-                    <li key={part.label} className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5">
+                  {parts.map((part, index) => (
+                    <li
+                      key={`${index}-${part.label}`}
+                      className="flex items-center gap-2 rounded-md border border-border px-2 py-1.5"
+                    >
                       <span className="truncate font-medium">{part.label}.pdf</span>
                       <span className="ml-auto shrink-0 text-muted-foreground">
                         {part.pageCount} pg{part.pageCount === 1 ? '' : 's'}

@@ -1,8 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PDFDocument } from 'pdf-lib'
+import * as splitPdfModule from './splitPdf'
 import SplitPdfWidget from './SplitPdfWidget'
+
+// Only the split step itself needs to be controllable (to simulate the
+// inputs changing while a split is still in flight) — countPages and
+// parsePageRanges stay real, same as every other test in this file.
+vi.mock('./splitPdf', async (importOriginal) => {
+  const actual = await importOriginal<typeof splitPdfModule>()
+  return { ...actual, splitPdf: vi.fn(actual.splitPdf) }
+})
+const mockedSplitPdf = vi.mocked(splitPdfModule.splitPdf)
 
 beforeEach(() => {
   // jsdom has no object-URL implementation at all.
@@ -125,6 +135,47 @@ describe('SplitPdfWidget', () => {
     await user.click(screen.getByRole('button', { name: /remove file/i }))
 
     expect(screen.getByText(/drop a pdf here/i)).toBeInTheDocument()
+  })
+
+  it('discards a split result that finishes after the file was removed', async () => {
+    const user = userEvent.setup()
+    let resolveSplit: (value: splitPdfModule.SplitPart[]) => void = () => {}
+    mockedSplitPdf.mockImplementationOnce(() => new Promise<splitPdfModule.SplitPart[]>((resolve) => (resolveSplit = resolve)))
+    render(<SplitPdfWidget instanceId="test" mode="grid" />)
+
+    dropFile(await makePdf('a.pdf', 3))
+    await screen.findByText('3 pg')
+    await user.click(splitButton())
+
+    // The split is still in flight — removing the file invalidates it.
+    await user.click(screen.getByRole('button', { name: /remove file/i }))
+
+    const part: splitPdfModule.SplitPart = {
+      label: 'page-1',
+      range: { start: 1, end: 1 },
+      pageCount: 1,
+      bytes: await (await PDFDocument.create()).save(),
+    }
+    resolveSplit([part])
+
+    await waitFor(() => expect(screen.getByText(/drop a pdf here/i)).toBeInTheDocument())
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+  })
+
+  it('gives each split part a unique key even when ranges repeat a page', async () => {
+    const user = userEvent.setup()
+    render(<SplitPdfWidget instanceId="test" mode="grid" />)
+
+    dropFile(await makePdf('a.pdf', 9))
+    await screen.findByText('9 pg')
+    await user.click(screen.getByRole('button', { name: 'Custom ranges' }))
+    await user.type(screen.getByPlaceholderText(/e\.g\. 1-3, 5, 7-9/i), '1, 1')
+    await user.click(splitButton())
+
+    const rows = await screen.findAllByRole('listitem')
+    expect(rows).toHaveLength(2)
+    expect(within(rows[0]).getByText('page-1.pdf')).toBeInTheDocument()
+    expect(within(rows[1]).getByText('page-1.pdf')).toBeInTheDocument()
   })
 
   it('keeps its file and settings across a remount of the same instance', async () => {
