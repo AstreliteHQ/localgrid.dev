@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Home, Moon, Plus, Sun, X } from 'lucide-react'
 import { Field } from '@/components/Field'
+import { SegmentedControl } from '@/components/SegmentedControl'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,8 +28,16 @@ import {
 } from './timeZoneMath'
 import { isNight } from './solarTerminator'
 import { WorldClockMap } from './WorldClockMap'
+import { WorldClockTimeline } from './WorldClockTimeline'
 
 const LOCAL_TIME_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+type ViewMode = 'map' | 'timeline'
+
+const VIEW_OPTIONS: { label: string; value: ViewMode }[] = [
+  { label: 'Map', value: 'map' },
+  { label: 'Timeline', value: 'timeline' },
+]
 
 const SORTED_CITIES = [...WORLD_CITIES].sort((a, b) => a.city.localeCompare(b.city))
 
@@ -54,6 +63,9 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
   // uses for its epoch — there's no fixed constant to diff against here
   // either, since the default itself depends on the browser's time zone.
   const [initialSelectedIds] = useWidgetState<string[]>(instanceId, 'initialSelectedIds', selectedIds)
+  // A display preference rather than content, so it stays out of the
+  // dirty check below.
+  const [view, setView] = useWidgetState<ViewMode>(instanceId, 'view', 'map')
   const [referenceMode, setReferenceMode] = useWidgetState<'live' | 'custom'>(instanceId, 'referenceMode', 'live')
   // The field's own raw text (whatever's currently typed, including
   // transiently empty/invalid while mid-edit) — kept separate from the
@@ -162,6 +174,8 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="@container flex h-full flex-col gap-2 text-xs">
+      <SegmentedControl value={view} onChange={setView} options={VIEW_OPTIONS} className="self-start" />
+
       {/* `w-full` lets the map fill the widget at its true 2:1 ratio for
           any normal size, growing right along with the widget. `max-w-3xl`
           only ever engages once that full width would push the box past
@@ -169,9 +183,11 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
           crowd out the scrollable city list below; below that threshold
           it's a no-op and the map is genuinely full-size. `self-center`
           keeps it centered once the cap is in effect. */}
-      <div className="hidden @xs:block aspect-[2/1] w-full max-w-3xl shrink-0 self-center overflow-hidden rounded-md bg-muted/20">
-        <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
-      </div>
+      {view === 'map' && (
+        <div className="hidden @xs:block aspect-[2/1] w-full max-w-3xl shrink-0 self-center overflow-hidden rounded-md bg-muted/20">
+          <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-1.5">
         <Field label="Reference time" htmlFor={dateFieldId} className="min-w-0 flex-1">
@@ -224,20 +240,29 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
         <span className="-mt-1 self-start text-muted-foreground">Previewing a custom time</span>
       )}
 
-      <div className="min-h-0 flex-1 space-y-1 overflow-auto">
-        {cities.length === 0 && (
-          <p className="p-2 text-center text-muted-foreground">Add a city to see its local time</p>
-        )}
-        {cities.map((city) => (
-          <CityRow
-            key={city.id}
-            city={city}
-            date={date}
-            isHome={city.id === localCity?.id}
-            onRemove={() => handleRemove(city.id)}
-          />
-        ))}
-      </div>
+      {cities.length === 0 ? (
+        <p className="min-h-0 flex-1 p-2 text-center text-muted-foreground">Add a city to see its local time</p>
+      ) : view === 'timeline' ? (
+        <WorldClockTimeline
+          date={date}
+          cities={cities}
+          homeCityId={localCity?.id}
+          onRemove={handleRemove}
+          onShiftHours={handleShiftHours}
+        />
+      ) : (
+        <div className="min-h-0 flex-1 space-y-1 overflow-auto">
+          {cities.map((city) => (
+            <CityRow
+              key={city.id}
+              city={city}
+              date={date}
+              isHome={city.id === localCity?.id}
+              onRemove={() => handleRemove(city.id)}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-1.5">
         <Field label="Add city" htmlFor={addFieldId} className="min-w-0 flex-1">
