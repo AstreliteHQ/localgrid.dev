@@ -50,6 +50,11 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
   // Mirrors the currently published object URL so the previous one can be
   // revoked the moment it's replaced or no longer applies.
   const urlRef = useRef<string | null>(null)
+  // Bumped whenever the visible file list changes or the widget unmounts,
+  // so a merge that was already in flight can tell its own result is stale
+  // once it resolves (the list is still interactive during the await) and
+  // skip publishing a PDF that no longer matches what's on screen.
+  const mergeTokenRef = useRef(0)
 
   useWidgetDirty(instanceId, entries.length > 0 || outputName !== DEFAULT_OUTPUT_NAME)
 
@@ -58,7 +63,13 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
     urlRef.current = url
   }
 
-  useEffect(() => () => publishUrl(null), [])
+  useEffect(
+    () => () => {
+      mergeTokenRef.current += 1
+      publishUrl(null)
+    },
+    [],
+  )
 
   // Reads each newly-added file's page count in the background — same
   // "detect before offering the real action" shape as ImageConverterWidget,
@@ -87,6 +98,7 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
   }, [entries, detections])
 
   const invalidatePreviousResult = () => {
+    mergeTokenRef.current += 1
     publishUrl(null)
     setResult(null)
     setMergeError(null)
@@ -134,18 +146,25 @@ export default function MergePdfsWidget({ instanceId }: WidgetProps) {
   const outputFileName = `${sanitizeFileName(outputName, DEFAULT_OUTPUT_NAME)}.pdf`
 
   const handleMerge = async () => {
+    const token = ++mergeTokenRef.current
     setMerging(true)
     setMergeError(null)
     try {
       const merged = await mergePdfs(entries.map((entry) => entry.file))
+      // The file list can change (or the widget can unmount) while the
+      // merge above is in flight — a result for a token that's no longer
+      // current belongs to a list the user can't even see anymore.
+      if (token !== mergeTokenRef.current) return
       const blob = new Blob([new Uint8Array(merged.bytes)], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       publishUrl(url)
       setResult({ url, pageCount: merged.pageCount })
     } catch (err) {
-      setMergeError(err instanceof Error ? err.message : 'Could not merge these files.')
+      if (token === mergeTokenRef.current) {
+        setMergeError(err instanceof Error ? err.message : 'Could not merge these files.')
+      }
     } finally {
-      setMerging(false)
+      if (token === mergeTokenRef.current) setMerging(false)
     }
   }
 

@@ -1,8 +1,18 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PDFDocument } from 'pdf-lib'
+import * as mergePdfsModule from './mergePdfs'
 import MergePdfsWidget from './MergePdfsWidget'
+
+// Only the merge step itself needs to be controllable (to simulate the file
+// list changing while a merge is still in flight) — countPages and
+// sanitizeFileName stay real, same as every other test in this file.
+vi.mock('./mergePdfs', async (importOriginal) => {
+  const actual = await importOriginal<typeof mergePdfsModule>()
+  return { ...actual, mergePdfs: vi.fn(actual.mergePdfs) }
+})
+const mockedMergePdfs = vi.mocked(mergePdfsModule.mergePdfs)
 
 beforeEach(() => {
   // jsdom has no object-URL implementation at all.
@@ -154,6 +164,29 @@ describe('MergePdfsWidget', () => {
     await user.click(screen.getByRole('button', { name: /clear all/i }))
 
     expect(screen.getByText(/drop pdfs here/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /download merged\.pdf/i })).not.toBeInTheDocument()
+  })
+
+  it('discards a merge result that finishes after the file list changed', async () => {
+    const user = userEvent.setup()
+    let resolveMerge: (value: mergePdfsModule.MergeResult) => void = () => {}
+    mockedMergePdfs.mockImplementationOnce(
+      () => new Promise<mergePdfsModule.MergeResult>((resolve) => (resolveMerge = resolve)),
+    )
+    render(<MergePdfsWidget instanceId="test" mode="grid" />)
+
+    dropFiles([await makePdf('a.pdf', 1), await makePdf('b.pdf', 1)])
+    await waitFor(() => expect(mergeButton()).toBeEnabled())
+    await user.click(mergeButton())
+
+    // The merge is still in flight — the list stays interactive, and
+    // removing a file invalidates the in-flight result.
+    await user.click(within(fileRow('b.pdf')).getByRole('button', { name: /remove b\.pdf/i }))
+
+    const bytes = await (await PDFDocument.create()).save()
+    resolveMerge({ bytes, pageCount: 1 })
+
+    await waitFor(() => expect(mergeButton()).toBeDisabled())
     expect(screen.queryByRole('link', { name: /download merged\.pdf/i })).not.toBeInTheDocument()
   })
 
