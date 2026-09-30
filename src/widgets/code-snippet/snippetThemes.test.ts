@@ -40,4 +40,8 @@ describe('SNIPPET_THEMES', () => {
       expect(style?.color).toMatch(hex)
     }
   })
+
+  it.each(Object.values(SNIPPET_THEMES))('$label theme has a translucent highlight background', (theme) => {
+    expect(theme.highlightBackground).toMatch(/^rgba\(\d{1,3}, \d{1,3}, \d{1,3}, 0(\.\d+)?\)$/)
+  })
 })

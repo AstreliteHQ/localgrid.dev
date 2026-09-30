@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { loadParser } from './languages'
+import { loadLanguage } from './languages'
 import { tokenizeCode, type Token } from './tokenizeCode'
+import type { Parser } from '@lezer/common'
+
+async function loadParser(languageId: string): Promise<Parser | null> {
+  return (await loadLanguage(languageId))?.parser ?? null
+}
 
 /** Concatenates every token's text back together, so a test can assert
  * against it without caring how the source got split into runs. */

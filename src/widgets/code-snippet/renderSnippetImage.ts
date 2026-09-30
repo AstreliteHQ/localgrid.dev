@@ -1,8 +1,8 @@
 /** Canvas-backed rendering of tokenized code into a downloadable/copyable
- * "snippet card" PNG — a rounded, padded card in the chosen theme, sized to
- * fit the code exactly. No DOM/editor involved: `tokenizeCode.ts` already
- * reduced the source to plain styled runs, so this only has to lay out and
- * draw text. */
+ * "snippet card" PNG — a rounded, padded card in the chosen theme, with a
+ * VS Code-style line-number gutter, sized to fit the code exactly. No
+ * DOM/editor involved: `tokenizeCode.ts` already reduced the source to
+ * plain styled runs, so this only has to lay out and draw text. */
 
 import type { Token } from './tokenizeCode'
 import type { SnippetTheme } from './snippetThemes'
@@ -11,6 +11,12 @@ export interface RenderOptions {
   theme: SnippetTheme
   /** Base font size in CSS px; line height and padding scale with it. */
   fontSize: number
+  /** 1-based line numbers to paint a subtle background band behind —
+   * e.g. to draw attention to the lines that changed. */
+  highlightedLines?: Set<number>
+  /** 1-based line numbers to blur — e.g. to redact a secret or API key
+   * without having to edit it out of the snippet itself. */
+  blurredLines?: Set<number>
 }
 
 // A generic monospace stack rather than pinning to the app's own
@@ -23,6 +29,11 @@ export interface RenderOptions {
 const FONT_FAMILY = '"Cascadia Code", "SF Mono", Consolas, monospace'
 const LINE_HEIGHT_RATIO = 1.6
 const CARD_RADIUS = 12
+// Space between the right-aligned line numbers and the code they label,
+// and the blur radius for a redacted line — both scale with font size so
+// they stay proportional at any "Size" setting.
+const GUTTER_GAP_RATIO = 0.9
+const BLUR_RATIO = 0.3
 // 2x the CSS pixel size the layout is computed at, so the exported PNG
 // stays crisp on a HiDPI display instead of looking like a browser
 // zoomed-in screenshot.
@@ -60,13 +71,20 @@ export interface SnippetImage {
  * Rejects if the browser can't give a 2D canvas context or can't encode
  * PNG (both effectively never happen in a real browser). */
 export async function renderSnippetImage(tokens: Token[], options: RenderOptions): Promise<SnippetImage> {
-  const { theme, fontSize } = options
+  const { theme, fontSize, highlightedLines, blurredLines } = options
   const lineHeight = fontSize * LINE_HEIGHT_RATIO
   const padding = fontSize
+  const gutterGap = fontSize * GUTTER_GAP_RATIO
+  const blurRadius = fontSize * BLUR_RATIO
   const lines = splitIntoLines(tokens)
+  const lineNumberColor = theme.categories.comment?.color ?? theme.foreground
 
   const measurer = document.createElement('canvas').getContext('2d')
   if (!measurer) throw new Error('This browser does not support canvas rendering.')
+
+  measurer.font = fontString(fontSize, undefined)
+  const gutterWidth = measurer.measureText(String(lines.length)).width
+
   let contentWidth = 0
   for (const line of lines) {
     let width = 0
@@ -80,7 +98,8 @@ export async function renderSnippetImage(tokens: Token[], options: RenderOptions
   // card to zero width.
   contentWidth = Math.max(contentWidth, fontSize * 4)
 
-  const width = Math.ceil(contentWidth) + padding * 2
+  const codeStartX = padding + gutterWidth + gutterGap
+  const width = Math.ceil(codeStartX + contentWidth + padding)
   const height = Math.ceil(Math.max(lines.length, 1) * lineHeight) + padding * 2
 
   const canvas = document.createElement('canvas')
@@ -95,10 +114,30 @@ export async function renderSnippetImage(tokens: Token[], options: RenderOptions
   context.roundRect(0, 0, width, height, CARD_RADIUS)
   context.fill()
 
+  // Highlight bands first, so line numbers and code paint on top of them.
+  if (highlightedLines?.size) {
+    context.fillStyle = theme.highlightBackground
+    lines.forEach((_line, lineIndex) => {
+      if (!highlightedLines.has(lineIndex + 1)) return
+      context.fillRect(0, padding + lineIndex * lineHeight, width, lineHeight)
+    })
+  }
+
   context.textBaseline = 'top'
   lines.forEach((line, lineIndex) => {
-    let x = padding
+    const lineNumber = lineIndex + 1
     const y = padding + lineIndex * lineHeight
+
+    context.font = fontString(fontSize, undefined)
+    context.fillStyle = lineNumberColor
+    context.textAlign = 'right'
+    context.fillText(String(lineNumber), padding + gutterWidth, y)
+    context.textAlign = 'left'
+
+    const blurred = blurredLines?.has(lineNumber) ?? false
+    if (blurred) context.filter = `blur(${blurRadius}px)`
+
+    let x = codeStartX
     for (const token of line) {
       const style = token.category ? theme.categories[token.category] : undefined
       context.font = fontString(fontSize, style)
@@ -106,6 +145,8 @@ export async function renderSnippetImage(tokens: Token[], options: RenderOptions
       context.fillText(token.text, x, y)
       x += context.measureText(token.text).width
     }
+
+    if (blurred) context.filter = 'none'
   })
 
   const blob = await new Promise<Blob>((resolve, reject) => {

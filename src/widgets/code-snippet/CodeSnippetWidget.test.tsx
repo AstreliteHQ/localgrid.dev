@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { setCodeMirrorValue } from '@/test/codemirror'
 import { renderSnippetImage } from './renderSnippetImage'
 import CodeSnippetWidget from './CodeSnippetWidget'
 
@@ -51,23 +52,21 @@ describe('CodeSnippetWidget', () => {
   })
 
   it('shows a placeholder instead of a preview once the code is cleared', async () => {
-    const user = userEvent.setup()
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
 
-    await user.clear(codeField())
+    setCodeMirrorValue(codeField(), '')
 
     await waitFor(() => expect(screen.queryByAltText('Syntax-highlighted code preview')).not.toBeInTheDocument())
     expect(screen.getByText(/paste some code/i)).toBeInTheDocument()
   })
 
   it('re-renders the preview when the code changes', async () => {
-    const user = userEvent.setup()
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
     mockedRenderSnippetImage.mockClear()
 
-    await user.type(codeField(), '\nconsole.log("more")')
+    setCodeMirrorValue(codeField(), 'const x = 1\nconsole.log("more")')
 
     await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
   })
@@ -103,6 +102,21 @@ describe('CodeSnippetWidget', () => {
     expect(preview).toHaveAttribute('height', '96')
   })
 
+  it('passes parsed highlight/blur line numbers through to the renderer', async () => {
+    const user = userEvent.setup()
+    render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+    await screen.findByAltText('Syntax-highlighted code preview')
+    mockedRenderSnippetImage.mockClear()
+
+    await user.type(screen.getByLabelText('Highlight lines'), '1, 3-4')
+    await user.type(screen.getByLabelText('Blur lines'), '2')
+
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
+    const [, options] = mockedRenderSnippetImage.mock.calls.at(-1)!
+    expect(options.highlightedLines).toEqual(new Set([1, 3, 4]))
+    expect(options.blurredLines).toEqual(new Set([2]))
+  })
+
   it('offers more than just a dark/light choice of snippet theme', () => {
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
 
@@ -124,6 +138,18 @@ describe('CodeSnippetWidget', () => {
     expect(options.theme.id).toBe('nord')
   })
 
+  it('offers a "Copy code" button that copies the raw code text, not the image', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    render(<CodeSnippetWidget instanceId="test" mode="grid" />)
+    await screen.findByAltText('Syntax-highlighted code preview')
+
+    await user.click(screen.getByRole('button', { name: /copy code/i }))
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('function greet'))
+  })
+
   it('copies the rendered image to the clipboard', async () => {
     const user = userEvent.setup()
     const write = stubImageClipboard()
@@ -141,25 +167,28 @@ describe('CodeSnippetWidget', () => {
   })
 
   it('shows an error instead of a stale preview when rendering fails', async () => {
-    const user = userEvent.setup()
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
 
     mockedRenderSnippetImage.mockRejectedValue(new Error('This browser cannot encode PNG.'))
-    await user.type(codeField(), '!')
+    setCodeMirrorValue(codeField(), 'const x = 1')
 
     expect(await screen.findByText('This browser cannot encode PNG.')).toBeInTheDocument()
   })
 
   it('keeps its code and settings across a remount of the same instance', async () => {
-    const user = userEvent.setup()
     const { unmount } = render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
 
-    await user.type(codeField(), '\n// custom marker')
+    setCodeMirrorValue(codeField(), '// custom marker')
     unmount()
 
+    mockedRenderSnippetImage.mockClear()
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
-    expect((codeField() as HTMLTextAreaElement).value).toContain('// custom marker')
+    expect(codeField()).toHaveTextContent('// custom marker')
+    // Lets this remount's own (freshly re-run) language-loading effect
+    // settle before the test ends, so its state update doesn't land after
+    // cleanup and warn about a missing act().
+    await waitFor(() => expect(mockedRenderSnippetImage).toHaveBeenCalled())
   })
 })
