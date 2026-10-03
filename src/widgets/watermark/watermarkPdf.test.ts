@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 import { centeredStampOrigin, hexToRgb01, watermarkPdf } from './watermarkPdf'
 
 async function makePdf(pageCount: number, size: [number, number] = [200, 200]): Promise<File> {

@@ -1,7 +1,7 @@
 /** Pure PDF-splitting logic behind the Split PDF widget — no DOM, no widget
  * state, just a file (and page ranges) in, separate PDFs out. */
 
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 
 /** Page count for the loaded PDF, and the same "is this even a readable
  * PDF" check the widget uses before offering to split it. */

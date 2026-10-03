@@ -35,6 +35,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
+    "@cantoo/pdf-lib": "^2.11.1",
     "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-xml": "^6.1.0",
@@ -57,7 +58,6 @@
     "lz-string": "^1.5.0",
     "nanoid": "^6.0.1",
     "nunjucks": "^3.2.4",
-    "pdf-lib": "^1.17.1",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.3.0",
