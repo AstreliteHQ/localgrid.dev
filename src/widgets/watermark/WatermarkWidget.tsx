@@ -4,6 +4,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { PageColorPicker } from '@/components/PageColorPicker'
 import { ScreenColorPicker } from '@/components/ScreenColorPicker'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -274,7 +275,10 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                 />
               </Field>
 
-              <Field label="Opacity" layout="row" className="min-w-0">
+              {/* One grid for both sliders: the label column sizes to the
+                  longest label, so the tracks line up without a fixed width. */}
+              <div className="grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1">
+                <Label className="font-normal text-muted-foreground">Opacity</Label>
                 <Slider
                   min={5}
                   max={100}
@@ -284,12 +288,11 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                     invalidateResult()
                   }}
                   aria-label="Watermark opacity"
-                  className="min-w-16 flex-1"
+                  className="min-w-0"
                 />
-                <span className="w-8 shrink-0 text-right font-mono tabular-nums">{opacity}</span>
-              </Field>
+                <span className="min-w-[4ch] text-right font-mono tabular-nums">{opacity}%</span>
 
-              <Field label="Size" layout="row" className="min-w-0">
+                <Label className="font-normal text-muted-foreground">Size</Label>
                 <Slider
                   min={12}
                   max={120}
@@ -299,10 +302,10 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                     invalidateResult()
                   }}
                   aria-label="Watermark text size"
-                  className="min-w-16 flex-1"
+                  className="min-w-0"
                 />
-                <span className="w-8 shrink-0 text-right font-mono tabular-nums">{fontSize}</span>
-              </Field>
+                <span className="min-w-[4ch] text-right font-mono tabular-nums">{fontSize}</span>
+              </div>
 
               <Field label="Color" htmlFor={`${instanceId}-color`}>
                 <div className="flex items-center gap-1.5">
