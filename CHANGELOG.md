@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.4.0...v0.5.0) (2026-10-03)
+
+
+### Features
+
+* **widgets:** add Chart Generator widget ([#54](https://github.com/AstreliteHQ/localgrid.dev/issues/54)) ([c39e744](https://github.com/AstreliteHQ/localgrid.dev/commit/c39e7441be41e8c50f042e14243a727f0cb2233a))
+* **widgets:** add Merge PDFs widget ([#72](https://github.com/AstreliteHQ/localgrid.dev/issues/72)) ([710e458](https://github.com/AstreliteHQ/localgrid.dev/commit/710e4589ace5d39e7a97ad7c0fd0249b06aadbd2))
+* **widgets:** add Split PDF widget ([#73](https://github.com/AstreliteHQ/localgrid.dev/issues/73)) ([ac74cfa](https://github.com/AstreliteHQ/localgrid.dev/commit/ac74cfa0c09077177e15b7e917c05afc0800aef2))
+* **widgets:** add Watermark widget ([#75](https://github.com/AstreliteHQ/localgrid.dev/issues/75)) ([5490f31](https://github.com/AstreliteHQ/localgrid.dev/commit/5490f3121687d383ee2ca15806a12a7de56ee185))
+* **world-clock:** add timeline view with one hour strip per city ([#77](https://github.com/AstreliteHQ/localgrid.dev/issues/77)) ([d9c0ca7](https://github.com/AstreliteHQ/localgrid.dev/commit/d9c0ca7a3c5b2bb57f5fe76e8ef33076fdec3197))
+
+
+### Refactoring
+
+* **pdf:** migrate PDF widgets from pdf-lib to @cantoo/pdf-lib ([#90](https://github.com/AstreliteHQ/localgrid.dev/issues/90)) ([955d44d](https://github.com/AstreliteHQ/localgrid.dev/commit/955d44dfbd29f384bead7f58aad022ea5ef40c65))
+
 ## [0.4.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.3.0...v0.4.0) (2026-09-28)
 
 
