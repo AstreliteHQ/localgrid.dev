@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 import { countPages, everyPageRanges, parsePageRanges, splitPdf } from './splitPdf'
 
 async function makePdf(pageCount: number): Promise<File> {

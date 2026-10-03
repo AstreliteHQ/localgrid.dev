@@ -2,7 +2,7 @@
  * widget state, just a file (and watermark settings) in, stamped PDF bytes
  * out. */
 
-import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { degrees, PDFDocument, rgb, StandardFonts } from '@cantoo/pdf-lib'
 
 export type WatermarkPosition = 'center' | 'tiled'
 

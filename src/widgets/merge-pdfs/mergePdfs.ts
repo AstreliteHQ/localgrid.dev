@@ -1,7 +1,7 @@
 /** Pure PDF-merging logic behind the Merge PDFs widget — no DOM, no widget
  * state, just files in and merged bytes (or an error) out. */
 
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument } from '@cantoo/pdf-lib'
 
 /** Page count for a single PDF, used to show each queued file's own count
  * before anything is merged, and to catch a file that isn't actually a
