@@ -16,6 +16,7 @@ import { planEncodings, type Encoding } from './reduce'
 import {
   decodeImage,
   encodeHeader,
+  MAX_PIXELS,
   filterRow,
   filterUnit,
   parseHeader,
@@ -213,6 +214,9 @@ export function optimizePng(input: Uint8Array, options: OptimizeOptions): Optimi
   }
 
   if (!animated) {
+    // Checked before inflating too, so a crafted header can't make the
+    // worker decompress a huge stream only to reject it afterwards.
+    if (header.width * header.height > MAX_PIXELS) throw new Error('This PNG is too large to optimize.')
     const idat = concat(chunks.filter((chunk) => chunk.type === 'IDAT').map((chunk) => chunk.data))
     let inflated: Uint8Array
     try {

@@ -56,7 +56,7 @@ always asks before it touches your local dashboard.
 
 ## Widgets
 
-46 tools across 11 categories, and growing.
+47 tools across 11 categories, and growing.
 
 | Category   | Widgets                                                                                                                                    |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |

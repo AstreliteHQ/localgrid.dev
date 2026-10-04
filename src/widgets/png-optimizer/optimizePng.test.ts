@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { optimizePng } from './optimizePng'
 import { buildPng, chunkTypes, decodePng, textChunk } from './testPng'
-import type { BitDepth, ColorType } from './png'
+import { encodeHeader, parseHeader, readChunks, writeChunks, type BitDepth, type ColorType } from './png'
 
 const KEEP = { keepColorProfile: true }
 const STRIP = { keepColorProfile: false }
@@ -179,5 +179,16 @@ describe('optimizePng', () => {
     const short = buildPng({ width: 1, height: 1, colorType: 0, bitDepth: 8, samples: [0] })
     const patched = Uint8Array.from([...input.subarray(0, 33), ...short.subarray(33)])
     expect(() => optimizePng(patched, KEEP)).toThrow(/missing image data/)
+  })
+
+  it('rejects dimensions too large to decode before inflating anything', () => {
+    const input = buildPng({ width: 1, height: 1, colorType: 0, bitDepth: 8, samples: [0] })
+    // Rewrite IHDR to claim 100000 x 100000 pixels, keeping its CRC valid.
+    const chunks = readChunks(input)
+    chunks[0] = {
+      type: 'IHDR',
+      data: encodeHeader({ ...parseHeader(chunks[0].data), width: 100_000, height: 100_000 }),
+    }
+    expect(() => optimizePng(writeChunks(chunks), KEEP)).toThrow(/too large/)
   })
 })

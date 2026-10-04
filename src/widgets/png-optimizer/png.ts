@@ -36,6 +36,12 @@ export interface RgbaImage {
   data: Uint8Array | Uint16Array
 }
 
+/** Largest image the optimizer decodes. Every candidate layout keeps a copy
+ * of the scanlines in memory, so this keeps a worker well clear of browser
+ * memory limits; it is also what stops a tiny crafted file from declaring
+ * enormous dimensions. */
+export const MAX_PIXELS = 40_000_000
+
 const CHANNELS: Record<ColorType, number> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }
 
 const VALID_DEPTHS: Record<ColorType, readonly BitDepth[]> = {
@@ -289,6 +295,14 @@ export function decodeImage(inflated: Uint8Array, context: DecodeContext): RgbaI
   const { width, height, bitDepth, colorType } = header
   const depth = bitDepth === 16 ? 16 : 8
   const pixelCount = width * height
+  if (pixelCount > MAX_PIXELS) throw new Error('This PNG is too large to optimize.')
+  const passes = passesFor(header)
+  const expected = passes.reduce(
+    (sum, pass) =>
+      pass.width && pass.height ? sum + (1 + rowStride(pass.width, colorType, bitDepth)) * pass.height : sum,
+    0,
+  )
+  if (inflated.length < expected) throw new Error('This PNG is missing image data.')
   const data = depth === 16 ? new Uint16Array(pixelCount * 4) : new Uint8Array(pixelCount * 4)
   const max = depth === 16 ? 0xffff : 0xff
   const unit = filterUnit(colorType, bitDepth)
@@ -314,7 +328,7 @@ export function decodeImage(inflated: Uint8Array, context: DecodeContext): RgbaI
   }
 
   let offset = 0
-  for (const pass of passesFor(header)) {
+  for (const pass of passes) {
     if (pass.width === 0 || pass.height === 0) continue
     const stride = rowStride(pass.width, colorType, bitDepth)
     let prev: Uint8Array | null = null

@@ -18,6 +18,10 @@ export async function runOptimizer(
   options: OptimizeOptions,
   signal: AbortSignal,
 ): Promise<OptimizeResult> {
+  // An abort listener added to an already aborted signal never fires, so a
+  // file removed while it was still being read would otherwise be optimized
+  // in full and thrown away.
+  if (signal.aborted) throw new DOMException('Optimization cancelled.', 'AbortError')
   if (typeof Worker === 'undefined') {
     const { optimizePng } = await import('./optimizePng')
     return optimizePng(bytes, options)
