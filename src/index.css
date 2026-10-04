@@ -67,6 +67,19 @@
    * IBM Plex Sans's specific 500 cut making it look bold. */
   --font-weight-medium: 400;
   --animate-dirty-pulse: dirty-pulse 2s ease-in-out infinite;
+  --animate-indeterminate: indeterminate 1.2s ease-in-out infinite;
+}
+
+/* Indeterminate progress bar: a segment a third of the track wide sweeping
+ * from just off its left edge to just off its right edge. For work with no
+ * measurable progress, like the PNG Optimizer's compression passes. */
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 /* Widget "dirty" indicator (see src/widgets/useWidgetDirty.ts) — a soft
