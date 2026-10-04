@@ -68,7 +68,7 @@ always asks before it touches your local dashboard.
 | Math       | Big-O Estimator, Expression Evaluator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter                 |
 | AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                                 |
 | Color      | Color Converter, WCAG Contrast Checker                                                                                                     |
-| Image      | Image Converter, Watermark                                                                                                                 |
+| Image      | Image Converter, PNG Optimizer, Watermark                                                                                                  |
 | Network    | cURL Builder, Subnet Calculator                                                                                                            |
 | Time       | Timeline Builder, Time Zone Calculator, Timer, World Clock                                                                                 |
 
