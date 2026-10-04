@@ -17,7 +17,7 @@ updates:
       - 'dependencies'
     commit-message:
       prefix: 'deps'
-      prefix-development: 'chore'
+      prefix-development: 'chore(deps-dev)'
     groups:
       codemirror:
         patterns:
