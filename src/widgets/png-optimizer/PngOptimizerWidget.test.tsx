@@ -66,6 +66,20 @@ describe('PngOptimizerWidget', () => {
     )
   })
 
+  it('shows a loading animation while optimizing, then replaces it with the result', async () => {
+    let finish: (value: OptimizeResult) => void = () => {}
+    mockedRunOptimizer.mockImplementation(() => new Promise((resolve) => (finish = resolve)))
+    renderWidget()
+    dropFile(pngFile())
+
+    expect(await screen.findByRole('status')).toHaveTextContent(/optimizing/i)
+    await vi.waitFor(() => expect(mockedRunOptimizer).toHaveBeenCalled())
+    finish(result())
+
+    expect(await screen.findByText('(-40%)')).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
   it('says so when the file is already optimal', async () => {
     mockedRunOptimizer.mockResolvedValue(
       result({ alreadyOptimal: true, bytes: new Uint8Array(1000), removedChunks: [] }),
@@ -110,7 +124,7 @@ describe('PngOptimizerWidget', () => {
     })
     renderWidget()
     dropFile(pngFile())
-    expect(await screen.findByText(/optimizing/i)).toBeInTheDocument()
+    expect(await screen.findByRole('status')).toHaveTextContent(/optimizing/i)
     await vi.waitFor(() => expect(signal).toBeDefined())
 
     await user.click(screen.getByRole('button', { name: /remove image/i }))

@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useRef, useState, type ClipboardEvent, type FocusEvent } from 'react'
-import { AlertTriangle, Check, Clipboard, ClipboardPaste, Download, FolderOpen, ImageUp, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  Check,
+  Clipboard,
+  ClipboardPaste,
+  Download,
+  FolderOpen,
+  ImageUp,
+  Loader2,
+  X,
+} from 'lucide-react'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { SegmentedControl } from '@/components/SegmentedControl'
@@ -262,6 +272,19 @@ export default function PngOptimizerWidget({ instanceId, mode }: WidgetProps) {
             />
           </div>
 
+          {working && (
+            <div
+              role="status"
+              className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground"
+            >
+              <Loader2 className="size-6 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
+              <span>Optimizing…</span>
+              <div className="h-1 w-32 max-w-full overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                <div className="h-full w-1/3 rounded-full bg-primary animate-indeterminate motion-reduce:animate-none" />
+              </div>
+            </div>
+          )}
+
           {current?.url && (
             <div
               className={cn(
@@ -295,7 +318,6 @@ export default function PngOptimizerWidget({ instanceId, mode }: WidgetProps) {
           )}
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {working && <span>Optimizing…</span>}
             {result && (
               <span className="truncate">
                 {formatFileSize(result.originalSize)} to {formatFileSize(result.bytes.length)}
