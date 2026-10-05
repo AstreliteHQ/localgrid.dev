@@ -427,7 +427,7 @@ function AxisBody({
 // the pair centered horizontally as one block.
 const PIE_RADIUS = PLOT_H / 2 - 8
 const PIE_LEGEND_GAP = 28
-const LEGEND_W = 168
+const LEGEND_W = 140
 const PIE_CX = (CHART_W - (PIE_RADIUS * 2 + PIE_LEGEND_GAP + LEGEND_W)) / 2 + PIE_RADIUS
 const LEGEND_X = PIE_CX + PIE_RADIUS + PIE_LEGEND_GAP
 const LEGEND_ROW_H = 20
@@ -503,9 +503,9 @@ function PieLegend({ slices, points, theme }: { slices: PieSlice[]; points: Data
             />
             <text x={LEGEND_X + LEGEND_SWATCH + 6} y={y} dominantBaseline="middle" fill={theme.title}>
               {truncateLabel(slice.label || `#${points.findIndex((p) => p.id === slice.id) + 1}`, 14)}
-            </text>
-            <text x={LEGEND_X + LEGEND_W} y={y} textAnchor="end" dominantBaseline="middle" fill={theme.text}>
-              {`${formatNumber(Math.round(slice.percentage * 10) / 10)}%`}
+              <tspan dx={6} fill={theme.text}>
+                {`${formatNumber(Math.round(slice.percentage * 10) / 10)}%`}
+              </tspan>
             </text>
           </g>
         )
