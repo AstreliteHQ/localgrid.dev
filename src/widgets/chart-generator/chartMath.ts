@@ -189,3 +189,33 @@ export function computeLegendLayout(count: number, top: number, height: number, 
   const start = top + (height - step * count) / 2
   return Array.from({ length: count }, (_, i) => ({ y: round(start + step * (i + 0.5)) }))
 }
+
+/** Rough rendered width of one character, as a fraction of the font size,
+ * for a generic sans-serif face. Deliberately generous for wide glyphs so an
+ * estimate errs toward truncating early rather than overflowing. */
+function charWidthEm(char: string): number {
+  if (/[WM@mw]/.test(char)) return 0.95
+  if (/[A-Z%#&]/.test(char)) return 0.72
+  if (/[ilj.,:;'|!I1 ]/.test(char)) return 0.32
+  if (/[\u0020-\u024f]/.test(char)) return 0.6
+  // CJK, emoji, and anything else outside Latin: assume a full em.
+  return 1
+}
+
+/** Estimated rendered width of `text` at `fontSize`. SVG text can't be
+ * measured outside a live layout (jsdom, the detached PNG export), so the
+ * chart estimates instead. */
+export function estimateTextWidth(text: string, fontSize: number): number {
+  let width = 0
+  for (const char of text) width += charWidthEm(char) * fontSize
+  return width
+}
+
+/** Shortens `label` with a trailing ellipsis until its estimated width at
+ * `fontSize` fits within `maxWidth`. */
+export function fitLabel(label: string, maxWidth: number, fontSize: number): string {
+  if (estimateTextWidth(label, fontSize) <= maxWidth) return label
+  const chars = Array.from(label)
+  while (chars.length > 0 && estimateTextWidth(`${chars.join('')}…`, fontSize) > maxWidth) chars.pop()
+  return chars.length > 0 ? `${chars.join('')}…` : '…'
+}

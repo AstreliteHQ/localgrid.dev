@@ -17,6 +17,8 @@ import {
   computeLegendLayout,
   computeLineLayout,
   computePieLayout,
+  estimateTextWidth,
+  fitLabel,
   niceTicks,
   type ChartType,
   type DataPoint,
@@ -432,6 +434,12 @@ const PIE_CX = (CHART_W - (PIE_RADIUS * 2 + PIE_LEGEND_GAP + LEGEND_W)) / 2 + PI
 const LEGEND_X = PIE_CX + PIE_RADIUS + PIE_LEGEND_GAP
 const LEGEND_ROW_H = 20
 const LEGEND_SWATCH = 10
+const LEGEND_FONT = 12
+const LEGEND_TEXT_X = LEGEND_X + LEGEND_SWATCH + 6
+const LEGEND_PCT_GAP = 6
+// Room kept free after each label for the widest share text ("100%", "33.3%").
+const LEGEND_PCT_W = LEGEND_PCT_GAP + estimateTextWidth('88.8%', LEGEND_FONT)
+const LEGEND_LABEL_MAX_W = CHART_W - 8 - LEGEND_TEXT_X - LEGEND_PCT_W
 
 function PieBody({ points, theme }: { points: DataPoint[]; theme: ChartTheme }) {
   const cx = PIE_CX
@@ -488,7 +496,7 @@ function PieBody({ points, theme }: { points: DataPoint[]; theme: ChartTheme }) 
 function PieLegend({ slices, points, theme }: { slices: PieSlice[]; points: DataPoint[]; theme: ChartTheme }) {
   const rows = computeLegendLayout(slices.length, MARGIN.top, PLOT_H, LEGEND_ROW_H)
   return (
-    <g data-testid="pie-legend" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize={12}>
+    <g data-testid="pie-legend" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize={LEGEND_FONT}>
       {slices.map((slice, i) => {
         const y = rows[i].y
         return (
@@ -501,9 +509,13 @@ function PieLegend({ slices, points, theme }: { slices: PieSlice[]; points: Data
               rx={2}
               fill={slice.color}
             />
-            <text x={LEGEND_X + LEGEND_SWATCH + 6} y={y} dominantBaseline="middle" fill={theme.title}>
-              {truncateLabel(slice.label || `#${points.findIndex((p) => p.id === slice.id) + 1}`, 14)}
-              <tspan dx={6} fill={theme.text}>
+            <text x={LEGEND_TEXT_X} y={y} dominantBaseline="middle" fill={theme.title}>
+              {fitLabel(
+                slice.label || `#${points.findIndex((p) => p.id === slice.id) + 1}`,
+                LEGEND_LABEL_MAX_W,
+                LEGEND_FONT,
+              )}
+              <tspan dx={LEGEND_PCT_GAP} fill={theme.text}>
                 {`${formatNumber(Math.round(slice.percentage * 10) / 10)}%`}
               </tspan>
             </text>

@@ -4,6 +4,8 @@ import {
   computeLegendLayout,
   computeLineLayout,
   computePieLayout,
+  estimateTextWidth,
+  fitLabel,
   niceTicks,
   type DataPoint,
 } from './chartMath'
@@ -123,5 +125,23 @@ describe('computeLegendLayout', () => {
   it('squeezes rows to fit when they would overflow the band', () => {
     const rows = computeLegendLayout(10, 0, 100, 20)
     expect(rows.map((r) => r.y)).toEqual([5, 15, 25, 35, 45, 55, 65, 75, 85, 95])
+  })
+})
+
+describe('fitLabel', () => {
+  it('keeps a label that fits', () => {
+    expect(fitLabel('Jan', 100, 12)).toBe('Jan')
+  })
+
+  it('truncates wide glyphs sooner than narrow ones', () => {
+    const wide = fitLabel('WWWWWWWWWWWWWWW', 100, 12)
+    const narrow = fitLabel('iiiiiiiiiiiiiii', 100, 12)
+    expect(wide.endsWith('…')).toBe(true)
+    expect(narrow).toBe('iiiiiiiiiiiiiii')
+    expect(estimateTextWidth(wide, 12)).toBeLessThanOrEqual(100)
+  })
+
+  it('falls back to a bare ellipsis when nothing fits', () => {
+    expect(fitLabel('Anything', 5, 12)).toBe('…')
   })
 })
