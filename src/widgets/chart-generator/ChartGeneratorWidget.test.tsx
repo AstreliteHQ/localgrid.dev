@@ -50,6 +50,46 @@ describe('ChartGeneratorWidget', () => {
     expect(screen.queryByLabelText('Line color')).not.toBeInTheDocument()
   })
 
+  it('draws a pie legend with one row per slice, label and share', async () => {
+    const user = userEvent.setup()
+    render(<ChartGeneratorWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Pie' }))
+
+    const legend = screen.getByTestId('pie-legend')
+    // One swatch per sample point, in its own color.
+    const swatches = legend.querySelectorAll('rect')
+    expect(swatches).toHaveLength(4)
+    expect(swatches[0]).toHaveAttribute('fill', '#2a78d6')
+    // Jan is 12 of 54.
+    expect(legend).toHaveTextContent('Jan')
+    expect(legend).toHaveTextContent('22.2%')
+    expect(legend).toHaveTextContent('Apr')
+  })
+
+  it('lets a data value be cleared and retyped instead of sticking to 0', async () => {
+    const user = userEvent.setup()
+    render(<ChartGeneratorWidget instanceId="test" mode="grid" />)
+
+    const valueField = screen.getByLabelText('Data point 1 value')
+    await user.clear(valueField)
+    expect(valueField).toHaveValue(null)
+
+    await user.type(valueField, '7.5')
+    expect(valueField).toHaveValue(7.5)
+    expect(chartSvg()).toHaveTextContent('7.5')
+  })
+
+  it('restores the last value when a data value is left blank', async () => {
+    const user = userEvent.setup()
+    render(<ChartGeneratorWidget instanceId="test" mode="grid" />)
+
+    const valueField = screen.getByLabelText('Data point 1 value')
+    await user.clear(valueField)
+    await user.tab()
+    expect(valueField).toHaveValue(12)
+  })
+
   it('adds and removes data points', async () => {
     const user = userEvent.setup()
     render(<ChartGeneratorWidget instanceId="test" mode="grid" />)

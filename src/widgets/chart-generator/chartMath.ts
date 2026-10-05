@@ -174,3 +174,18 @@ export function computePieLayout(points: DataPoint[], radius: number, cx: number
 function round(n: number): number {
   return Math.round(n * 100) / 100
 }
+
+export interface LegendRow {
+  y: number
+}
+
+/** Stacks `count` legend rows of `rowHeight` vertically centered inside a
+ * band starting at `top` and `height` tall, returning each row's center y.
+ * When the rows don't fit at full height they are squeezed evenly to fill
+ * the band instead of overflowing past the chart's bottom edge. */
+export function computeLegendLayout(count: number, top: number, height: number, rowHeight: number): LegendRow[] {
+  if (count <= 0) return []
+  const step = Math.min(rowHeight, height / count)
+  const start = top + (height - step * count) / 2
+  return Array.from({ length: count }, (_, i) => ({ y: round(start + step * (i + 0.5)) }))
+}
