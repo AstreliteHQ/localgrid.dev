@@ -46,6 +46,7 @@ import { mergePdfsDefinition } from './merge-pdfs/definition'
 import { splitPdfDefinition } from './split-pdf/definition'
 import { watermarkDefinition } from './watermark/definition'
 import { pngOptimizerDefinition } from './png-optimizer/definition'
+import { codeSnippetDefinition } from './code-snippet/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -97,6 +98,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   splitPdfDefinition,
   watermarkDefinition,
   pngOptimizerDefinition,
+  codeSnippetDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
