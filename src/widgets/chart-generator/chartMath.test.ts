@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { computeBarLayout, computeLineLayout, computePieLayout, niceTicks, type DataPoint } from './chartMath'
+import {
+  computeBarLayout,
+  computeLegendLayout,
+  computeLineLayout,
+  computePieLayout,
+  estimateTextWidth,
+  fitLabel,
+  niceTicks,
+  type DataPoint,
+} from './chartMath'
 
 function point(id: string, label: string, value: number, color = '#2a78d6'): DataPoint {
   return { id, label, value, color }
@@ -100,5 +109,39 @@ describe('computePieLayout', () => {
     const slices = computePieLayout([point('a', 'A', 1)], 50, 0, 0)
     // A single 100% slice starts and ends at the top: (0, -radius).
     expect(slices[0].pathD).toContain('M 0 0 L 0 -50')
+  })
+})
+
+describe('computeLegendLayout', () => {
+  it('returns no rows for an empty legend', () => {
+    expect(computeLegendLayout(0, 0, 100, 20)).toEqual([])
+  })
+
+  it('centers rows vertically in the band at their full height', () => {
+    // 3 rows * 20 = 60 tall, centered in a 100-tall band starting at 10.
+    expect(computeLegendLayout(3, 10, 100, 20).map((r) => r.y)).toEqual([40, 60, 80])
+  })
+
+  it('squeezes rows to fit when they would overflow the band', () => {
+    const rows = computeLegendLayout(10, 0, 100, 20)
+    expect(rows.map((r) => r.y)).toEqual([5, 15, 25, 35, 45, 55, 65, 75, 85, 95])
+  })
+})
+
+describe('fitLabel', () => {
+  it('keeps a label that fits', () => {
+    expect(fitLabel('Jan', 100, 12)).toBe('Jan')
+  })
+
+  it('truncates wide glyphs sooner than narrow ones', () => {
+    const wide = fitLabel('WWWWWWWWWWWWWWW', 100, 12)
+    const narrow = fitLabel('iiiiiiiiiiiiiii', 100, 12)
+    expect(wide.endsWith('…')).toBe(true)
+    expect(narrow).toBe('iiiiiiiiiiiiiii')
+    expect(estimateTextWidth(wide, 12)).toBeLessThanOrEqual(100)
+  })
+
+  it('falls back to a bare ellipsis when nothing fits', () => {
+    expect(fitLabel('Anything', 5, 12)).toBe('…')
   })
 })

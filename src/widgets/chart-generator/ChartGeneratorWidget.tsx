@@ -4,6 +4,7 @@ import { Download, Plus, X } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Field } from '@/components/Field'
+import { NumberInput } from '@/components/NumberField'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/formatNumber'
@@ -13,11 +14,15 @@ import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import {
   computeBarLayout,
+  computeLegendLayout,
   computeLineLayout,
   computePieLayout,
+  estimateTextWidth,
+  fitLabel,
   niceTicks,
   type ChartType,
   type DataPoint,
+  type PieSlice,
 } from './chartMath'
 
 // A fixed, colorblind-checked hue order (see the localgrid dataviz skill's
@@ -70,7 +75,8 @@ function newPoint(index: number): DataPoint {
 
 function samePoints(a: DataPoint[], b: DataPoint[]): boolean {
   return (
-    a.length === b.length && a.every((p, i) => p.label === b[i].label && p.value === b[i].value && p.color === b[i].color)
+    a.length === b.length &&
+    a.every((p, i) => p.label === b[i].label && p.value === b[i].value && p.color === b[i].color)
   )
 }
 
@@ -156,7 +162,12 @@ export default function ChartGeneratorWidget({ instanceId }: WidgetProps) {
     <div className="flex h-full flex-col gap-2 text-xs">
       <div className="flex items-end gap-1.5">
         <Field label="Title" htmlFor={titleId} className="min-w-0 flex-1">
-          <Input id={titleId} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Chart title" />
+          <Input
+            id={titleId}
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Chart title"
+          />
         </Field>
         <SegmentedControl value={chartType} onChange={setChartType} options={CHART_TYPE_OPTIONS} />
       </div>
@@ -173,7 +184,7 @@ export default function ChartGeneratorWidget({ instanceId }: WidgetProps) {
         </Field>
       )}
 
-      <div className="min-h-0 flex-1 space-y-1 overflow-auto">
+      <div className="min-h-16 shrink space-y-1 overflow-auto">
         {points.map((point, index) => (
           <DataPointRow
             key={point.id}
@@ -196,9 +207,16 @@ export default function ChartGeneratorWidget({ instanceId }: WidgetProps) {
         </Button>
       </div>
 
-      <div className="flex flex-col items-center gap-1.5 border-t border-border pt-2">
-        <div className="w-full max-w-full overflow-hidden rounded-md border border-border">
-          <ChartPreview ref={svgRef} title={title} chartType={chartType} points={points} lineColor={lineColor} isDark={isDark} />
+      <div className="flex min-h-64 flex-1 basis-0 flex-col items-center gap-1.5 border-t border-border pt-2">
+        <div className="flex min-h-0 w-full flex-1 items-center justify-center">
+          <ChartPreview
+            ref={svgRef}
+            title={title}
+            chartType={chartType}
+            points={points}
+            lineColor={lineColor}
+            isDark={isDark}
+          />
         </div>
         <Button type="button" variant="outline" size="sm" onClick={handleDownload} className="gap-1.5">
           <Download className="size-3.5" />
@@ -238,12 +256,11 @@ function DataPointRow({
         aria-label={`Data point ${index + 1} label`}
         className="h-7 min-w-0 flex-[2] text-[11px]"
       />
-      <Input
-        type="number"
+      <NumberInput
         value={point.value}
-        onChange={(event) => onChange({ value: Number(event.target.value) })}
+        onChange={(value) => onChange({ value })}
         aria-label={`Data point ${index + 1} value`}
-        className="h-7 min-w-0 flex-1 font-mono text-[11px]"
+        className="h-7 min-w-0 flex-1 text-[11px]"
       />
       <Button
         type="button"
@@ -282,7 +299,7 @@ const ChartPreview = forwardRef<SVGSVGElement, ChartPreviewProps>(function Chart
       height={CHART_H}
       role="img"
       aria-label={title || 'Chart preview'}
-      className="h-auto w-full"
+      className="block h-auto max-h-full w-auto max-w-full rounded-md border border-border"
     >
       <rect x={0} y={0} width={CHART_W} height={CHART_H} fill={theme.surface} />
       {title && (
@@ -365,7 +382,14 @@ function AxisBody({
 
       {line && (
         <>
-          <path d={line.pathD} fill="none" stroke={lineColor} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+          <path
+            d={line.pathD}
+            fill="none"
+            stroke={lineColor}
+            strokeWidth={2}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
           {line.points.map((p) => (
             <g key={p.id}>
               <circle cx={p.x} cy={p.y} r={3.5} fill={p.color} stroke={theme.surface} strokeWidth={1.5}>
@@ -401,48 +425,56 @@ function AxisBody({
   )
 }
 
+// The pie sits on the left of the plot area with its legend to the right,
+// the pair centered horizontally as one block.
+const PIE_RADIUS = PLOT_H / 2 - 8
+const PIE_LEGEND_GAP = 28
+const LEGEND_W = 140
+const PIE_CX = (CHART_W - (PIE_RADIUS * 2 + PIE_LEGEND_GAP + LEGEND_W)) / 2 + PIE_RADIUS
+const LEGEND_X = PIE_CX + PIE_RADIUS + PIE_LEGEND_GAP
+const LEGEND_ROW_H = 20
+const LEGEND_SWATCH = 10
+const LEGEND_FONT = 12
+const LEGEND_TEXT_X = LEGEND_X + LEGEND_SWATCH + 6
+const LEGEND_PCT_GAP = 6
+// Room kept free after each label for the widest share text ("100%", "33.3%").
+const LEGEND_PCT_W = LEGEND_PCT_GAP + estimateTextWidth('88.8%', LEGEND_FONT)
+const LEGEND_LABEL_MAX_W = CHART_W - 8 - LEGEND_TEXT_X - LEGEND_PCT_W
+
 function PieBody({ points, theme }: { points: DataPoint[]; theme: ChartTheme }) {
-  const cx = CHART_W / 2
+  const cx = PIE_CX
   const cy = MARGIN.top + PLOT_H / 2
-  const radius = Math.min(PLOT_W, PLOT_H) / 2 - 8
+  const radius = PIE_RADIUS
   const slices = computePieLayout(points, radius, cx, cy)
 
   if (slices.length === 0) {
     return (
-      <text x={cx} y={cy} textAnchor="middle" fontSize={12} fill={theme.text}>
+      <text x={CHART_W / 2} y={cy} textAnchor="middle" fontSize={12} fill={theme.text}>
         Enter at least one positive value
       </text>
     )
   }
 
-  if (slices.length === 1) {
-    const only = slices[0]
-    return (
-      <g>
-        <circle cx={cx} cy={cy} r={radius} fill={only.color}>
-          <title>{`${only.label || 'Value'}: 100%`}</title>
-        </circle>
-        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize={13} fill="#ffffff" fontWeight={600}>
-          {truncateLabel(only.label || 'Value', 14)}
-        </text>
-      </g>
-    )
-  }
-
   return (
     <g>
-      {slices.map((slice) => (
-        <path key={slice.id} d={slice.pathD} fill={slice.color} stroke={theme.surface} strokeWidth={2}>
-          <title>{`${slice.label || 'Value'}: ${formatNumber(slice.value)} (${formatNumber(slice.percentage)}%)`}</title>
-        </path>
-      ))}
+      {slices.length === 1 ? (
+        <circle cx={cx} cy={cy} r={radius} fill={slices[0].color}>
+          <title>{`${slices[0].label || 'Value'}: 100%`}</title>
+        </circle>
+      ) : (
+        slices.map((slice) => (
+          <path key={slice.id} d={slice.pathD} fill={slice.color} stroke={theme.surface} strokeWidth={2}>
+            <title>{`${slice.label || 'Value'}: ${formatNumber(slice.value)} (${formatNumber(slice.percentage)}%)`}</title>
+          </path>
+        ))
+      )}
       {slices
         .filter((slice) => slice.percentage >= 8)
         .map((slice) => (
           <text
             key={slice.id}
-            x={slice.labelX}
-            y={slice.labelY}
+            x={slices.length === 1 ? cx : slice.labelX}
+            y={slices.length === 1 ? cy : slice.labelY}
             textAnchor="middle"
             dominantBaseline="middle"
             fontSize={11}
@@ -456,6 +488,40 @@ function PieBody({ points, theme }: { points: DataPoint[]; theme: ChartTheme }) 
             {`${Math.round(slice.percentage)}%`}
           </text>
         ))}
+      <PieLegend slices={slices} points={points} theme={theme} />
+    </g>
+  )
+}
+
+function PieLegend({ slices, points, theme }: { slices: PieSlice[]; points: DataPoint[]; theme: ChartTheme }) {
+  const rows = computeLegendLayout(slices.length, MARGIN.top, PLOT_H, LEGEND_ROW_H)
+  return (
+    <g data-testid="pie-legend" fontFamily="ui-sans-serif, system-ui, sans-serif" fontSize={LEGEND_FONT}>
+      {slices.map((slice, i) => {
+        const y = rows[i].y
+        return (
+          <g key={slice.id}>
+            <rect
+              x={LEGEND_X}
+              y={y - LEGEND_SWATCH / 2}
+              width={LEGEND_SWATCH}
+              height={LEGEND_SWATCH}
+              rx={2}
+              fill={slice.color}
+            />
+            <text x={LEGEND_TEXT_X} y={y} dominantBaseline="middle" fill={theme.title}>
+              {fitLabel(
+                slice.label || `#${points.findIndex((p) => p.id === slice.id) + 1}`,
+                LEGEND_LABEL_MAX_W,
+                LEGEND_FONT,
+              )}
+              <tspan dx={LEGEND_PCT_GAP} fill={theme.text}>
+                {`${formatNumber(Math.round(slice.percentage * 10) / 10)}%`}
+              </tspan>
+            </text>
+          </g>
+        )
+      })}
     </g>
   )
 }
