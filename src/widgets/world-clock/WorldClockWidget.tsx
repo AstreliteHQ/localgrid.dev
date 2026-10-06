@@ -176,15 +176,13 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
     <div className="@container flex h-full flex-col gap-2 text-xs">
       <SegmentedControl value={view} onChange={setView} options={VIEW_OPTIONS} className="self-start" />
 
-      {/* `w-full` lets the map fill the widget at its true 2:1 ratio for
-          any normal size, growing right along with the widget. `max-w-3xl`
-          only ever engages once that full width would push the box past
-          768px, which is where the map would otherwise get tall enough to
-          crowd out the scrollable city list below; below that threshold
-          it's a no-op and the map is genuinely full-size. `self-center`
-          keeps it centered once the cap is in effect. */}
+      {/* `w-full` lets the map fill the widget at its true 2:1 ratio,
+          growing right along with the widget, and `max-w-3xl` caps it once
+          it would pass 768px wide. It can still shrink in height
+          (`min-h-0`, letterboxed by the SVG) so a wide but short widget
+          never squeezes the city list below past its own minimum height. */}
       {view === 'map' && (
-        <div className="hidden @xs:block aspect-[2/1] w-full max-w-3xl shrink-0 self-center overflow-hidden rounded-md bg-muted/20">
+        <div className="hidden @xs:block aspect-[2/1] min-h-0 w-full max-w-3xl shrink self-center">
           <WorldClockMap date={date} cities={cities} homeCityId={localCity?.id} />
         </div>
       )}
@@ -251,7 +249,7 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
           onShiftHours={handleShiftHours}
         />
       ) : (
-        <div className="min-h-0 flex-1 space-y-1 overflow-auto">
+        <div className="min-h-24 flex-1 space-y-1 overflow-auto">
           {cities.map((city) => (
             <CityRow
               key={city.id}
