@@ -24,6 +24,14 @@ const BAND_CLASSES: Record<HourBand, string> = {
   night: 'bg-[rgb(2_6_23/0.32)] text-muted-foreground',
 }
 
+// Hovering washes the cell's own band color with white instead of swapping
+// in a separate color, so every band reads as a lighter shade of itself in
+// both light and dark mode. An inset shadow layers over the background color
+// without replacing it. Light mode needs a stronger wash, since its bands are
+// already pale.
+const CELL_HOVER =
+  'hover:shadow-[inset_0_0_0_999px_rgb(255_255_255/0.45)] dark:hover:shadow-[inset_0_0_0_999px_rgb(255_255_255/0.2)]'
+
 const cellTitleFormatters = new Map<string, Intl.DateTimeFormat>()
 
 function formatCellTitle(ms: number, timeZone: string): string {
@@ -108,7 +116,8 @@ export function WorldClockTimeline({ date, cities, homeCityId, onRemove, onShift
                       aria-label={`${city.city}: ${title}`}
                       onClick={() => onShiftHours(cell.offset)}
                       className={cn(
-                        'flex w-7 min-w-7 flex-1 flex-col items-center justify-center font-mono leading-tight transition-colors hover:bg-primary/40',
+                        'flex w-7 min-w-7 flex-1 flex-col items-center justify-center font-mono leading-tight transition-shadow',
+                        CELL_HOVER,
                         BAND_CLASSES[cell.band],
                         cell.dayLabel && cell.offset !== -TIMELINE_HOURS_BEFORE && 'border-l border-foreground/40',
                         isReference && 'font-semibold',
