@@ -47,6 +47,8 @@ describe('SemverWidget', () => {
     expect(screen.getByText('Not SemVer 2.0.0 compliant')).toBeInTheDocument()
     const issues = screen.getByRole('list', { name: 'Spec violations' })
     expect(within(issues).getAllByRole('listitem')).toHaveLength(2)
+    expect(versionField()).toHaveAttribute('aria-invalid', 'true')
+    expect(versionField()).toHaveAccessibleDescription(/"v" prefix/)
 
     await user.click(screen.getByRole('button', { name: 'Use it' }))
     expect(versionField()).toHaveValue('1.2.0')
@@ -91,6 +93,8 @@ describe('SemverWidget', () => {
     await setField(rangeField(), '>=1.0.0 nope')
 
     expect(screen.getByText('"nope" is not a valid comparator')).toBeInTheDocument()
+    expect(rangeField()).toHaveAttribute('aria-invalid', 'true')
+    expect(rangeField()).toHaveAccessibleDescription('"nope" is not a valid comparator')
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

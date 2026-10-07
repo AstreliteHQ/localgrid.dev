@@ -8,7 +8,17 @@ import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
-import { bump, format, formatSet, parseRange, satisfiesSet, validate, type BumpKind, type SemVer } from './semver'
+import {
+  bump,
+  format,
+  formatSet,
+  parseRange,
+  satisfiesSet,
+  validate,
+  type BumpKind,
+  type ComparatorSet,
+  type SemVer,
+} from './semver'
 
 const DEFAULT_VERSION = '1.4.2-rc.1+sha.5114f85'
 const DEFAULT_RANGE = '^1.4.2-rc.0'
@@ -39,9 +49,13 @@ export default function SemverWidget({ instanceId }: WidgetProps) {
   const versionId = useId()
   const rangeId = useId()
   const prereleaseId = useId()
+  const issuesId = useId()
+  const rangeErrorId = useId()
 
   const result = validate(input)
   const { version } = result
+  const parsedRange = range.trim() === '' ? null : parseRange(range)
+  const rangeError = parsedRange && !parsedRange.ok ? parsedRange.error : null
 
   return (
     <div className="flex h-full flex-col gap-2.5 overflow-auto text-xs">
@@ -54,6 +68,7 @@ export default function SemverWidget({ instanceId }: WidgetProps) {
             placeholder="1.0.0-alpha.1+build.5"
             spellCheck={false}
             aria-invalid={!version}
+            aria-describedby={version ? undefined : issuesId}
             className="pr-8 font-mono text-sm"
           />
           <CopyButton value={input} label="" ariaLabel="Copy version" className="absolute right-0.5 top-0.5 px-1.5" />
@@ -86,7 +101,7 @@ export default function SemverWidget({ instanceId }: WidgetProps) {
       ) : (
         <div className="flex flex-col gap-1">
           <ComplianceBadge valid={false} />
-          <ul className="space-y-0.5" aria-label="Spec violations">
+          <ul id={issuesId} className="space-y-0.5" aria-label="Spec violations">
             {result.issues.map((issue) => (
               <li key={issue} className="flex items-start gap-1.5 text-destructive">
                 <CircleX className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
@@ -113,6 +128,8 @@ export default function SemverWidget({ instanceId }: WidgetProps) {
         <Field label="Range" htmlFor={rangeId}>
           <Input
             id={rangeId}
+            aria-invalid={rangeError !== null}
+            aria-describedby={rangeError ? rangeErrorId : undefined}
             value={range}
             onChange={(event) => setRange(event.target.value)}
             placeholder="^1.2.0 || >=2.0.0 <3"
@@ -130,7 +147,14 @@ export default function SemverWidget({ instanceId }: WidgetProps) {
           />
           Include pre-releases
         </label>
-        <RangeResult version={version} range={range} includePrerelease={includePrerelease} />
+        {rangeError && (
+          <div id={rangeErrorId}>
+            <ErrorMessage>{rangeError}</ErrorMessage>
+          </div>
+        )}
+        {parsedRange?.ok && (
+          <RangeResult version={version} sets={parsedRange.sets} includePrerelease={includePrerelease} />
+        )}
       </div>
     </div>
   )
@@ -224,21 +248,17 @@ function VersionNotes({ version }: { version: SemVer }) {
 
 function RangeResult({
   version,
-  range,
+  sets,
   includePrerelease,
 }: {
   version: SemVer | null
-  range: string
+  sets: ComparatorSet[]
   includePrerelease: boolean
 }) {
-  if (range.trim() === '') return null
-  const parsed = parseRange(range)
-  if (!parsed.ok) return <ErrorMessage>{parsed.error}</ErrorMessage>
-
-  const matches = version ? parsed.sets.map((set) => satisfiesSet(version, set, includePrerelease)) : []
+  const matches = version ? sets.map((set) => satisfiesSet(version, set, includePrerelease)) : []
   const satisfied = matches.some(Boolean)
   const blockedByPrerelease =
-    version !== null && !satisfied && !includePrerelease && parsed.sets.some((set) => satisfiesSet(version, set, true))
+    version !== null && !satisfied && !includePrerelease && sets.some((set) => satisfiesSet(version, set, true))
 
   return (
     <div className="flex flex-col gap-1">
@@ -267,7 +287,7 @@ function RangeResult({
         </p>
       )}
       <ul className="space-y-0.5 font-mono" aria-label="Range breakdown">
-        {parsed.sets.map((set, index) => (
+        {sets.map((set, index) => (
           <li key={index} className="flex items-start gap-1.5">
             {version &&
               (matches[index] ? (
