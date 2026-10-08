@@ -30,6 +30,15 @@ describe('JsonSchemaValidatorWidget', () => {
     expect(issues).toHaveTextContent('>= 0')
   })
 
+  it('shows the line number of the offending value in a multi-line document', () => {
+    render(<JsonSchemaValidatorWidget instanceId="test" mode="grid" />)
+
+    setCodeMirrorValue(documentField(), '{\n  "id": "x",\n  "name": "Ada",\n  "age": -1\n}')
+
+    const issues = screen.getByLabelText('Validation issues')
+    expect(issues).toHaveTextContent('Line 4:')
+  })
+
   it('shows a schema error distinctly from a document error', () => {
     render(<JsonSchemaValidatorWidget instanceId="test" mode="grid" />)
 

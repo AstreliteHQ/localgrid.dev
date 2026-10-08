@@ -108,6 +108,7 @@ export default function JsonSchemaValidatorWidget({ instanceId }: WidgetProps) {
                 >
                   <X className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
                   <span>
+                    {issue.line != null && <span className="font-mono font-semibold">Line {issue.line}:</span>}{' '}
                     <span className="font-mono">{issue.path}</span> {issue.message}
                   </span>
                 </li>

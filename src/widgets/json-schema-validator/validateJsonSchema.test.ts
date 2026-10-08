@@ -55,6 +55,15 @@ describe('validateJsonSchema', () => {
     expect(outcome.issues.some((issue) => issue.path === '/age')).toBe(true)
   })
 
+  it('gives each issue the line number of its offending value in a multi-line document', () => {
+    const document = '{\n  "name": "Ada",\n  "age": -1\n}'
+    const outcome = validateJsonSchema(PERSON_SCHEMA, document, 'json')
+    expect(outcome.status).toBe('invalid')
+    if (outcome.status !== 'invalid') return
+    const ageIssue = outcome.issues.find((issue) => issue.path === '/age')
+    expect(ageIssue?.line).toBe(3)
+  })
+
   it('validates string formats via ajv-formats', () => {
     const emailSchema = JSON.stringify({ type: 'string', format: 'email' })
     expect(validateJsonSchema(emailSchema, '"not-an-email"', 'json').status).toBe('invalid')

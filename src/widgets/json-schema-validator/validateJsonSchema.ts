@@ -8,6 +8,7 @@
 import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
 import { parse as parseYaml } from 'yaml'
+import { documentLineForPointer } from './documentLineForPointer'
 
 export type DocumentFormat = 'json' | 'yaml'
 
@@ -16,6 +17,10 @@ export interface ValidationIssue {
    * for an error about the document's root. */
   path: string
   message: string
+  /** 1-based line number of the offending value in the original
+   * `documentText`, or null when it can't be found there (see
+   * `documentLineForPointer`). */
+  line: number | null
 }
 
 export type ValidationOutcome =
@@ -61,6 +66,7 @@ export function validateJsonSchema(schemaText: string, documentText: string, for
   const issues = (validate.errors ?? []).map((error) => ({
     path: error.instancePath || '/',
     message: error.message ?? 'is invalid',
+    line: documentLineForPointer(documentText, error.instancePath),
   }))
   return { status: 'invalid', issues }
 }
