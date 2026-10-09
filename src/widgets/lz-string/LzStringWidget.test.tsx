@@ -69,4 +69,14 @@ describe('LzStringWidget', () => {
 
     expect(screen.getByPlaceholderText('Output')).toHaveValue('héllo 世界')
   })
+
+  it('shows an error instead of crashing on input the library throws on, e.g. "z"', async () => {
+    const user = userEvent.setup()
+    render(<LzStringWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Decompress' }))
+    await user.type(screen.getByPlaceholderText(/lz-string to decompress/i), 'z')
+
+    expect(screen.getByPlaceholderText('Output')).toHaveValue('Invalid LZ-String input')
+  })
 })

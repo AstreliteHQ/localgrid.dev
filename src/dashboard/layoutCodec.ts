@@ -2,6 +2,7 @@ import LZString from 'lz-string'
 import { nanoid } from 'nanoid'
 import * as v from 'valibot'
 import { getWidgetDefinition } from '@/widgets/registry'
+import { decompressLzString } from '@/lib/lzString'
 import {
   DASHBOARD_LAYOUT_VERSION,
   WORKSPACE_LAYOUT_VERSION,
@@ -147,7 +148,7 @@ function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
  * the two don't overlap in their keys, so there's no ambiguity between
  * them. */
 export function decodeWorkspace(encoded: string): DecodeResult {
-  const json = LZString.decompressFromEncodedURIComponent(encoded)
+  const json = decompressLzString(encoded)
   if (!json) return { ok: false, error: 'Could not read this share link.' }
 
   let parsed: unknown
