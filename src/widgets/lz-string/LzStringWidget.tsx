@@ -4,6 +4,7 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { decodeLzStringStrict } from '@/lib/lzString'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -20,17 +21,10 @@ export default function LzStringWidget({ instanceId }: WidgetProps) {
     if (direction === 'compress') {
       return { output: LZString.compressToEncodedURIComponent(input), error: null }
     }
-    // decompressFromEncodedURIComponent never throws, and readily returns
-    // *something* for input that was never actually compressed (e.g.
-    // "helloworld" decodes to a couple of garbage characters) — there's no
-    // UTF-8-style validity gate to lean on the way byte-oriented decoders
-    // have one. Recompressing the result and checking it reproduces the
-    // original input is a much stronger gate: compression is deterministic,
-    // so only an actual compressed payload round-trips exactly (same check
-    // content-type-detector's decodeLzString uses).
-    const decoded = LZString.decompressFromEncodedURIComponent(input)
-    const isValid = decoded && LZString.compressToEncodedURIComponent(decoded) === input
-    return isValid ? { output: decoded, error: null } : { output: '', error: 'Invalid LZ-String input' }
+    // Strict decode: tolerates malformed input the library would throw on
+    // (e.g. "z"), and rejects text that only superficially decodes.
+    const decoded = decodeLzStringStrict(input)
+    return decoded !== null ? { output: decoded, error: null } : { output: '', error: 'Invalid LZ-String input' }
   }, [input, direction])
 
   return (

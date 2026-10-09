@@ -243,4 +243,26 @@ describe('buildChains', () => {
     const pem = '-----BEGIN CERTIFICATE-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\n-----END CERTIFICATE-----'
     expect(labels(buildChains(pem)[0])).toEqual(['PEM (CERTIFICATE)'])
   })
+
+  it.each(['y', 'z', 'zz', 'zy'])(
+    'falls back to Plain text instead of throwing for %j (regression: LZ-String decode threw)',
+    (input) => {
+      const chains = buildChains(input)
+      expect(chains).toHaveLength(1)
+      expect(labels(chains[0])).toEqual(['Plain text'])
+    },
+  )
+
+  it('never throws on any one- or two-character input', () => {
+    // Short, half-typed input is exactly what every keystroke feeds this, and
+    // the decoders behind it (LZ-String in particular) have thrown on it before.
+    const alphabet =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=-_.%$#:{}[]" \n\u00e9\u4e2d\ud83d\ude00\ud800'
+    for (const a of alphabet) {
+      expect(() => buildChains(a)).not.toThrow()
+      for (const b of alphabet) {
+        expect(() => buildChains(a + b)).not.toThrow()
+      }
+    }
+  })
 })
