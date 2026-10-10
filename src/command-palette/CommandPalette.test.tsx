@@ -41,6 +41,21 @@ describe('CommandPalette', () => {
     expect(screen.queryByText('UUID Generator')).not.toBeInTheDocument()
   })
 
+  it('finds a widget by text that only appears in its description, not just its name or keywords', async () => {
+    useCommandPaletteStore.setState({ open: true })
+    render(<CommandPalette />)
+    const user = userEvent.setup()
+
+    await screen.findByText('Merge PDFs')
+    const input = screen.getByPlaceholderText(/search tools or actions/i)
+    // Not in "Merge PDFs"' own keywords (pdf, merge, combine, join,
+    // concatenate) — only its description ever says this.
+    await user.type(input, 'whatever order')
+
+    expect(screen.getByText('Merge PDFs')).toBeInTheDocument()
+    expect(screen.queryByText('UUID Generator')).not.toBeInTheDocument()
+  })
+
   it('includes the always-available share action, but no separate "add a widget" indirection', () => {
     useCommandPaletteStore.setState({ open: true })
     render(<CommandPalette />)
