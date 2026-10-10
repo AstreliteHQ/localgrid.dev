@@ -1,6 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { Plus } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { Button } from '@/components/ui/button'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
+import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 import { useWidgetResetNonce } from '@/widgets/useWidgetDirty'
 import { useOverlayStore } from './useOverlayStore'
@@ -13,10 +16,16 @@ import { useOverlayStore } from './useOverlayStore'
  * portal involved. Content lives in `useWidgetState`'s store keyed by
  * instanceId, so this mount and the grid cell's own independent mount of the
  * same instanceId (see WidgetGridItem) just read/write the same entries;
- * neither needs to hand the other a DOM node to survive. */
+ * neither needs to hand the other a DOM node to survive. That's also what
+ * lets an ephemeral tool be pinned *with* whatever's already in it — see
+ * the "Add to dashboard" button below, only shown for that kind: it reuses
+ * the overlay's own instanceId rather than minting a fresh one, so the
+ * dashboard's own mount of this same instance picks up the same content. */
 export function WidgetOverlay({ children }: { children: ReactNode }) {
   const target = useOverlayStore((state) => state.target)
   const close = useOverlayStore((state) => state.close)
+  const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
+  const pinInstance = useDashboardStore((state) => state.pinInstance)
   const definition = target ? WIDGET_REGISTRY[target.widgetId] : null
   const resetNonce = useWidgetResetNonce(target?.instanceId ?? '')
   // Tracks whether the mousedown that started this click landed on the
@@ -62,6 +71,24 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
               icon={definition.icon}
               isExpanded
               onToggleExpand={close}
+              extraActions={
+                target.kind === 'ephemeral' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-xs"
+                    onClick={() => {
+                      pinInstance(activeDashboardId, target.widgetId, target.instanceId)
+                      close()
+                    }}
+                    aria-label={`Add ${definition.name} to dashboard`}
+                    title="Add to dashboard, keeping what's already here"
+                    className="text-muted-foreground"
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                )
+              }
             >
               <definition.component
                 key={`${target.instanceId}-${resetNonce}`}

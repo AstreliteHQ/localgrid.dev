@@ -63,6 +63,40 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
     expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(0)
   })
 
+  it('pinInstance appends a correctly sized instance using the given instanceId, scoped to the dashboard', () => {
+    useDashboardStore.getState().pinInstance(DASHBOARD_A, 'uuid-generator', 'ephemeral-xyz')
+
+    const dashboards = useDashboardStore.getState().dashboards
+    expect(dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toEqual([
+      expect.objectContaining({ instanceId: 'ephemeral-xyz', widgetId: 'uuid-generator', x: 0, y: 0 }),
+    ])
+    expect(dashboards.find((d) => d.id === DASHBOARD_B)!.widgets).toHaveLength(0)
+  })
+
+  it('pinInstance silently ignores an unknown widget id', () => {
+    useDashboardStore.getState().pinInstance(DASHBOARD_A, 'not-a-real-widget', 'ephemeral-xyz')
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(0)
+  })
+
+  it('pinInstance is a no-op if that instanceId is already pinned to the dashboard', () => {
+    useDashboardStore.getState().pinInstance(DASHBOARD_A, 'uuid-generator', 'ephemeral-xyz')
+    useDashboardStore.getState().pinInstance(DASHBOARD_A, 'uuid-generator', 'ephemeral-xyz')
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(1)
+  })
+
+  it('pinInstance carries over whatever content already lives under that instanceId', () => {
+    const instanceId = 'ephemeral-xyz'
+    const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
+    act(() => content.result.current[1]('typed before pinning'))
+
+    useDashboardStore.getState().pinInstance(DASHBOARD_A, 'base64', instanceId)
+
+    const contentAfter = renderHook(() => useWidgetState(instanceId, 'input', 'fresh-default'))
+    expect(contentAfter.result.current[0]).toBe('typed before pinning')
+  })
+
   it('removeWidget removes only the targeted instance from the targeted dashboard', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
     useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
