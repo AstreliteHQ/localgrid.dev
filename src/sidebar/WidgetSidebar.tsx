@@ -4,6 +4,7 @@ import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { groupWidgetsByCategory } from '@/widgets/categories'
+import { matchesQuery } from '@/widgets/matchesQuery'
 import { WIDGET_LIST } from '@/widgets/registry'
 import type { WidgetDefinition } from '@/widgets/types'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
@@ -29,19 +30,6 @@ function createDragPreview(icon: SVGSVGElement | null, name: string): HTMLElemen
   preview.appendChild(label)
   document.body.appendChild(preview)
   return preview
-}
-
-/** True if a widget matches a search query — checked against its name,
- * description, and search keywords, same fields the command palette
- * searches. */
-function matchesQuery(widget: WidgetDefinition, query: string): boolean {
-  const q = query.trim().toLowerCase()
-  if (!q) return true
-  return (
-    widget.name.toLowerCase().includes(q) ||
-    widget.description.toLowerCase().includes(q) ||
-    (widget.keywords?.some((keyword) => keyword.toLowerCase().includes(q)) ?? false)
-  )
 }
 
 /** Always-visible catalog of every widget, grouped by category — the
