@@ -34,6 +34,15 @@ interface DashboardState extends PersistedDashboardState {
    * appended below everything else — used when a widget is dropped onto the
    * grid from the sidebar. */
   addWidgetAt: (dashboardId: string, widgetId: string, position: GridPosition) => void
+  /** Same as `addWidget`, but reuses the given `instanceId` instead of
+   * minting a new one — pins a tool that's currently open as an *ephemeral*
+   * overlay (opened from the sidebar or command palette, never added to a
+   * dashboard) without losing whatever the user already typed into it: that
+   * content already lives in useWidgetState's store under this instanceId,
+   * keyed independently of any dashboard, so reusing the id is what carries
+   * it over. A no-op if the instance is already pinned to this dashboard,
+   * so a doubled click can't add it twice. */
+  pinInstance: (dashboardId: string, widgetId: string, instanceId: string) => void
   removeWidget: (dashboardId: string, instanceId: string) => void
   /** Removes every widget from the given dashboard, leaving the dashboard
    * itself (name, tab) in place — unlike removeDashboard, which drops the
@@ -181,6 +190,27 @@ export const useDashboardStore = create<DashboardState>()(
             ...widgets,
             { instanceId: nanoid(8), widgetId, ...position },
           ]),
+        }))
+      },
+
+      pinInstance: (dashboardId, widgetId, instanceId) => {
+        const definition = getWidgetDefinition(widgetId)
+        if (!definition) return
+        set((state) => ({
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) => {
+            if (widgets.some((widget) => widget.instanceId === instanceId)) return widgets
+            return [
+              ...widgets,
+              {
+                instanceId,
+                widgetId,
+                x: 0,
+                y: nextAvailableY(widgets),
+                w: definition.defaultSize.w,
+                h: definition.defaultSize.h,
+              },
+            ]
+          }),
         }))
       },
 
