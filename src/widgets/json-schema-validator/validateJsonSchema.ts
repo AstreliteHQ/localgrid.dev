@@ -1,16 +1,52 @@
 /** Pure JSON Schema validation logic behind the JSON Schema Validator
  * widget, no DOM, no widget state, just a schema and a document in, a
  * validation outcome out. Kept separate from the widget component so it's
- * unit-testable without rendering, and so a fresh Ajv instance (schema
- * compilation is read into mutable internal caches) is built per call
- * rather than shared across the widget's whole lifetime. */
+ * unit-testable without rendering. */
 
 import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
+import type { ErrorObject, ValidateFunction } from 'ajv/dist/2020'
 import { parse as parseYaml } from 'yaml'
-import { documentLineForPointer } from './documentLineForPointer'
+import { lineForPointer, parseDocumentIndex } from './documentLineForPointer'
 
 export type DocumentFormat = 'json' | 'yaml'
+
+// The widget calls this on every keystroke, but the schema itself usually
+// changes far less often than the document being checked against it —
+// recompiling an unchanged schema's Ajv validator on every call would slow
+// live validation down for no reason. A single slot (rather than a map
+// keyed by every schema the widget has ever seen) is enough: it's always a
+// hit while only the document changes, and never grows unbounded as the
+// user types into the schema editor.
+let cachedSchema: { schemaText: string; validate: ValidateFunction } | null = null
+
+function compileSchema(schemaText: string, schema: unknown): ValidateFunction {
+  if (cachedSchema && cachedSchema.schemaText === schemaText) return cachedSchema.validate
+  const ajv = new Ajv2020({ allErrors: true, strict: false })
+  addFormats(ajv)
+  const validate = ajv.compile(schema as object)
+  cachedSchema = { schemaText, validate }
+  return validate
+}
+
+function escapePointerSegment(segment: string): string {
+  return segment.replace(/~/g, '~0').replace(/\//g, '~1')
+}
+
+/** ajv points `additionalProperties`/`propertyNames` errors at the
+ * *containing* object, with the actual offending property name tucked into
+ * `error.params` instead — so taken at face value, `instancePath` would
+ * locate (and show the line of) the whole object rather than the property
+ * that's actually wrong. */
+function effectiveInstancePath(error: ErrorObject): string {
+  const extra =
+    error.keyword === 'additionalProperties'
+      ? error.params.additionalProperty
+      : error.keyword === 'propertyNames'
+        ? error.params.propertyName
+        : undefined
+  return typeof extra === 'string' ? `${error.instancePath}/${escapePointerSegment(extra)}` : error.instancePath
+}
 
 export interface ValidationIssue {
   /** JSON Pointer to the offending value, e.g. "/items/0/price" — empty
@@ -19,7 +55,7 @@ export interface ValidationIssue {
   message: string
   /** 1-based line number of the offending value in the original
    * `documentText`, or null when it can't be found there (see
-   * `documentLineForPointer`). */
+   * `lineForPointer`). */
   line: number | null
 }
 
@@ -51,22 +87,27 @@ export function validateJsonSchema(schemaText: string, documentText: string, for
     return { status: 'document-error', message: err instanceof Error ? err.message : 'Invalid document' }
   }
 
-  const ajv = new Ajv2020({ allErrors: true, strict: false })
-  addFormats(ajv)
-
-  let validate
+  let validate: ValidateFunction
   try {
-    validate = ajv.compile(schema as object)
+    validate = compileSchema(schemaText, schema)
   } catch (err) {
     return { status: 'schema-error', message: err instanceof Error ? err.message : 'Invalid JSON schema' }
   }
 
   if (validate(document)) return { status: 'valid' }
 
-  const issues = (validate.errors ?? []).map((error) => ({
-    path: error.instancePath || '/',
-    message: error.message ?? 'is invalid',
-    line: documentLineForPointer(documentText, error.instancePath),
-  }))
+  // Parsed, and its newlines scanned, once per validation and reused for
+  // every issue below — not once per issue, since `allErrors: true` means
+  // there can be one for every invalid entry in a large array.
+  const documentIndex = parseDocumentIndex(documentText)
+
+  const issues = (validate.errors ?? []).map((error) => {
+    const pointer = effectiveInstancePath(error)
+    return {
+      path: pointer || '/',
+      message: error.message ?? 'is invalid',
+      line: documentIndex && lineForPointer(documentIndex, pointer),
+    }
+  })
   return { status: 'invalid', issues }
 }

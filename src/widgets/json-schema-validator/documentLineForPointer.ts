@@ -7,9 +7,22 @@
  * value, with no memory of where in the text each part of it came from. So
  * rather than writing a second parser just to track positions, this reuses
  * `yaml` for both document formats and only uses its own node tree, never
- * the resolved value. */
+ * the resolved value.
+ *
+ * Parsing and the newline scan are both done once, in `parseDocumentIndex`,
+ * and `lineForPointer` is cheap to call per issue on top of that — with
+ * `allErrors: true`, ajv can report one error per invalid array entry, and
+ * redoing either of those per issue would make a document with hundreds of
+ * them stall live validation. */
 
 import { isMap, isScalar, isSeq, parseDocument } from 'yaml'
+
+export interface DocumentIndex {
+  root: unknown
+  /** Offset of every `\n` in the source text, ascending — binary-searched
+   * by `lineForPointer` rather than rescanned from the start each time. */
+  newlineOffsets: number[]
+}
 
 function pointerSegments(pointer: string): string[] {
   if (!pointer || pointer === '/') return []
@@ -34,10 +47,9 @@ function resolveNode(root: unknown, segments: string[]): unknown {
   return node
 }
 
-/** `null` when the document doesn't parse, or `pointer` doesn't resolve to
- * an actual node — the latter can happen for a handful of ajv error kinds
- * whose `instancePath` outruns what's actually written in the document. */
-export function documentLineForPointer(documentText: string, pointer: string): number | null {
+/** `null` when `documentText` doesn't parse — callers should treat that the
+ * same as every `lineForPointer` call on it returning `null`. */
+export function parseDocumentIndex(documentText: string): DocumentIndex | null {
   let doc
   try {
     doc = parseDocument(documentText)
@@ -46,14 +58,30 @@ export function documentLineForPointer(documentText: string, pointer: string): n
   }
   if (doc.errors.length > 0) return null
 
-  const node = resolveNode(doc.contents, pointerSegments(pointer))
+  const newlineOffsets: number[] = []
+  for (let i = 0; i < documentText.length; i++) {
+    if (documentText[i] === '\n') newlineOffsets.push(i)
+  }
+  return { root: doc.contents, newlineOffsets }
+}
+
+/** `null` when `pointer` doesn't resolve to an actual node in `index` —
+ * can happen for a handful of ajv error kinds whose `instancePath` outruns
+ * what's actually written in the document. */
+export function lineForPointer(index: DocumentIndex, pointer: string): number | null {
+  const node = resolveNode(index.root, pointerSegments(pointer))
   const offset = (node as { range?: readonly [number, number, number] } | undefined)?.range?.[0]
   if (offset == null) return null
 
-  // Newlines before `offset`, 1-based like every editor numbers its lines.
-  let line = 1
-  for (let i = 0; i < offset; i++) {
-    if (documentText[i] === '\n') line++
+  // First newline offset that is >= offset — its index is the count of
+  // newlines strictly before `offset`, i.e. the 0-based line number.
+  const { newlineOffsets } = index
+  let lo = 0
+  let hi = newlineOffsets.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (newlineOffsets[mid] < offset) lo = mid + 1
+    else hi = mid
   }
-  return line
+  return lo + 1
 }
