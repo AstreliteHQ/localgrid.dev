@@ -96,6 +96,10 @@ describe('layoutCodec — workspace (multi-dashboard)', () => {
     expect(result.ok).toBe(false)
   })
 
+  it('rejects a payload the LZ-String library itself throws on (e.g. "z")', () => {
+    expect(decodeWorkspace('z')).toEqual({ ok: false, error: 'Could not read this share link.' })
+  })
+
   it('produces a meaningfully smaller payload than the old verbose (instanceId-carrying) shape would', () => {
     const encoded = encodeWorkspace(DASHBOARDS, 'dash-a')
     const verbosePayload = JSON.stringify({

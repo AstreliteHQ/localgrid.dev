@@ -8,7 +8,7 @@
  * not just "Base64" with an unreadable blob underneath.
  */
 
-import LZString from 'lz-string'
+import { decodeLzStringStrict } from '@/lib/lzString'
 
 /** One layer of a detection chain. `value` is what that layer represents —
  * the decoded text for a peeled encoding layer, or a display-friendly
@@ -91,24 +91,6 @@ function decodeBase64Bytes(text: string): Uint8Array | null {
   } catch {
     return null
   }
-}
-
-/** Decodes an LZ-String `compressToEncodedURIComponent` payload (the format
- * this app's own share links use — see layoutCodec.ts), returning null for
- * anything that isn't one.
- *
- * Unlike the byte-oriented decoders below (Base64, hex, …), there's no
- * UTF-8 validity gate to lean on: `decompressFromEncodedURIComponent` builds
- * its output directly from 16-bit code units, so it happily returns *some*
- * short, superficially "printable" string for almost any input that merely
- * fits its alphabet — e.g. plain lowercase text like "helloworld" decodes to
- * two arbitrary CJK-range characters. Recompressing the result and checking
- * it reproduces the original string sidesteps that: compression is
- * deterministic, so only an actual compressed payload round-trips exactly. */
-function decodeLzString(text: string): string | null {
-  const decoded = LZString.decompressFromEncodedURIComponent(text)
-  if (!decoded) return null
-  return LZString.compressToEncodedURIComponent(decoded) === text ? decoded : null
 }
 
 /** Decodes bytes as UTF-8, returning null (rather than throwing) for
@@ -491,10 +473,10 @@ export function detectCandidates(input: string): Candidate[] {
 
   // LZ-String (compressToEncodedURIComponent) — the compact, URL-safe format
   // this app's own share links use. The round-trip check inside
-  // decodeLzString is a near-certain signal (an arbitrary string reproducing
+  // decodeLzStringStrict is a near-certain signal (an arbitrary string reproducing
   // itself through decode -> recompress is vanishingly unlikely by chance),
   // so this gets a high confidence with no separate readable-text ratio gate.
-  const lzDecoded = decodeLzString(compact)
+  const lzDecoded = decodeLzStringStrict(compact)
   if (lzDecoded !== null) {
     candidates.push({
       type: 'lz-string',

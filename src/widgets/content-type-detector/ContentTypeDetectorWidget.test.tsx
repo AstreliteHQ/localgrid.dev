@@ -37,4 +37,13 @@ describe('ContentTypeDetectorWidget', () => {
 
     expect(screen.getByText('MAC address')).toBeInTheDocument()
   })
+
+  it('does not crash on a single "z" (regression)', async () => {
+    const user = userEvent.setup()
+    render(<ContentTypeDetectorWidget instanceId="test" mode="grid" />)
+
+    await user.type(screen.getByPlaceholderText(/paste text to identify/i), 'z')
+
+    expect(screen.getByText('Plain text')).toBeInTheDocument()
+  })
 })
