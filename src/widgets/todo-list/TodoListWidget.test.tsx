@@ -114,3 +114,81 @@ describe('TodoListWidget', () => {
     expect(screen.getByDisplayValue('Buy milk')).toBeInTheDocument()
   })
 })
+
+describe('TodoListWidget ticket and MR link', () => {
+  it('does not show the ticket/MR editor row until the tag button is clicked', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+
+    expect(screen.queryByRole('textbox', { name: /ticket number for/i })).not.toBeInTheDocument()
+  })
+
+  it('opens the ticket/MR editor and sets a ticket, showing it as a badge', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+    await user.click(screen.getByRole('button', { name: /edit ticket and mr link for "buy milk"/i }))
+    await user.type(screen.getByRole('textbox', { name: /ticket number for/i }), 'PROJ-123')
+
+    expect(screen.getByText('PROJ-123')).toBeInTheDocument()
+  })
+
+  it('sets a valid MR URL, rendering it as a hyperlink labeled "MR"', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+    await user.click(screen.getByRole('button', { name: /edit ticket and mr link for "buy milk"/i }))
+    await user.type(
+      screen.getByRole('textbox', { name: /merge request link for/i }),
+      'https://gitlab.com/org/repo/-/merge_requests/42',
+    )
+
+    const link = screen.getByRole('link', { name: /open merge request/i })
+    expect(link).toHaveTextContent('MR')
+    expect(link).toHaveAttribute('href', 'https://gitlab.com/org/repo/-/merge_requests/42')
+    expect(link).toHaveAttribute('target', '_blank')
+  })
+
+  it('shows an unclickable "MR" badge for text that is not a valid http(s) URL yet', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+    await user.click(screen.getByRole('button', { name: /edit ticket and mr link for "buy milk"/i }))
+    await user.type(screen.getByRole('textbox', { name: /merge request link for/i }), 'not a url yet')
+
+    expect(screen.queryByRole('link', { name: /open merge request/i })).not.toBeInTheDocument()
+    expect(screen.getByText('MR')).toBeInTheDocument()
+  })
+
+  it('leaves ticket and MR entirely optional, with no badges by default', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+
+    expect(screen.queryByText('MR')).not.toBeInTheDocument()
+  })
+
+  it('keeps ticket and MR link across a remount of the same instance', async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+    await user.click(screen.getByRole('button', { name: /edit ticket and mr link for "buy milk"/i }))
+    await user.type(screen.getByRole('textbox', { name: /ticket number for/i }), 'PROJ-123')
+    await user.type(
+      screen.getByRole('textbox', { name: /merge request link for/i }),
+      'https://gitlab.com/org/repo/-/merge_requests/42',
+    )
+    unmount()
+
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+    expect(screen.getByText('PROJ-123')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /open merge request/i })).toBeInTheDocument()
+  })
+})
