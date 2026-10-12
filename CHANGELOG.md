@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.6.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.5.0...v0.6.0) (2026-10-12)
+
+
+### Features
+
+* **overlay:** add an ephemeral tool to the dashboard with its current content ([#108](https://github.com/AstreliteHQ/localgrid.dev/issues/108)) ([6025de4](https://github.com/AstreliteHQ/localgrid.dev/commit/6025de4fa319bf746af67786858af09abfe8d23d))
+* **png-optimizer:** add lossless PNG optimizer widget ([#91](https://github.com/AstreliteHQ/localgrid.dev/issues/91)) ([d8e8dd0](https://github.com/AstreliteHQ/localgrid.dev/commit/d8e8dd09de250f39d1524e2563641e242de8f466))
+* **semver:** add SemVer checker widget ([#103](https://github.com/AstreliteHQ/localgrid.dev/issues/103)) ([005eed6](https://github.com/AstreliteHQ/localgrid.dev/commit/005eed6ffa0a012a6fa6cdc54cf479065ffb24b7))
+* **widgets:** add Clipboard Inspector widget ([#111](https://github.com/AstreliteHQ/localgrid.dev/issues/111)) ([d358849](https://github.com/AstreliteHQ/localgrid.dev/commit/d358849620d556b08b2d4df8237f57408d34aa7d))
+* **widgets:** add Code Snippet widget ([#78](https://github.com/AstreliteHQ/localgrid.dev/issues/78)) ([c664757](https://github.com/AstreliteHQ/localgrid.dev/commit/c6647573fc87b15a840b8760c6364de963a934b1))
+* **widgets:** add CSV Viewer widget ([#109](https://github.com/AstreliteHQ/localgrid.dev/issues/109)) ([581e7fe](https://github.com/AstreliteHQ/localgrid.dev/commit/581e7fe7311136f47e4a2bbc29f21b04dd3be3b8))
+* **widgets:** add JSON Schema Validator widget ([#104](https://github.com/AstreliteHQ/localgrid.dev/issues/104)) ([d5ee0dc](https://github.com/AstreliteHQ/localgrid.dev/commit/d5ee0dcfa63d5b4e4284c0f6ecaee153209260bb))
+
+
+### Bug Fixes
+
+* **chart-generator:** keep data pane visible, add pie legend, make values clearable ([#101](https://github.com/AstreliteHQ/localgrid.dev/issues/101)) ([19dd420](https://github.com/AstreliteHQ/localgrid.dev/commit/19dd420d5c919577b84df3282f37a940e056c229))
+* **command-palette:** search descriptions too, matching the sidebar ([#107](https://github.com/AstreliteHQ/localgrid.dev/issues/107)) ([689fe91](https://github.com/AstreliteHQ/localgrid.dev/commit/689fe916c1be70527d0c51fba5e5906de1939b55))
+* **content-type-detector:** stop crashing on input LZ-String throws on ([#105](https://github.com/AstreliteHQ/localgrid.dev/issues/105)) ([49dbf99](https://github.com/AstreliteHQ/localgrid.dev/commit/49dbf990dabd2b51cfefeeaac73678f2233d8b4e))
+* **world-clock:** keep city list visible in map mode and tint timeline hover ([#102](https://github.com/AstreliteHQ/localgrid.dev/issues/102)) ([1a0ef93](https://github.com/AstreliteHQ/localgrid.dev/commit/1a0ef939e0768940ef3e8c4621e9752a6d74db23))
+
+
+### Dependencies
+
+* bump the codemirror group across 1 directory with 5 updates ([#110](https://github.com/AstreliteHQ/localgrid.dev/issues/110)) ([10a7b41](https://github.com/AstreliteHQ/localgrid.dev/commit/10a7b41ba4a4cd93accc27f76cfc9a1d7569566d))
+* bump the lezer group across 1 directory with 3 updates ([#100](https://github.com/AstreliteHQ/localgrid.dev/issues/100)) ([04952cb](https://github.com/AstreliteHQ/localgrid.dev/commit/04952cb496cf1510884ca99cb7319eb283675d71))
+
 ## [0.5.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.4.0...v0.5.0) (2026-10-03)
 
 
