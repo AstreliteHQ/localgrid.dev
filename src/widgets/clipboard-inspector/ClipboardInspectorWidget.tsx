@@ -556,13 +556,7 @@ function CopyRepresentationButton({ representation }: { representation: Clipboar
   }
 
   const label =
-    status === 'copied'
-      ? 'Copied'
-      : status === 'failed'
-        ? 'Copy failed'
-        : mode === 'native'
-          ? 'Copy only this'
-          : 'Copy as text'
+    status === 'copied' ? 'Copied' : status === 'failed' ? 'Copy failed' : mode === 'native' ? 'Copy' : 'Copy as text'
 
   return (
     <Button
