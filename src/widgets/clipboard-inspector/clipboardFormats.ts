@@ -250,7 +250,7 @@ export function parseUriList(text: string): string[] {
 /** True when pasted HTML references remote resources, which the preview
  * blocks, so the widget can say why some images are missing. */
 export function hasRemoteResources(html: string): boolean {
-  return /(?:src|href|srcset)\s*=\s*["']?\s*(?:https?:)?\/\/|url\(\s*["']?\s*(?:https?:)?\/\//i.test(html)
+  return /(?:src|srcset)\s*=\s*["']?\s*(?:https?:)?\/\/|url\(\s*["']?\s*(?:https?:)?\/\//i.test(html)
 }
 
 /** Re-indents JSON for the preview, or `null` when it doesn't parse. */
@@ -439,11 +439,26 @@ export function rtfToPlainText(rtf: string): string {
     .trim()
 }
 
+/** Turns links in pasted HTML into plain text that keeps its URL as a
+ * tooltip. The sandbox and CSP already stop scripts and network loads, but
+ * a click on a link would still navigate the preview frame itself to the
+ * linked site. `DOMParser` output is inert: nothing in it runs or loads. */
+export function disarmLinks(html: string): string {
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  for (const link of Array.from(doc.querySelectorAll('a[href], area[href]'))) {
+    const href = link.getAttribute('href') ?? ''
+    link.removeAttribute('href')
+    if (!link.hasAttribute('title')) link.setAttribute('title', href)
+  }
+  return doc.head.innerHTML + doc.body.innerHTML
+}
+
 /** Wraps pasted HTML for the sandboxed preview frame. The CSP keeps the
  * snippet from loading anything over the network (scripts, fonts, frames,
  * and remote images, which are often tracking pixels in pasted email), so
  * inspecting a paste never contacts a third party. Inline styles and
- * embedded `data:` images still render. */
+ * embedded `data:` images still render, and links are disarmed so a click
+ * can't navigate the frame away either. */
 export function htmlPreviewDocument(html: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'"><style>body{margin:8px;font:13px/1.45 system-ui,sans-serif;color:#111;background:#fff}img{max-width:100%;height:auto}</style></head><body>${html}</body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'"><style>body{margin:8px;font:13px/1.45 system-ui,sans-serif;color:#111;background:#fff}img{max-width:100%;height:auto}a{color:#2563eb;text-decoration:underline;cursor:help}</style></head><body>${disarmLinks(html)}</body></html>`
 }

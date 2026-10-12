@@ -127,6 +127,12 @@ describe('htmlPreviewDocument', () => {
     expect(csp).toContain('img-src data: blob:;')
     expect(csp).not.toMatch(/https?:/)
   })
+
+  it('keeps link text but removes the href so a click cannot navigate the frame', () => {
+    const doc = htmlPreviewDocument('<p><a href="https://evil.example/">click</a></p>')
+    expect(doc).toContain('<a title="https://evil.example/">click</a>')
+    expect(doc).not.toContain('href="https://evil.example/"')
+  })
 })
 
 describe('hasRemoteResources', () => {
@@ -134,6 +140,10 @@ describe('hasRemoteResources', () => {
     expect(hasRemoteResources('<img src="https://t.example/p.gif">')).toBe(true)
     expect(hasRemoteResources('<img src=//cdn.example/a.png>')).toBe(true)
     expect(hasRemoteResources('<div style="background:url(\'http://x.example/b.png\')">')).toBe(true)
+  })
+
+  it('ignores plain links, which the preview disarms rather than blocks', () => {
+    expect(hasRemoteResources('<a href="https://example.com/">site</a>')).toBe(false)
   })
 
   it('ignores inline data', () => {
