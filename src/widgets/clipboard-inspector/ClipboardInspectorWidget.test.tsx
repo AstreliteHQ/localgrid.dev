@@ -48,18 +48,20 @@ describe('ClipboardInspectorWidget', () => {
     expect(screen.getByText('2 formats')).toBeInTheDocument()
   })
 
-  it('renders HTML in a sandboxed frame and shows its source in the raw view', async () => {
+  it('shows HTML as raw source by default and renders it only on request', async () => {
     const user = userEvent.setup()
     render(<ClipboardInspectorWidget instanceId="test" mode="grid" />)
     paste({ 'text/plain': 'Hello', 'text/html': '<b>Hello</b>' })
 
     await user.click(screen.getByRole('button', { name: /text\/html/i }))
+    expect(within(screen.getByRole('region', { name: 'Raw' })).getByText('<b>Hello</b>')).toBeInTheDocument()
+    expect(screen.queryByTitle('HTML preview')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Preview' }))
     const frame = screen.getByTitle('HTML preview')
     expect(frame).toHaveAttribute('sandbox', '')
     expect(frame.getAttribute('srcdoc')).toContain('<b>Hello</b>')
-
-    await user.click(screen.getByRole('button', { name: 'Raw' }))
-    expect(within(screen.getByRole('region', { name: 'Raw' })).getByText('<b>Hello</b>')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Raw' })).not.toBeInTheDocument()
   })
 
   it('shows the text inside an RTF payload', async () => {
@@ -68,15 +70,18 @@ describe('ClipboardInspectorWidget', () => {
     paste({ 'text/rtf': '{\\rtf1{\\fonttbl{\\f0 Arial;}}\\f0 Rich {\\b words}}' })
 
     await user.click(screen.getByRole('button', { name: /text\/rtf/i }))
+    await user.click(screen.getByRole('button', { name: 'Preview' }))
     expect(screen.getByText('Rich words')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /copy as text/i })).toBeInTheDocument()
   })
 
-  it('previews a pasted image file', () => {
+  it('previews a pasted image file', async () => {
+    const user = userEvent.setup()
     render(<ClipboardInspectorWidget instanceId="test" mode="grid" />)
     paste({}, [new File([new Uint8Array([137, 80, 78, 71])], 'shot.png', { type: 'image/png' })])
 
     expect(screen.getByText('shot.png')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Preview' }))
     expect(screen.getByAltText('Pasted image/png image')).toHaveAttribute('src', 'blob:mock-url')
   })
 

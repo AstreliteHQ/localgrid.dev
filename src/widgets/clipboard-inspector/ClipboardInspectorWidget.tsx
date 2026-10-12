@@ -48,8 +48,8 @@ type Source = 'paste' | 'api'
 type CopyStatus = 'idle' | 'copied' | 'failed'
 
 const VIEW_OPTIONS: { label: string; value: View }[] = [
-  { label: 'Preview', value: 'preview' },
   { label: 'Raw', value: 'raw' },
+  { label: 'Preview', value: 'preview' },
 ]
 
 /** Raw views stop here so a multi-megabyte paste can't freeze the widget;
@@ -82,7 +82,7 @@ export default function ClipboardInspectorWidget({ instanceId }: WidgetProps) {
     [],
   )
   const [selectedIndex, setSelectedIndex] = useWidgetState(instanceId, 'selected', 0)
-  const [view, setView] = useWidgetState<View>(instanceId, 'view', 'preview')
+  const [view, setView] = useWidgetState<View>(instanceId, 'view', 'raw')
   const [source, setSource] = useWidgetState<Source>(instanceId, 'source', 'paste')
   const [notice, setNotice] = useState<string | null>(null)
   const [pasteZoneFocused, setPasteZoneFocused] = useState(false)
@@ -342,29 +342,32 @@ function RepresentationDetail({
             ` · ${text.length.toLocaleString()} chars · ${lineCount.toLocaleString()} ${lineCount === 1 ? 'line' : 'lines'}`}
         </span>
         <span className="ml-auto flex flex-wrap items-center justify-end gap-1">
-          {/* Side by side once there's room for both, a toggle below that. */}
-          <SegmentedControl value={view} onChange={onViewChange} options={VIEW_OPTIONS} className="@4xl:hidden" />
+          <SegmentedControl value={view} onChange={onViewChange} options={VIEW_OPTIONS} />
           <CopyRepresentationButton representation={representation} />
           <DownloadButton representation={representation} />
         </span>
       </div>
 
       <div className="flex min-h-0 flex-1 gap-2">
-        <Pane title="Preview" className={cn(view !== 'preview' && 'hidden', '@4xl:flex')}>
-          <Preview representation={representation} />
-        </Pane>
-        <Pane title="Raw" className={cn(view !== 'raw' && 'hidden', '@4xl:flex')}>
-          <RawView representation={representation} />
-        </Pane>
+        {/* Raw by default; the rendered preview (and, for HTML, its frame)
+         * only mounts once the user asks for it. */}
+        {view === 'preview' ? (
+          <Pane title="Preview">
+            <Preview representation={representation} />
+          </Pane>
+        ) : (
+          <Pane title="Raw">
+            <RawView representation={representation} />
+          </Pane>
+        )}
       </div>
     </section>
   )
 }
 
-function Pane({ title, className, children }: { title: string; className?: string; children: ReactNode }) {
+function Pane({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div role="region" aria-label={title} className={cn('flex min-h-0 min-w-0 flex-1 flex-col gap-1', className)}>
-      <p className="hidden text-[10px] font-medium uppercase tracking-wide text-muted-foreground @4xl:block">{title}</p>
+    <div role="region" aria-label={title} className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background dark:bg-muted/40">
         {children}
       </div>
