@@ -49,6 +49,7 @@ import { pngOptimizerDefinition } from './png-optimizer/definition'
 import { codeSnippetDefinition } from './code-snippet/definition'
 import { jsonSchemaValidatorDefinition } from './json-schema-validator/definition'
 import { semverDefinition } from './semver/definition'
+import { csvViewerDefinition } from './csv-viewer/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -103,6 +104,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   codeSnippetDefinition,
   jsonSchemaValidatorDefinition,
   semverDefinition,
+  csvViewerDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
