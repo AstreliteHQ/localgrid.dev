@@ -130,7 +130,13 @@ export async function readClipboardItems(items: ReadonlyArray<ClipboardItemLike>
   const representations: ClipboardRepresentation[] = []
   for (const item of items) {
     for (const type of item.types) {
-      const blob = await item.getType(type)
+      let blob: Blob
+      try {
+        blob = await item.getType(type)
+      } catch {
+        // One unreadable format shouldn't cost the others.
+        continue
+      }
       if (isTextualType(type)) {
         representations.push(textRepresentation(type, await blob.text()))
       } else {
@@ -239,6 +245,12 @@ export function parseUriList(text: string): string[] {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line.length > 0 && !line.startsWith('#'))
+}
+
+/** True when pasted HTML references remote resources, which the preview
+ * blocks, so the widget can say why some images are missing. */
+export function hasRemoteResources(html: string): boolean {
+  return /(?:src|href|srcset)\s*=\s*["']?\s*(?:https?:)?\/\/|url\(\s*["']?\s*(?:https?:)?\/\//i.test(html)
 }
 
 /** Re-indents JSON for the preview, or `null` when it doesn't parse. */
@@ -428,8 +440,10 @@ export function rtfToPlainText(rtf: string): string {
 }
 
 /** Wraps pasted HTML for the sandboxed preview frame. The CSP keeps the
- * snippet from loading scripts, fonts or frames while still letting inline
- * styles and images render the way they looked in the source app. */
+ * snippet from loading anything over the network (scripts, fonts, frames,
+ * and remote images, which are often tracking pixels in pasted email), so
+ * inspecting a paste never contacts a third party. Inline styles and
+ * embedded `data:` images still render. */
 export function htmlPreviewDocument(html: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob: https: http:; style-src 'unsafe-inline'"><style>body{margin:8px;font:13px/1.45 system-ui,sans-serif;color:#111;background:#fff}img{max-width:100%;height:auto}</style></head><body>${html}</body></html>`
+  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'"><style>body{margin:8px;font:13px/1.45 system-ui,sans-serif;color:#111;background:#fff}img{max-width:100%;height:auto}</style></head><body>${html}</body></html>`
 }

@@ -3,7 +3,9 @@ import {
   copyMode,
   downloadName,
   formatFamily,
+  hasRemoteResources,
   hexDump,
+  htmlPreviewDocument,
   isTextualType,
   parseUriList,
   prettyJson,
@@ -101,6 +103,41 @@ describe('readClipboardItems', () => {
 
     expect(result[0]).toMatchObject({ type: 'text/plain', text: 'hi', size: 2 })
     expect(result[1]).toMatchObject({ type: 'image/png', family: 'image', text: null, size: 4 })
+  })
+
+  it('skips a format the browser fails to hand over and keeps the rest', async () => {
+    const result = await readClipboardItems([
+      {
+        types: ['text/plain', 'web application/x-broken'],
+        getType: async (type) => {
+          if (type === 'text/plain') return new Blob(['ok'], { type })
+          throw new DOMException('Not readable', 'NotAllowedError')
+        },
+      },
+    ])
+
+    expect(result.map((entry) => entry.type)).toEqual(['text/plain'])
+  })
+})
+
+describe('htmlPreviewDocument', () => {
+  it('blocks every network load, remote images included', () => {
+    const csp = /Content-Security-Policy" content="([^"]+)"/.exec(htmlPreviewDocument('<p>x</p>'))?.[1]
+    expect(csp).toContain("default-src 'none'")
+    expect(csp).toContain('img-src data: blob:;')
+    expect(csp).not.toMatch(/https?:/)
+  })
+})
+
+describe('hasRemoteResources', () => {
+  it('spots remote images and stylesheet URLs', () => {
+    expect(hasRemoteResources('<img src="https://t.example/p.gif">')).toBe(true)
+    expect(hasRemoteResources('<img src=//cdn.example/a.png>')).toBe(true)
+    expect(hasRemoteResources('<div style="background:url(\'http://x.example/b.png\')">')).toBe(true)
+  })
+
+  it('ignores inline data', () => {
+    expect(hasRemoteResources('<img src="data:image/png;base64,AAAA"><b>hi</b>')).toBe(false)
   })
 })
 

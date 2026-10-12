@@ -31,6 +31,7 @@ import {
   copyRepresentation,
   downloadName,
   FAMILY_LABELS,
+  hasRemoteResources,
   hexDump,
   htmlPreviewDocument,
   parseUriList,
@@ -85,6 +86,9 @@ export default function ClipboardInspectorWidget({ instanceId }: WidgetProps) {
   const [source, setSource] = useWidgetState<Source>(instanceId, 'source', 'paste')
   const [notice, setNotice] = useState<string | null>(null)
   const [pasteZoneFocused, setPasteZoneFocused] = useState(false)
+  // Bumped by every paste, read and clear, so a slow clipboard read (one
+  // waiting on a permission prompt, say) can't overwrite what came after it.
+  const latestActionRef = useRef(0)
 
   useWidgetDirty(instanceId, representations.length > 0)
 
@@ -107,19 +111,24 @@ export default function ClipboardInspectorWidget({ instanceId }: WidgetProps) {
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
     if (!event.clipboardData) return
     event.preventDefault()
+    latestActionRef.current += 1
     show(readDataTransfer(event.clipboardData), 'paste')
   }
 
   const handleReadClipboard = async () => {
+    const action = ++latestActionRef.current
     try {
       const items = await navigator.clipboard.read()
-      show(await readClipboardItems(items), 'api')
+      const next = await readClipboardItems(items)
+      if (action === latestActionRef.current) show(next, 'api')
     } catch {
+      if (action !== latestActionRef.current) return
       setNotice('The browser blocked clipboard access. Click the paste area and press Ctrl/Cmd+V instead.')
     }
   }
 
   const clear = () => {
+    latestActionRef.current += 1
     setRepresentations([])
     setSelectedIndex(0)
     setNotice(null)
@@ -386,13 +395,20 @@ function Preview({ representation }: { representation: ClipboardRepresentation }
 
   if (lowerType === 'text/html' || lowerType === 'application/xhtml+xml') {
     return (
-      <iframe
-        title="HTML preview"
-        // Empty sandbox: no scripts, forms, popups or same-origin access.
-        sandbox=""
-        srcDoc={htmlPreviewDocument(text)}
-        className="h-full min-h-32 w-full rounded-md bg-white"
-      />
+      <div className="flex h-full flex-col">
+        {hasRemoteResources(text) && (
+          <p className="px-2 py-1 text-[11px] text-muted-foreground">
+            Remote images are blocked in this preview so nothing is fetched from other sites.
+          </p>
+        )}
+        <iframe
+          title="HTML preview"
+          // Empty sandbox: no scripts, forms, popups or same-origin access.
+          sandbox=""
+          srcDoc={htmlPreviewDocument(text)}
+          className="min-h-32 w-full flex-1 rounded-md bg-white"
+        />
+      </div>
     )
   }
 

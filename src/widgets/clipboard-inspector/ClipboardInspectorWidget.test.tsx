@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ClipboardInspectorWidget from './ClipboardInspectorWidget'
 
@@ -100,6 +100,32 @@ describe('ClipboardInspectorWidget', () => {
 
     expect(screen.getByText(/nothing this browser can read/i)).toBeInTheDocument()
     expect(screen.getByText('1 format')).toBeInTheDocument()
+  })
+
+  it('ignores a slow clipboard read that finishes after a newer paste', async () => {
+    const user = userEvent.setup()
+    let resolveRead: (items: ClipboardItems) => void = () => {}
+    vi.spyOn(navigator.clipboard, 'read').mockImplementation(
+      () => new Promise<ClipboardItems>((resolve) => (resolveRead = resolve)),
+    )
+    render(<ClipboardInspectorWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Read clipboard' }))
+    paste({ 'text/plain': 'Pasted' })
+    await act(async () => {
+      resolveRead([
+        {
+          types: ['text/html'],
+          getType: async () => new Blob(['<b>Old</b>'], { type: 'text/html' }),
+        } as unknown as ClipboardItem,
+      ])
+      // Let the read's async chain (getType, blob.text) settle.
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    })
+
+    const list = screen.getByRole('list', { name: /clipboard formats/i })
+    expect(within(list).getAllByRole('button')).toHaveLength(1)
+    expect(within(list).getByText('text/plain')).toBeInTheDocument()
   })
 
   it('clears back to the paste prompt', async () => {
