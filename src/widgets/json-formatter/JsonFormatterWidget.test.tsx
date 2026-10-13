@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import JsonFormatterWidget from './JsonFormatterWidget'
+import { EditorView } from '@codemirror/view'
 import { setCodeMirrorValue } from '@/test/codemirror'
 
 describe('JsonFormatterWidget', () => {
@@ -85,10 +86,7 @@ describe('JsonFormatterWidget', () => {
     render(<JsonFormatterWidget instanceId="test" mode="grid" />)
 
     await user.click(screen.getByRole('button', { name: 'Tree' }))
-    setCodeMirrorValue(
-      screen.getByRole('textbox', { name: /json input/i }),
-      '{"kept":1,"nested":{"deep":"value"}}',
-    )
+    setCodeMirrorValue(screen.getByRole('textbox', { name: /json input/i }), '{"kept":1,"nested":{"deep":"value"}}')
     const tree = screen.getByRole('tree')
     await user.click(within(tree).getByRole('button', { name: /collapse nested/i }))
     expect(within(tree).queryByText('"value"')).not.toBeInTheDocument()
@@ -96,10 +94,29 @@ describe('JsonFormatterWidget', () => {
     // Expansion is keyed on the node's path, and the tree is rebuilt from
     // scratch on every keystroke — an edit elsewhere must not pop the
     // collapsed branch back open.
-    setCodeMirrorValue(
-      screen.getByRole('textbox', { name: /json input/i }),
-      '{"kept":2,"nested":{"deep":"value"}}',
-    )
+    setCodeMirrorValue(screen.getByRole('textbox', { name: /json input/i }), '{"kept":2,"nested":{"deep":"value"}}')
     expect(within(screen.getByRole('tree')).queryByText('"value"')).not.toBeInTheDocument()
+  })
+  it('replaces the input with the output when Reuse is clicked', async () => {
+    const user = userEvent.setup()
+    render(<JsonFormatterWidget instanceId="reuse" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Pretty' }))
+    const input = screen.getByRole('textbox', { name: /json input/i })
+    setCodeMirrorValue(input, '{"a":1}')
+    await user.click(screen.getByRole('button', { name: /reuse/i }))
+
+    await waitFor(() => expect(EditorView.findFromDOM(input)?.state.doc.toString()).toBe('{\n  "a": 1\n}'))
+  })
+
+  it('switches between stacked and side-by-side panes', async () => {
+    const user = userEvent.setup()
+    render(<JsonFormatterWidget instanceId="split" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Pretty' }))
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'horizontal')
+
+    await user.click(screen.getByRole('button', { name: /side by side/i }))
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical')
   })
 })
