@@ -52,9 +52,7 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
     useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'base64', { x: 3, y: 2, w: 2, h: 2 })
 
     const dashboardA = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!
-    expect(dashboardA.widgets).toEqual([
-      expect.objectContaining({ widgetId: 'base64', x: 3, y: 2, w: 2, h: 2 }),
-    ])
+    expect(dashboardA.widgets).toEqual([expect.objectContaining({ widgetId: 'base64', x: 3, y: 2, w: 2, h: 2 })])
   })
 
   it('addWidgetAt silently ignores an unknown widget id', () => {
@@ -97,11 +95,56 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
     expect(contentAfter.result.current[0]).toBe('typed before pinning')
   })
 
+  it('duplicateWidget adds a second instance with a fresh id, same widget and size, on the same dashboard', () => {
+    useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'base64', { x: 3, y: 2, w: 4, h: 5 })
+    const original = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_A, original.instanceId)
+
+    const widgets = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets
+    expect(widgets).toHaveLength(2)
+    const duplicate = widgets.find((widget) => widget.instanceId !== original.instanceId)!
+    expect(duplicate.instanceId).not.toBe(original.instanceId)
+    expect(duplicate.widgetId).toBe('base64')
+    expect(duplicate.w).toBe(4)
+    expect(duplicate.h).toBe(5)
+  })
+
+  it('duplicateWidget is scoped to the given dashboard, leaving others untouched', () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    const original = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_A, original.instanceId)
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!.widgets).toHaveLength(0)
+  })
+
+  it('duplicateWidget is a no-op for an instanceId not on that dashboard', () => {
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_A, 'does-not-exist')
+
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets).toHaveLength(0)
+  })
+
+  it("duplicateWidget carries over the original instance's current content", () => {
+    useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
+    const original = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+    const content = renderHook(() => useWidgetState(original.instanceId, 'input', ''))
+    act(() => content.result.current[1]('typed before duplicating'))
+
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_A, original.instanceId)
+
+    const duplicate = useDashboardStore
+      .getState()
+      .dashboards.find((d) => d.id === DASHBOARD_A)!
+      .widgets.find((widget) => widget.instanceId !== original.instanceId)!
+    const duplicateContent = renderHook(() => useWidgetState(duplicate.instanceId, 'input', 'fresh-default'))
+    expect(duplicateContent.result.current[0]).toBe('typed before duplicating')
+  })
+
   it('removeWidget removes only the targeted instance from the targeted dashboard', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
     useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
-    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
-      .instanceId
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0].instanceId
 
     useDashboardStore.getState().removeWidget(DASHBOARD_A, instanceId)
 
@@ -112,12 +155,9 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
 
   it('applyLayoutUpdate updates position/size of matching instances, scoped to the dashboard', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
-    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
-      .instanceId
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0].instanceId
 
-    useDashboardStore
-      .getState()
-      .applyLayoutUpdate(DASHBOARD_A, [{ i: instanceId, x: 5, y: 5, w: 3, h: 3 }])
+    useDashboardStore.getState().applyLayoutUpdate(DASHBOARD_A, [{ i: instanceId, x: 5, y: 5, w: 3, h: 3 }])
 
     const widget = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
     expect(widget).toMatchObject({ x: 5, y: 5, w: 3, h: 3 })
@@ -125,8 +165,7 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
 
   it('setWidgetPosition patches a single instance, scoped to the dashboard', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
-    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
-      .instanceId
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0].instanceId
 
     useDashboardStore.getState().setWidgetPosition(DASHBOARD_A, instanceId, { x: 1, y: 1, w: 4, h: 4 })
 
@@ -158,8 +197,7 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
 
   it('removeWidget also clears the removed instance from useWidgetState, so it cannot leak', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
-    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
-      .instanceId
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0].instanceId
     const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
     act(() => content.result.current[1]('typed before deletion'))
 
@@ -200,8 +238,7 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
 
   it('clearDashboard also clears every removed widget from useWidgetState, so none of them leak', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
-    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
-      .instanceId
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0].instanceId
     const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
     act(() => content.result.current[1]('typed before clearing'))
 
@@ -245,7 +282,10 @@ describe('useDashboardStore — dashboard management', () => {
   })
 
   it('removeDashboard refuses to remove the last remaining dashboard', () => {
-    useDashboardStore.setState({ dashboards: [{ id: DASHBOARD_A, name: 'A', widgets: [] }], activeDashboardId: DASHBOARD_A })
+    useDashboardStore.setState({
+      dashboards: [{ id: DASHBOARD_A, name: 'A', widgets: [] }],
+      activeDashboardId: DASHBOARD_A,
+    })
 
     useDashboardStore.getState().removeDashboard(DASHBOARD_A)
 
@@ -296,8 +336,7 @@ describe('useDashboardStore — dashboard management', () => {
 
   it('removeDashboard also clears every one of its widgets from useWidgetState', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
-    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!.widgets[0]
-      .instanceId
+    const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!.widgets[0].instanceId
     const content = renderHook(() => useWidgetState(instanceId, 'input', ''))
     act(() => content.result.current[1]('typed before deletion'))
 

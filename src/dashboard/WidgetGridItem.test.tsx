@@ -4,8 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { act } from 'react'
 import { WidgetOverlay } from '@/overlay/WidgetOverlay'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
-import type { DashboardWidgetInstance } from '@/types/layout'
+import type { Dashboard, DashboardWidgetInstance } from '@/types/layout'
+import { useDashboardStore } from './useDashboardStore'
 import { WidgetGridItem } from './WidgetGridItem'
+
+const DASHBOARD_ID = 'test-dashboard'
 
 const INSTANCE: DashboardWidgetInstance = {
   instanceId: 'test-base64',
@@ -18,6 +21,8 @@ const INSTANCE: DashboardWidgetInstance = {
 
 beforeEach(() => {
   useOverlayStore.setState({ target: null })
+  const dashboards: Dashboard[] = [{ id: DASHBOARD_ID, name: 'Test', widgets: [INSTANCE] }]
+  useDashboardStore.setState({ dashboards, activeDashboardId: DASHBOARD_ID })
 })
 
 describe('WidgetGridItem expand/collapse', () => {
@@ -83,5 +88,44 @@ describe('WidgetGridItem — content survives a genuine unmount/remount', () => 
     const remountedInput = await screen.findByPlaceholderText(/text to encode/i)
     expect(remountedInput).toHaveValue('still here')
     expect(remountedInput).not.toBe(input)
+  })
+})
+
+describe('WidgetGridItem — duplicate button', () => {
+  it('adds a second instance to the dashboard, carrying over the current content', async () => {
+    const user = userEvent.setup()
+
+    render(
+      <WidgetOverlay>
+        <WidgetGridItem dashboardId={DASHBOARD_ID} instance={INSTANCE} onRemove={() => {}} editable />
+      </WidgetOverlay>,
+    )
+
+    const input = await screen.findByPlaceholderText(/text to encode/i)
+    await user.type(input, 'duplicate me')
+
+    await user.click(screen.getByRole('button', { name: /duplicate/i }))
+
+    const widgets = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_ID)!.widgets
+    expect(widgets).toHaveLength(2)
+    const duplicate = widgets.find((widget) => widget.instanceId !== INSTANCE.instanceId)!
+    expect(duplicate.widgetId).toBe('base64')
+  })
+
+  it('is hidden while the widget is expanded in the overlay', async () => {
+    render(
+      <WidgetOverlay>
+        <WidgetGridItem dashboardId={DASHBOARD_ID} instance={INSTANCE} onRemove={() => {}} editable />
+      </WidgetOverlay>,
+    )
+
+    expect(screen.getByRole('button', { name: /duplicate/i })).toBeInTheDocument()
+
+    act(() => {
+      useOverlayStore.getState().expandPinned(INSTANCE.instanceId, INSTANCE.widgetId)
+    })
+    await screen.findByText('Expanded')
+
+    expect(screen.queryByRole('button', { name: /duplicate/i })).not.toBeInTheDocument()
   })
 })

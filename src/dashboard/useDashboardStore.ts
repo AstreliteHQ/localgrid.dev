@@ -43,6 +43,12 @@ interface DashboardState extends PersistedDashboardState {
    * it over. A no-op if the instance is already pinned to this dashboard,
    * so a doubled click can't add it twice. */
   pinInstance: (dashboardId: string, widgetId: string, instanceId: string) => void
+  /** Adds a second copy of an existing instance to the same dashboard, right
+   * below it (or wherever `nextAvailableY` lands it), carrying over its
+   * current size and — via useWidgetState's own store — its current
+   * content too, so the copy starts out identical rather than blank. A
+   * no-op if the instance isn't actually on this dashboard. */
+  duplicateWidget: (dashboardId: string, instanceId: string) => void
   removeWidget: (dashboardId: string, instanceId: string) => void
   /** Removes every widget from the given dashboard, leaving the dashboard
    * itself (name, tab) in place — unlike removeDashboard, which drops the
@@ -212,6 +218,27 @@ export const useDashboardStore = create<DashboardState>()(
             ]
           }),
         }))
+      },
+
+      duplicateWidget: (dashboardId, instanceId) => {
+        const dashboard = get().dashboards.find((d) => d.id === dashboardId)
+        const original = dashboard?.widgets.find((widget) => widget.instanceId === instanceId)
+        if (!original) return
+        const newInstanceId = nanoid(8)
+        set((state) => ({
+          dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) => [
+            ...widgets,
+            {
+              instanceId: newInstanceId,
+              widgetId: original.widgetId,
+              x: 0,
+              y: nextAvailableY(widgets),
+              w: original.w,
+              h: original.h,
+            },
+          ]),
+        }))
+        useWidgetStateStore.getState().duplicateInstance(instanceId, newInstanceId)
       },
 
       removeWidget: (dashboardId, instanceId) => {

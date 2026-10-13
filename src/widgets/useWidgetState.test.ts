@@ -87,3 +87,46 @@ describe('useWidgetStateStore.resetInstances', () => {
     expect(g2After.current[0]).toBe('z')
   })
 })
+
+describe('useWidgetStateStore.duplicateInstance', () => {
+  it('copies every field from the source instance to the target instance', () => {
+    const { result: sourceA } = renderHook(() => useWidgetState('h1', 'a', ''))
+    const { result: sourceB } = renderHook(() => useWidgetState('h1', 'b', ''))
+    act(() => sourceA.current[1]('hello'))
+    act(() => sourceB.current[1]('world'))
+
+    act(() => useWidgetStateStore.getState().duplicateInstance('h1', 'h2'))
+
+    const { result: targetA } = renderHook(() => useWidgetState('h2', 'a', 'fresh'))
+    const { result: targetB } = renderHook(() => useWidgetState('h2', 'b', 'fresh'))
+    expect(targetA.current[0]).toBe('hello')
+    expect(targetB.current[0]).toBe('world')
+  })
+
+  it('leaves the source instance untouched', () => {
+    const { result: source } = renderHook(() => useWidgetState('i1', 'a', ''))
+    act(() => source.current[1]('original'))
+
+    act(() => useWidgetStateStore.getState().duplicateInstance('i1', 'i2'))
+
+    expect(source.current[0]).toBe('original')
+  })
+
+  it('does not touch an unrelated instance that happens to share a field name', () => {
+    const { result: source } = renderHook(() => useWidgetState('j1', 'a', ''))
+    const { result: unrelated } = renderHook(() => useWidgetState('j-other', 'a', ''))
+    act(() => source.current[1]('copied'))
+    act(() => unrelated.current[1]('untouched'))
+
+    act(() => useWidgetStateStore.getState().duplicateInstance('j1', 'j2'))
+
+    expect(unrelated.current[0]).toBe('untouched')
+  })
+
+  it('is a harmless no-op when the source instance has no stored fields', () => {
+    act(() => useWidgetStateStore.getState().duplicateInstance('k-never-touched', 'k2'))
+
+    const { result: target } = renderHook(() => useWidgetState('k2', 'a', 'fresh'))
+    expect(target.current[0]).toBe('fresh')
+  })
+})
