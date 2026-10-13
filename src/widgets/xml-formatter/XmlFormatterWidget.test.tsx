@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import XmlFormatterWidget from './XmlFormatterWidget'
+import { EditorView } from '@codemirror/view'
 import { setCodeMirrorValue } from '@/test/codemirror'
 
 describe('XmlFormatterWidget', () => {
@@ -60,9 +61,7 @@ describe('XmlFormatterWidget', () => {
     await user.click(screen.getByRole('button', { name: 'Pretty' }))
     setCodeMirrorValue(screen.getByRole('textbox', { name: /xml input/i }), '<root><hello>world</hello></root>')
 
-    expect(screen.getByRole('textbox', { name: /xml output/i })).toHaveValue(
-      '<root>\n  <hello>world</hello>\n</root>',
-    )
+    expect(screen.getByRole('textbox', { name: /xml output/i })).toHaveValue('<root>\n  <hello>world</hello>\n</root>')
   })
 
   it('shows a placeholder instead of an error for empty input', async () => {
@@ -73,5 +72,27 @@ describe('XmlFormatterWidget', () => {
     setCodeMirrorValue(screen.getByRole('textbox', { name: /xml input/i }), '')
 
     expect(screen.getByText(/output will appear here/i)).toBeInTheDocument()
+  })
+  it('replaces the input with the output when Reuse is clicked', async () => {
+    const user = userEvent.setup()
+    render(<XmlFormatterWidget instanceId="reuse" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Pretty' }))
+    const input = screen.getByRole('textbox', { name: /xml input/i })
+    setCodeMirrorValue(input, '<a><b>1</b></a>')
+    await user.click(screen.getByRole('button', { name: /reuse/i }))
+
+    await waitFor(() => expect(EditorView.findFromDOM(input)?.state.doc.toString()).toBe('<a>\n  <b>1</b>\n</a>'))
+  })
+
+  it('switches between stacked and side-by-side panes', async () => {
+    const user = userEvent.setup()
+    render(<XmlFormatterWidget instanceId="split" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Pretty' }))
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'horizontal')
+
+    await user.click(screen.getByRole('button', { name: /side by side/i }))
+    expect(screen.getByRole('separator')).toHaveAttribute('aria-orientation', 'vertical')
   })
 })

@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
+import { ReuseButton } from '@/components/ReuseButton'
+import { SplitDirectionToggle, SplitPane, type SplitDirection } from '@/components/SplitPane'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { CodeEditor } from '@/components/CodeEditor'
 import { DataTree } from '@/components/data-tree/DataTree'
@@ -31,6 +33,8 @@ const SAMPLE = `<catalog updated="2024-03-18">
 export default function XmlFormatterWidget({ instanceId }: WidgetProps) {
   const [input, setInput] = useWidgetState(instanceId, 'input', SAMPLE)
   const [viewMode, setViewMode] = useWidgetState<ViewMode>(instanceId, 'viewMode', 'plain')
+  const [splitDirection, setSplitDirection] = useWidgetState<SplitDirection>(instanceId, 'splitDirection', 'rows')
+  const [splitRatio, setSplitRatio] = useWidgetState(instanceId, 'splitRatio', 0.5)
   useWidgetDirty(instanceId, input !== SAMPLE)
 
   const { doc, error } = useMemo(() => {
@@ -54,46 +58,63 @@ export default function XmlFormatterWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <SegmentedControl
-        value={viewMode}
-        onChange={setViewMode}
-        options={[
-          { label: 'Plain', value: 'plain' },
-          { label: 'Tree', value: 'tree' },
-          { label: 'Pretty', value: 'pretty' },
-          { label: 'Minified', value: 'minified' },
-        ]}
+      <div className="flex flex-wrap items-center gap-2">
+        <SplitDirectionToggle value={splitDirection} onChange={setSplitDirection} />
+        <SegmentedControl
+          value={viewMode}
+          onChange={setViewMode}
+          options={[
+            { label: 'Plain', value: 'plain' },
+            { label: 'Tree', value: 'tree' },
+            { label: 'Pretty', value: 'pretty' },
+            { label: 'Minified', value: 'minified' },
+          ]}
+        />
+      </div>
+      <SplitPane
+        direction={splitDirection}
+        ratio={splitRatio}
+        onRatioChange={setSplitRatio}
+        label="Resize input and output"
+        className="flex-1"
+        first={
+          <CodeEditor
+            value={input}
+            onChange={setInput}
+            language="xml"
+            placeholder="Paste XML…"
+            aria-label="XML input"
+            className="min-h-0 flex-1"
+          />
+        }
+        second={
+          viewMode !== 'plain' && (
+            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-background p-2 dark:bg-muted/40">
+              {error ? (
+                <ErrorMessage>{error}</ErrorMessage>
+              ) : !hasData ? (
+                <p className="text-xs text-muted-foreground">Output will appear here</p>
+              ) : showTree ? (
+                <DataTree root={tree} label="XML tree" className="flex-1" />
+              ) : (
+                <>
+                  <div className="-mr-1 -mt-1 flex shrink-0 justify-end gap-0.5">
+                    <ReuseButton value={formattedOutput} onReuse={setInput} direction={splitDirection} />
+                    <CopyButton value={formattedOutput} />
+                  </div>
+                  <Textarea
+                    readOnly
+                    value={formattedOutput}
+                    spellCheck={false}
+                    aria-label="XML output"
+                    className="min-h-0 w-full flex-1 resize-none overflow-auto border-0 bg-transparent p-0 font-mono text-xs"
+                  />
+                </>
+              )}
+            </div>
+          )
+        }
       />
-      <CodeEditor
-        value={input}
-        onChange={setInput}
-        language="xml"
-        placeholder="Paste XML…"
-        aria-label="XML input"
-        className="min-h-0 flex-1"
-      />
-      {viewMode !== 'plain' && (
-        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-background p-2 dark:bg-muted/40">
-          {error ? (
-            <ErrorMessage>{error}</ErrorMessage>
-          ) : !hasData ? (
-            <p className="text-xs text-muted-foreground">Output will appear here</p>
-          ) : showTree ? (
-            <DataTree root={tree} label="XML tree" className="flex-1" />
-          ) : (
-            <>
-              <Textarea
-                readOnly
-                value={formattedOutput}
-                spellCheck={false}
-                aria-label="XML output"
-                className="h-full w-full resize-none overflow-auto border-0 bg-transparent p-0 pr-14 font-mono text-xs"
-              />
-              <CopyButton value={formattedOutput} className="absolute right-1 top-1 bg-inherit" />
-            </>
-          )}
-        </div>
-      )}
     </div>
   )
 }
