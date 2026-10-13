@@ -66,7 +66,6 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
   return (
     <div className="flex h-full flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <SplitDirectionToggle value={splitDirection} onChange={setSplitDirection} />
         <SegmentedControl
           value={viewMode}
           onChange={setViewMode}
@@ -77,6 +76,7 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
             { label: 'Minified', value: 'minified' },
           ]}
         />
+        <SplitDirectionToggle value={splitDirection} onChange={setSplitDirection} className="ml-auto" />
       </div>
       <SplitPane
         direction={splitDirection}
