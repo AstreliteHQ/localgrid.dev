@@ -29,6 +29,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Renames package-lock.json to npm-shrinkwrap.json, the only lockfile
+      # npm publishes. localgrid.proxy builds this package's source and runs
+      # `npm ci` inside it, so this pins its build tooling (devDependencies
+      # included) to the exact versions this repo builds with.
+      - name: Generate npm-shrinkwrap.json
+        run: npm shrinkwrap
+
       - name: Publish
         run: npm publish
         env:
