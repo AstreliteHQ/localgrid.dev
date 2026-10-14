@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Copy, Move } from 'lucide-react'
+import { CopyPlus, Move } from 'lucide-react'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { GridPositionDialog } from '@/widget-shell/GridPositionDialog'
 import { Button } from '@/components/ui/button'
@@ -82,7 +82,7 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
                 title="Duplicate, including its current content"
                 className="text-muted-foreground"
               >
-                <Copy className="size-3.5" />
+                <CopyPlus className="size-3.5" />
               </Button>
             </>
           )
