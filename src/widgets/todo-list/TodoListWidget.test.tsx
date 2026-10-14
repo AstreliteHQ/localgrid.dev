@@ -68,6 +68,30 @@ describe('TodoListWidget', () => {
     expect(screen.getByDisplayValue('Buy oat milk')).toBeInTheDocument()
   })
 
+  it('removes an item left blank after editing, rather than saving an empty one', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+    const itemField = screen.getByDisplayValue('Buy milk')
+    await user.clear(itemField)
+    await user.tab() // blur without retyping anything
+
+    expect(screen.getByText(/nothing on the list yet/i)).toBeInTheDocument()
+  })
+
+  it('leaves an item alone when blurred with non-blank text', async () => {
+    const user = userEvent.setup()
+    render(<TodoListWidget instanceId="test" mode="grid" />)
+
+    await user.type(draftField(), 'Buy milk{Enter}')
+    const itemField = screen.getByDisplayValue('Buy milk')
+    await user.click(itemField)
+    await user.tab()
+
+    expect(screen.getByDisplayValue('Buy milk')).toBeInTheDocument()
+  })
+
   it('removes an item', async () => {
     const user = userEvent.setup()
     render(<TodoListWidget instanceId="test" mode="grid" />)
