@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.6.0...v0.7.0) (2026-10-14)
+
+
+### Features
+
+* **widgets:** add resizable split layout and Reuse button to JSON and XML formatters ([#117](https://github.com/AstreliteHQ/localgrid.dev/issues/117)) ([ca97616](https://github.com/AstreliteHQ/localgrid.dev/commit/ca97616141463b769dce1cd03e54f9d3ad6af014))
+
+
+### Bug Fixes
+
+* publish npm-shrinkwrap.json with the package ([#119](https://github.com/AstreliteHQ/localgrid.dev/issues/119)) ([06952a9](https://github.com/AstreliteHQ/localgrid.dev/commit/06952a9d5b7f7d0eddceff877de9277ab38298de))
+
 ## [0.6.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.5.0...v0.6.0) (2026-10-12)
 
 
