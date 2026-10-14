@@ -69,8 +69,8 @@ function KubeconfigSummaryView({ summary, redactedYaml }: { summary: KubeconfigS
 
       {summary.warnings.length > 0 && (
         <ul className="flex flex-col gap-1" aria-label="Kubeconfig issues">
-          {summary.warnings.map((warning) => (
-            <li key={warning} className="flex items-start gap-1.5 text-destructive">
+          {summary.warnings.map((warning, index) => (
+            <li key={`${index}:${warning}`} className="flex items-start gap-1.5 text-destructive">
               <TriangleAlert className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
               {warning}
             </li>
@@ -89,8 +89,11 @@ function KubeconfigSummaryView({ summary, redactedYaml }: { summary: KubeconfigS
             </tr>
           </thead>
           <tbody>
-            {summary.contexts.map((context) => (
-              <tr key={context.name} className={cn('odd:bg-muted/20', context.isCurrent && 'bg-success/10')}>
+            {summary.contexts.map((context, index) => (
+              <tr
+                key={`${index}:${context.name}`}
+                className={cn('odd:bg-muted/20', context.isCurrent && 'bg-success/10')}
+              >
                 <Td>
                   <span className="flex items-center gap-1.5">
                     {context.name}
@@ -120,8 +123,8 @@ function KubeconfigSummaryView({ summary, redactedYaml }: { summary: KubeconfigS
             </tr>
           </thead>
           <tbody>
-            {summary.clusters.map((cluster) => (
-              <tr key={cluster.name} className="odd:bg-muted/20">
+            {summary.clusters.map((cluster, index) => (
+              <tr key={`${index}:${cluster.name}`} className="odd:bg-muted/20">
                 <Td>{cluster.name}</Td>
                 <Td className="break-all whitespace-normal">{cluster.server ?? '—'}</Td>
                 <Td>
@@ -151,8 +154,8 @@ function KubeconfigSummaryView({ summary, redactedYaml }: { summary: KubeconfigS
             </tr>
           </thead>
           <tbody>
-            {summary.users.map((user) => (
-              <tr key={user.name} className="odd:bg-muted/20">
+            {summary.users.map((user, index) => (
+              <tr key={`${index}:${user.name}`} className="odd:bg-muted/20">
                 <Td>{user.name}</Td>
                 <Td className="whitespace-normal">{user.authMethods.join(', ')}</Td>
               </tr>
