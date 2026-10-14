@@ -40,6 +40,14 @@ export default function TodoListWidget({ instanceId }: WidgetProps) {
     setItems((previous) => previous.map((item) => (item.id === id ? { ...item, text } : item)))
   }
 
+  // Typing is left free to pass through a blank state (clearing the field
+  // to retype it), but leaving it blank — same rule createTodoItem applies
+  // to a new item — removes the item instead of saving a blank one that
+  // would still count toward "remaining".
+  const commitItemText = (id: string, text: string) => {
+    if (text.trim() === '') removeItem(id)
+  }
+
   const editTicket = (id: string, ticket: string) => {
     setItems((previous) => previous.map((item) => (item.id === id ? { ...item, ticket } : item)))
   }
@@ -100,6 +108,7 @@ export default function TodoListWidget({ instanceId }: WidgetProps) {
                   <input
                     value={item.text}
                     onChange={(event) => editItem(item.id, event.target.value)}
+                    onBlur={(event) => commitItemText(item.id, event.target.value)}
                     aria-label={`Edit "${item.text}"`}
                     className={cn(
                       'min-w-0 flex-1 truncate rounded-sm bg-transparent px-1 py-0.5 outline-none placeholder:text-muted-foreground/70 hover:bg-background focus-visible:bg-background focus-visible:ring-1 focus-visible:ring-ring/50',
