@@ -12,6 +12,12 @@ interface WidgetStateStore {
    * by "Clear state" (paired with a nonce bump — see useWidgetDirty.ts) and
    * by real widget/dashboard deletion (used alone, nothing to remount). */
   resetInstances: (instanceIds: string[]) => void
+  /** Copies every field currently stored under `sourceInstanceId` to the
+   * same field names under `targetInstanceId` — used when duplicating a
+   * pinned widget, so the copy starts out identical to the original
+   * instead of empty. A source with no stored fields yet (never
+   * interacted with) is a harmless no-op. */
+  duplicateInstance: (sourceInstanceId: string, targetInstanceId: string) => void
 }
 
 export const useWidgetStateStore = create<WidgetStateStore>((set) => ({
@@ -25,6 +31,15 @@ export const useWidgetStateStore = create<WidgetStateStore>((set) => ({
           Object.entries(state.values).filter(([key]) => !prefixes.some((prefix) => key.startsWith(prefix))),
         ),
       }
+    }),
+  duplicateInstance: (sourceInstanceId, targetInstanceId) =>
+    set((state) => {
+      const prefix = `${sourceInstanceId}:`
+      const copied: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(state.values)) {
+        if (key.startsWith(prefix)) copied[`${targetInstanceId}:${key.slice(prefix.length)}`] = value
+      }
+      return { values: { ...state.values, ...copied } }
     }),
 }))
 

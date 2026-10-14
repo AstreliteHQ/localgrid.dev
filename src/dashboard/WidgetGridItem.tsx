@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Move } from 'lucide-react'
+import { CopyPlus, Move } from 'lucide-react'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { GridPositionDialog } from '@/widget-shell/GridPositionDialog'
 import { Button } from '@/components/ui/button'
@@ -37,10 +37,10 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
   const expandPinned = useOverlayStore((state) => state.expandPinned)
   const closeOverlay = useOverlayStore((state) => state.close)
   const setWidgetPosition = useDashboardStore((state) => state.setWidgetPosition)
+  const duplicateWidget = useDashboardStore((state) => state.duplicateWidget)
   const resetNonce = useWidgetResetNonce(instance.instanceId)
 
-  const isExpanded =
-    overlayTarget?.kind === 'pinned' && overlayTarget.instanceId === instance.instanceId
+  const isExpanded = overlayTarget?.kind === 'pinned' && overlayTarget.instanceId === instance.instanceId
 
   if (!widget) return null
 
@@ -55,23 +55,36 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
         icon={widget.icon}
         dragHandleClassName={isExpanded ? undefined : 'widget-drag-handle cursor-move'}
         isExpanded={isExpanded}
-        onToggleExpand={() =>
-          isExpanded ? closeOverlay() : expandPinned(instance.instanceId, widget.id)
-        }
+        onToggleExpand={() => (isExpanded ? closeOverlay() : expandPinned(instance.instanceId, widget.id))}
         onRemove={isExpanded ? undefined : onRemove}
         extraActions={
-          showMoveControl && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => setPositionDialogOpen(true)}
-              aria-label={`Move or resize ${widget.name}`}
-              title="Move or resize with the keyboard"
-              className="text-muted-foreground"
-            >
-              <Move className="size-3.5" />
-            </Button>
+          !isExpanded && (
+            <>
+              {showMoveControl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  onClick={() => setPositionDialogOpen(true)}
+                  aria-label={`Move or resize ${widget.name}`}
+                  title="Move or resize with the keyboard"
+                  className="text-muted-foreground"
+                >
+                  <Move className="size-3.5" />
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                onClick={() => duplicateWidget(dashboardId, instance.instanceId)}
+                aria-label={`Duplicate ${widget.name}`}
+                title="Duplicate, including its current content"
+                className="text-muted-foreground"
+              >
+                <CopyPlus className="size-3.5" />
+              </Button>
+            </>
           )
         }
       >
@@ -80,11 +93,7 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
             Expanded
           </div>
         ) : (
-          <WidgetComponent
-            key={`${instance.instanceId}-${resetNonce}`}
-            instanceId={instance.instanceId}
-            mode="grid"
-          />
+          <WidgetComponent key={`${instance.instanceId}-${resetNonce}`} instanceId={instance.instanceId} mode="grid" />
         )}
       </WidgetShell>
       {showMoveControl && positionDialogOpen && (
