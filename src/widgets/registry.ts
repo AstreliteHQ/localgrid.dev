@@ -52,6 +52,7 @@ import { semverDefinition } from './semver/definition'
 import { csvViewerDefinition } from './csv-viewer/definition'
 import { clipboardInspectorDefinition } from './clipboard-inspector/definition'
 import { kubeconfigViewerDefinition } from './kubeconfig-viewer/definition'
+import { matrixCalculatorDefinition } from './matrix-calculator/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -109,6 +110,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   csvViewerDefinition,
   clipboardInspectorDefinition,
   kubeconfigViewerDefinition,
+  matrixCalculatorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
