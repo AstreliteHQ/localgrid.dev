@@ -28,6 +28,10 @@ describe('parseCpuQuantity', () => {
     expect(parseCpuQuantity('abc')).toBeNull()
     expect(parseCpuQuantity('500Mi')).toBeNull()
   })
+
+  it('parses a quoted leading-dot decimal, the same shape unquoted YAML already normalizes', () => {
+    expect(parseCpuQuantity('.5')).toBe(500)
+  })
 })
 
 describe('parseMemoryQuantity', () => {
@@ -65,6 +69,15 @@ describe('parseMemoryQuantity', () => {
   it('returns null for unparseable text', () => {
     expect(parseMemoryQuantity('abc')).toBeNull()
     expect(parseMemoryQuantity('500Zi')).toBeNull()
+  })
+
+  it('parses a quoted leading-dot decimal', () => {
+    expect(parseMemoryQuantity('.5Gi')).toBe(0.5 * 2 ** 30)
+  })
+
+  it('parses exponent notation, which a stringified huge byte count can come out as', () => {
+    expect(parseMemoryQuantity('1e9')).toBe(1e9)
+    expect(parseMemoryQuantity('1e+21')).toBe(1e21)
   })
 })
 

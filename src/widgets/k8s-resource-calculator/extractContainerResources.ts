@@ -17,7 +17,10 @@ export interface ContainerResourceRow {
   containerName: string
   kind: ContainerKind
   /** All four in a fixed base unit (millicores, bytes) so they can be
-   * summed directly — null means the manifest didn't set that field. */
+   * summed directly — null means either the manifest didn't set that field,
+   * or it set it to something unparseable (in which case `errors` on the
+   * result carries a matching message; a null here is never silently
+   * treated as a real, valid zero). */
   cpuRequest: number | null
   cpuLimit: number | null
   memoryRequest: number | null
@@ -91,15 +94,33 @@ const CONTAINER_FIELDS: { field: string; kind: ContainerKind }[] = [
   { field: 'ephemeralContainers', kind: 'ephemeralContainer' },
 ]
 
-function extractQuantities(container: Record<string, unknown>) {
+/** Parses one request/limit field, distinguishing "the manifest never set
+ * this" (silently null, the common case) from "the manifest set this to
+ * something parseCpuQuantity/parseMemoryQuantity couldn't read" (null plus
+ * a named error) — a `cpu: bogus` typo should not quietly total as zero. */
+function parseQuantityField(
+  values: Record<string, unknown> | null,
+  field: string,
+  parser: (raw: unknown) => number | null,
+  label: string,
+  containerName: string,
+  errors: string[],
+): number | null {
+  if (!values || !Object.prototype.hasOwnProperty.call(values, field)) return null
+  const value = parser(values[field])
+  if (value === null) errors.push(`${containerName}: invalid ${label} quantity "${String(values[field])}"`)
+  return value
+}
+
+function extractQuantities(container: Record<string, unknown>, containerName: string, errors: string[]) {
   const resources = getRecord(container, 'resources')
   const requests = resources ? getRecord(resources, 'requests') : null
   const limits = resources ? getRecord(resources, 'limits') : null
   return {
-    cpuRequest: requests ? parseCpuQuantity(requests.cpu) : null,
-    cpuLimit: limits ? parseCpuQuantity(limits.cpu) : null,
-    memoryRequest: requests ? parseMemoryQuantity(requests.memory) : null,
-    memoryLimit: limits ? parseMemoryQuantity(limits.memory) : null,
+    cpuRequest: parseQuantityField(requests, 'cpu', parseCpuQuantity, 'CPU request', containerName, errors),
+    cpuLimit: parseQuantityField(limits, 'cpu', parseCpuQuantity, 'CPU limit', containerName, errors),
+    memoryRequest: parseQuantityField(requests, 'memory', parseMemoryQuantity, 'memory request', containerName, errors),
+    memoryLimit: parseQuantityField(limits, 'memory', parseMemoryQuantity, 'memory limit', containerName, errors),
   }
 }
 
@@ -150,12 +171,13 @@ export function extractContainerResources(manifestText: string): ExtractResource
       if (!Array.isArray(containers)) continue
       containers.forEach((container, containerIndex) => {
         if (!isRecord(container)) return
+        const containerName = stringField(container, 'name') ?? `(container ${containerIndex + 1})`
         rows.push({
           resourceKind,
           resourceName,
-          containerName: stringField(container, 'name') ?? `(container ${containerIndex + 1})`,
+          containerName,
           kind,
-          ...extractQuantities(container),
+          ...extractQuantities(container, containerName, errors),
         })
       })
     }

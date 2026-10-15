@@ -249,4 +249,44 @@ spec:
     expect(result.rows).toHaveLength(1)
     expect(result.rows[0].resourceName).toBe('ok')
   })
+
+  it('reports an error for a present-but-unparseable quantity, instead of silently totaling it as zero', () => {
+    const yaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: typo
+spec:
+  containers:
+    - name: app
+      resources:
+        requests:
+          cpu: bogus
+`
+    const result = extractContainerResources(yaml)
+    expect(result.rows[0].cpuRequest).toBeNull()
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]).toMatch(/app/)
+    expect(result.errors[0]).toMatch(/cpu request/i)
+    expect(result.errors[0]).toMatch(/bogus/)
+  })
+
+  it('does not error for a field the manifest genuinely never set', () => {
+    const yaml = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: partial
+spec:
+  containers:
+    - name: app
+      resources:
+        requests:
+          memory: 128Mi
+`
+    const result = extractContainerResources(yaml)
+    expect(result.rows[0].cpuRequest).toBeNull()
+    expect(result.rows[0].memoryRequest).toBe(128 * 2 ** 20)
+    expect(result.errors).toEqual([])
+  })
 })

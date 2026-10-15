@@ -27,8 +27,15 @@ const DECIMAL_UNITS: Record<string, number> = {
   E: 1e18,
 }
 
-const CPU_PATTERN = /^(-?\d+(?:\.\d+)?)(m)?$/
-const MEMORY_PATTERN = /^(-?\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei|[kKMGTPE])?$/
+// Matches a leading-dot decimal (`.5`) or a trailing-dot one (`5.`) too, not
+// just the common `5.5` shape — unquoted YAML already normalizes those to a
+// plain number before this ever sees them, but a *quoted* `".5"` string
+// arrives here as literal text and would otherwise be rejected.
+const NUMBER = String.raw`[+-]?(?:\d+(?:\.\d*)?|\.\d+)`
+const CPU_PATTERN = new RegExp(`^(${NUMBER})(m)?$`)
+// Memory additionally accepts exponent notation (`1e9`, `1e+21`) — a quoted
+// huge byte count can come out of YAML stringified that way.
+const MEMORY_PATTERN = new RegExp(`^(${NUMBER}(?:[eE][+-]?\\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei|[kKMGTPE])?$`)
 
 /** Parses a CPU quantity (`"500m"`, `"0.5"`, `2`, …) into millicores. A bare
  * number (string or already-numeric, since unquoted YAML like `cpu: 2`
