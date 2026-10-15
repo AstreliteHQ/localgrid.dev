@@ -123,4 +123,15 @@ describe('PasswordGeneratorWidget', () => {
 
     await expect(navigator.clipboard.readText()).resolves.toBe(getOutput().value)
   })
+
+  it('masks each newly generated password again, even after revealing the previous one', async () => {
+    const user = userEvent.setup()
+    render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /generate/i }))
+    await user.click(screen.getByRole('button', { name: /show password/i }))
+    await user.click(screen.getByRole('button', { name: /generate/i }))
+
+    expect(getOutput()).toHaveAttribute('type', 'password')
+  })
 })
