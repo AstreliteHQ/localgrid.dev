@@ -28,6 +28,10 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
   const pinInstance = useDashboardStore((state) => state.pinInstance)
   const definition = target ? WIDGET_REGISTRY[target.widgetId] : null
   const resetNonce = useWidgetResetNonce(target?.instanceId ?? '')
+  // An ephemeral tool isn't on any dashboard, so closing it throws away its
+  // content. Its overlay gets an explicit close button and ignores backdrop
+  // clicks, so a stray click outside the panel can't wipe it.
+  const isEphemeral = target?.kind === 'ephemeral'
   // Tracks whether the mousedown that started this click landed on the
   // backdrop itself, not just where the click bubbled up to, otherwise a
   // drag that starts inside the widget (text selection, a slider) and
@@ -57,6 +61,7 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
           mouseDownOnBackdrop.current = event.target === event.currentTarget
         }}
         onClick={(event) => {
+          if (isEphemeral) return
           if (mouseDownOnBackdrop.current && event.target === event.currentTarget) close()
         }}
       >
@@ -70,9 +75,10 @@ export function WidgetOverlay({ children }: { children: ReactNode }) {
               title={definition.name}
               icon={definition.icon}
               isExpanded
-              onToggleExpand={close}
+              onToggleExpand={isEphemeral ? undefined : close}
+              onClose={isEphemeral ? close : undefined}
               extraActions={
-                target.kind === 'ephemeral' && (
+                isEphemeral && (
                   <Button
                     type="button"
                     variant="ghost"

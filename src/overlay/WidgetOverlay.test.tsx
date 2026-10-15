@@ -52,3 +52,37 @@ describe('WidgetOverlay — adding an ephemeral tool with its current content', 
     expect(screen.getByPlaceholderText(/text to encode/i)).toHaveValue('hello world')
   })
 })
+
+describe('WidgetOverlay — closing', () => {
+  function backdrop() {
+    return document.querySelector('.fixed.inset-0') as HTMLElement
+  }
+
+  it('shows a close button instead of collapse for an ephemeral tool, and ignores backdrop clicks', async () => {
+    const user = userEvent.setup()
+    render(<WidgetOverlay>{null}</WidgetOverlay>)
+
+    act(() => useOverlayStore.getState().openEphemeral('base64'))
+    await screen.findByPlaceholderText(/text to encode/i)
+    expect(screen.queryByRole('button', { name: /collapse base64/i })).not.toBeInTheDocument()
+
+    await user.click(backdrop())
+    expect(useOverlayStore.getState().target).not.toBeNull()
+
+    await user.click(screen.getByRole('button', { name: /close base64/i }))
+    expect(useOverlayStore.getState().target).toBeNull()
+  })
+
+  it('keeps collapse and closes on a backdrop click for a pinned widget', async () => {
+    const user = userEvent.setup()
+    render(<WidgetOverlay>{null}</WidgetOverlay>)
+
+    act(() => useOverlayStore.getState().expandPinned('pinned-1', 'base64'))
+    await screen.findByPlaceholderText(/text to encode/i)
+    expect(screen.getByRole('button', { name: /collapse base64/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /close base64/i })).not.toBeInTheDocument()
+
+    await user.click(backdrop())
+    expect(useOverlayStore.getState().target).toBeNull()
+  })
+})

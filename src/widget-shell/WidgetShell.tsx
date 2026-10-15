@@ -18,9 +18,12 @@ interface WidgetShellProps {
   /** Applied to the title bar so react-grid-layout can use it as the drag handle. */
   dragHandleClassName?: string
   isExpanded?: boolean
-  /** Toggles between grid and fullscreen-overlay. Doubles as "close" for
-   * ephemeral (unpinned) tools opened directly into the overlay. */
+  /** Toggles between grid and fullscreen-overlay. */
   onToggleExpand?: () => void
+  /** Shown instead of expand/collapse for ephemeral (unpinned) tools opened
+   * directly into the overlay: closing them discards their content, so the
+   * button reads as a close rather than a minimize. */
+  onClose?: () => void
   onRemove?: () => void
   /** Extra buttons rendered before the expand/remove actions — e.g. the
    * keyboard move/resize trigger, only relevant while on the grid. */
@@ -37,6 +40,7 @@ export function WidgetShell({
   dragHandleClassName,
   isExpanded,
   onToggleExpand,
+  onClose,
   onRemove,
   extraActions,
 }: WidgetShellProps) {
@@ -81,6 +85,19 @@ export function WidgetShell({
               ) : (
                 <Maximize2 className="size-3.5" />
               )}
+            </Button>
+          )}
+          {onClose && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={onClose}
+              aria-label={`Close ${title}`}
+              title="Close (content will be lost)"
+              className="text-muted-foreground"
+            >
+              <X className="size-3.5" />
             </Button>
           )}
           {onRemove && (
