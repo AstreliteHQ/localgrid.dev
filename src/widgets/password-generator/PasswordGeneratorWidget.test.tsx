@@ -99,4 +99,28 @@ describe('PasswordGeneratorWidget', () => {
 
     expect(lengthInput).toHaveValue(4)
   })
+
+  it('masks the generated password until the reveal toggle is pressed', async () => {
+    const user = userEvent.setup()
+    render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /generate/i }))
+    expect(getOutput()).toHaveAttribute('type', 'password')
+
+    await user.click(screen.getByRole('button', { name: /show password/i }))
+    expect(getOutput()).toHaveAttribute('type', 'text')
+
+    await user.click(screen.getByRole('button', { name: /hide password/i }))
+    expect(getOutput()).toHaveAttribute('type', 'password')
+  })
+
+  it('copies the real password while it is masked', async () => {
+    const user = userEvent.setup()
+    render(<PasswordGeneratorWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: /generate/i }))
+    await user.click(screen.getByRole('button', { name: /copy/i }))
+
+    await expect(navigator.clipboard.readText()).resolves.toBe(getOutput().value)
+  })
 })
