@@ -1,4 +1,5 @@
-import { RefreshCw } from 'lucide-react'
+import { useState } from 'react'
+import { Eye, EyeOff, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CopyButton } from '@/components/CopyButton'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -40,6 +41,10 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
   const [symbols, setSymbols] = useWidgetState(instanceId, 'symbols', false)
   const [excludeAmbiguous, setExcludeAmbiguous] = useWidgetState(instanceId, 'excludeAmbiguous', false)
   const [password, setPassword] = useWidgetState(instanceId, 'password', '')
+  // Deliberately plain component state rather than useWidgetState: the
+  // password is masked like a password field so it can't leak over a
+  // shoulder or a screen share, and every reload starts masked again.
+  const [revealed, setRevealed] = useState(false)
 
   useWidgetDirty(instanceId, password.length > 0)
 
@@ -67,12 +72,26 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
         <div className="relative min-w-0 flex-1">
           <Input
             readOnly
+            type={revealed ? 'text' : 'password'}
             value={password}
             placeholder="Generated password"
             spellCheck={false}
-            className="border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
+            className="border-border bg-background p-2 pr-20 font-mono text-xs dark:bg-muted/40"
           />
-          <CopyButton value={password} className="absolute right-1 top-1" />
+          <div className="absolute right-1 top-1 flex items-center">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setRevealed((prev) => !prev)}
+              aria-label={revealed ? 'Hide password' : 'Show password'}
+              aria-pressed={revealed}
+              title={revealed ? 'Hide password' : 'Show password'}
+              className="h-auto rounded px-1.5 py-1 text-muted-foreground hover:text-foreground"
+            >
+              {revealed ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
+            </Button>
+            <CopyButton value={password} />
+          </div>
         </div>
         <Button type="button" size="sm" onClick={handleGenerate} disabled={!canGenerate} className="shrink-0">
           <RefreshCw className="size-3.5" />
