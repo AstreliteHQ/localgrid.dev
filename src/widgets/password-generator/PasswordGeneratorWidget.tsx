@@ -88,7 +88,7 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
               title={revealed ? 'Hide password' : 'Show password'}
               className="h-auto rounded px-1.5 py-1 text-muted-foreground hover:text-foreground"
             >
-              {revealed ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              {revealed ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
             </Button>
             <CopyButton value={password} />
           </div>
