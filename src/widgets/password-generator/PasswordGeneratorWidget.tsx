@@ -57,8 +57,6 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
   const handleGenerate = () => {
     if (!canGenerate) return
     setPassword(generatePassword(options))
-    // A fresh password starts masked again, even if the previous one was revealed.
-    setRevealed(false)
   }
 
   const toggleCharset = (key: 'uppercase' | 'lowercase' | 'numbers' | 'symbols') => {
