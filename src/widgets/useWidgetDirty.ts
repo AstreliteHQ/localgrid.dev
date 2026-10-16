@@ -61,6 +61,14 @@ export function useAnyWidgetDirty(instanceIds: string[]): boolean {
   return useWidgetDirtyStore((state) => instanceIds.some((id) => state.dirtyByInstance[id]))
 }
 
+/** Non-reactive snapshot of "is any widget anywhere dirty", read at the
+ * moment of a `beforeunload` event (see useUnsavedChangesGuard). Every
+ * dashboard tab stays mounted, so this covers all tabs, not just the
+ * active one. */
+export function hasAnyDirtyWidget(): boolean {
+  return Object.values(useWidgetDirtyStore.getState().dirtyByInstance).some(Boolean)
+}
+
 /** Read by WidgetGridItem/WidgetOverlay for the widget element's `key`. */
 export function useWidgetResetNonce(instanceId: string): number {
   return useWidgetDirtyStore((state) => state.resetNonceByInstance[instanceId] ?? 0)
