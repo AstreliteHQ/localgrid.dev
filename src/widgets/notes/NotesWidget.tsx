@@ -1,5 +1,7 @@
 import { useMemo } from 'react'
+import { Download } from 'lucide-react'
 import { CodeEditor } from '@/components/CodeEditor'
+import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -7,6 +9,7 @@ import type { WidgetProps } from '@/widgets/types'
 import { computeTextStatistics, estimateReadingTimeMinutes } from './computeTextStatistics'
 
 const DEFAULT_CONTENT = ''
+const DOWNLOAD_FILENAME = 'note.txt'
 
 /** Free-form plain text notes, edited with the app's own CodeEditor (no
  * language grammar — just line numbers, search, and wrapping) plus a
@@ -23,8 +26,35 @@ export default function NotesWidget({ instanceId }: WidgetProps) {
   const stats = useMemo(() => computeTextStatistics(content), [content])
   const readingTime = estimateReadingTimeMinutes(stats.words)
 
+  // Same create-blob-URL, click-a-throwaway-anchor, revoke-on-a-tick
+  // pattern ClipboardInspectorWidget's own DownloadButton uses — there's no
+  // File System Access API fallback needed since every browser this app
+  // targets supports the anchor `download` attribute.
+  const handleDownload = () => {
+    const url = URL.createObjectURL(new Blob([content], { type: 'text/plain' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = DOWNLOAD_FILENAME
+    link.click()
+    setTimeout(() => URL.revokeObjectURL(url), 0)
+  }
+
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
+      <div className="flex shrink-0 items-center justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleDownload}
+          disabled={!content}
+          title={`Download as ${DOWNLOAD_FILENAME}`}
+          className="h-auto gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Download className="size-3.5" />
+          Download
+        </Button>
+      </div>
+
       <CodeEditor
         value={content}
         onChange={setContent}
