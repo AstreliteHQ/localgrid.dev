@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.7.0...v0.8.0) (2026-10-16)
+
+
+### Features
+
+* **dashboard:** add a button to duplicate a pinned widget ([#116](https://github.com/AstreliteHQ/localgrid.dev/issues/116)) ([108a0df](https://github.com/AstreliteHQ/localgrid.dev/commit/108a0df819ab49cb90cf52f6d8f319cda350085c))
+* **dashboard:** confirm before reloading or closing with dirty widgets ([#123](https://github.com/AstreliteHQ/localgrid.dev/issues/123)) ([f97187b](https://github.com/AstreliteHQ/localgrid.dev/commit/f97187bd2b9d7b29283d4d07c791c67e22223e3f))
+* **overlay:** show close button and ignore backdrop clicks for unpinned tools ([#122](https://github.com/AstreliteHQ/localgrid.dev/issues/122)) ([89dc608](https://github.com/AstreliteHQ/localgrid.dev/commit/89dc6082b6a9745d7a78c440ac34585f5a266534))
+* **widgets:** add Kubeconfig Viewer widget ([#112](https://github.com/AstreliteHQ/localgrid.dev/issues/112)) ([39db39b](https://github.com/AstreliteHQ/localgrid.dev/commit/39db39bd7c4f030f004f9d91742a8b5ebb567119))
+* **widgets:** add Matrix Calculator widget ([#52](https://github.com/AstreliteHQ/localgrid.dev/issues/52)) ([0568d70](https://github.com/AstreliteHQ/localgrid.dev/commit/0568d70f64afe966240ebc5896218efed405d832))
+* **widgets:** mask Password Generator output with a reveal toggle ([#121](https://github.com/AstreliteHQ/localgrid.dev/issues/121)) ([91600d8](https://github.com/AstreliteHQ/localgrid.dev/commit/91600d8230f0798c146d64081a31dd7e58eb5a1f))
+
+
+### Dependencies
+
+* bump lucide-react from 1.48.0 to 1.56.0 ([#125](https://github.com/AstreliteHQ/localgrid.dev/issues/125)) ([a02d993](https://github.com/AstreliteHQ/localgrid.dev/commit/a02d99357f3f13baf263b956472b791869ff2a9f))
+
 ## [0.7.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.6.0...v0.7.0) (2026-10-14)
 
 
