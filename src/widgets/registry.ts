@@ -53,6 +53,7 @@ import { csvViewerDefinition } from './csv-viewer/definition'
 import { clipboardInspectorDefinition } from './clipboard-inspector/definition'
 import { kubeconfigViewerDefinition } from './kubeconfig-viewer/definition'
 import { matrixCalculatorDefinition } from './matrix-calculator/definition'
+import { todoListDefinition } from './todo-list/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -111,6 +112,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   clipboardInspectorDefinition,
   kubeconfigViewerDefinition,
   matrixCalculatorDefinition,
+  todoListDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
