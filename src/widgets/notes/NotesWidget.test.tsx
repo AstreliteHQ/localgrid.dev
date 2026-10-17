@@ -1,8 +1,37 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import NotesWidget from './NotesWidget'
 import { setCodeMirrorValue } from '@/test/codemirror'
+
+function notesField() {
+  return screen.getByRole('textbox', { name: 'Notes' })
+}
+
+/** jsdom has no object-URL implementation, and clicking a real `<a
+ * download>` would attempt real navigation jsdom doesn't support either —
+ * stub both the way other widgets' own download buttons are verified, by
+ * capturing what the throwaway anchor was given instead of letting it
+ * actually fire. */
+function stubDownload() {
+  const createObjectURL = vi.fn(() => 'blob:mock-url')
+  const revokeObjectURL = vi.fn()
+  URL.createObjectURL = createObjectURL
+  URL.revokeObjectURL = revokeObjectURL
+
+  let download: string | null = null
+  let href: string | null = null
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+    download = this.download
+    href = this.href
+  })
+
+  return {
+    createObjectURL,
+    revokeObjectURL,
+    downloaded: () => ({ download, href }),
+  }
+}
 
 /** Mirrors StatisticsCalculatorWidget's own test helper — several labels
  * can share a value (e.g. both zero), so scope each assertion to its row
@@ -63,5 +92,29 @@ describe('NotesWidget', () => {
     await user.click(screen.getByRole('button', { name: 'Statistics' }))
 
     expect(screen.queryByText('Characters')).not.toBeInTheDocument()
+  })
+
+  it('disables the download button while the note is empty', () => {
+    render(<NotesWidget instanceId="test" mode="grid" />)
+
+    expect(screen.getByRole('button', { name: /download/i })).toBeDisabled()
+  })
+
+  it('downloads the note content as a .txt file', async () => {
+    const user = userEvent.setup()
+    const { createObjectURL, revokeObjectURL, downloaded } = stubDownload()
+    render(<NotesWidget instanceId="test" mode="grid" />)
+
+    setCodeMirrorValue(notesField(), 'hello world')
+    const downloadButton = screen.getByRole('button', { name: /download/i })
+    expect(downloadButton).toBeEnabled()
+    await user.click(downloadButton)
+
+    expect(createObjectURL).toHaveBeenCalledTimes(1)
+    const blob = createObjectURL.mock.calls[0][0] as Blob
+    expect(blob.type).toBe('text/plain')
+    expect(await blob.text()).toBe('hello world')
+    expect(downloaded()).toEqual({ download: 'note.txt', href: 'blob:mock-url' })
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
   })
 })
