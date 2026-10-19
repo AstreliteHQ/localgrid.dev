@@ -10,8 +10,8 @@ export interface DiffCounts {
 }
 
 export interface DiffNode {
-  /** Unique within the tree. Paths alone can collide in an array (an item
-   * removed at `[2]` and another added at `[2]`), so the kind is folded in. */
+  /** Unique within the tree, built from the chain of kinds and keys down
+   * to the node (see `assignIds`). */
   id: string
   /** Object key or array index; `null` for the root. */
   key: string | number | null
@@ -105,7 +105,7 @@ function oneSided(kind: 'added' | 'removed', key: string | number | null, path: 
       })
     : []
   return {
-    id: `${path}#${kind}`,
+    id: '',
     key,
     path,
     kind,
@@ -117,7 +117,7 @@ function oneSided(kind: 'added' | 'removed', key: string | number | null, path: 
 
 function unchanged(key: string | number | null, path: string, value: unknown): DiffNode {
   return {
-    id: `${path}#unchanged`,
+    id: '',
     key,
     path,
     kind: 'unchanged',
@@ -140,7 +140,7 @@ function withChildren(
   const counts = sum(children)
   const dirty = counts.added + counts.removed + counts.changed > 0
   return {
-    id: `${path}#${dirty ? 'nested' : 'unchanged'}`,
+    id: '',
     key,
     path,
     kind: dirty ? 'nested' : 'unchanged',
@@ -275,7 +275,7 @@ function diffValues(
   }
   if (deepEqual(before, after)) return unchanged(key, path, after)
   return {
-    id: `${path}#changed`,
+    id: '',
     key,
     path,
     kind: 'changed',
@@ -288,7 +288,17 @@ function diffValues(
 
 /** Structural diff of two parsed documents. */
 export function diffDocuments(before: unknown, after: unknown, options: DiffOptions = {}): DiffNode {
-  return diffValues(null, '$', before, after, options)
+  const root = diffValues(null, '$', before, after, options)
+  assignIds(root, '')
+  return root
+}
+
+/** Ids come from the node's position in the tree rather than its path: a
+ * paired array item and a removed one can share a path (`$[1]` on either
+ * side), and so can everything below them. */
+function assignIds(node: DiffNode, parentId: string) {
+  node.id = `${parentId}/${node.kind}:${String(node.key)}`
+  node.children.forEach((child) => assignIds(child, node.id))
 }
 
 /** The changes as a flat list, top-most first: an added or removed subtree

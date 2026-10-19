@@ -10,6 +10,20 @@ export type ParseResult = { ok: true; value: unknown } | { ok: false; error: str
  * a list of documents (the shape of a multi-resource Kubernetes file). An
  * empty input is `{ ok: false, error: null }`: nothing to diff, but not an
  * error worth showing either. */
+/** A YAML alias can point at one of its own ancestors (`a: &x { b: *x }`),
+ * which `toJS` turns into a cyclic object the diff would recurse into
+ * forever. Only the current ancestor chain is tracked, so the same anchor
+ * reused in two places (shared, not cyclic) is fine. */
+function isCyclic(value: unknown, ancestors = new Set<object>()): boolean {
+  if (typeof value !== 'object' || value === null) return false
+  if (ancestors.has(value)) return true
+  ancestors.add(value)
+  const children = Array.isArray(value) ? value : Object.values(value)
+  const cyclic = children.some((child) => isCyclic(child, ancestors))
+  ancestors.delete(value)
+  return cyclic
+}
+
 export function parseDocument(input: string, format: DocumentFormat): ParseResult {
   if (!input.trim()) return { ok: false, error: null }
   try {
@@ -19,6 +33,9 @@ export function parseDocument(input: string, format: DocumentFormat): ParseResul
       if (doc.errors.length > 0) return { ok: false, error: doc.errors[0].message }
     }
     const values = docs.map((doc) => doc.toJS() as unknown)
+    if (values.some((value) => isCyclic(value))) {
+      return { ok: false, error: 'An alias refers to one of its own parents, so the document never ends' }
+    }
     // A stream holding only comments has no documents at all.
     if (values.length === 0) return { ok: true, value: null }
     return { ok: true, value: values.length === 1 ? values[0] : values }

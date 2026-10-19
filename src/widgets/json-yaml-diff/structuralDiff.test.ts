@@ -84,8 +84,13 @@ describe('diffDocuments', () => {
     expect(changesOf('same', 'same')).toEqual([])
   })
 
-  it('gives every node in the tree a unique id', () => {
-    const root = diffDocuments([1, { a: 2 }, 3], [4, { a: 5 }, 6, 7])
+  it.each([
+    ['positional edits', [1, { a: 2 }, 3], [4, { a: 5 }, 6, 7]],
+    // A paired item and a removed one both end up at `$[1]`, and both have
+    // a removed `k` below them.
+    ['a paired item sharing a path with a removed one', [{ k: 1 }, { k: 1 }, 'X', { k: 1 }], ['X', {}]],
+  ])('gives every node in the tree a unique id (%s)', (_, before, after) => {
+    const root = diffDocuments(before, after)
     const ids: string[] = []
     const walk = (node: typeof root) => {
       ids.push(node.id)
