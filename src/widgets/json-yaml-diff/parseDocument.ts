@@ -4,12 +4,6 @@ export type DocumentFormat = 'json' | 'yaml'
 
 export type ParseResult = { ok: true; value: unknown } | { ok: false; error: string } | { ok: false; error: null }
 
-/** Parses one side of the diff. YAML is a superset of JSON, so YAML mode
- * also takes JSON input, which lets a YAML manifest be compared against
- * its JSON form. A YAML stream with several `---` documents is compared as
- * a list of documents (the shape of a multi-resource Kubernetes file). An
- * empty input is `{ ok: false, error: null }`: nothing to diff, but not an
- * error worth showing either. */
 /** A YAML alias can point at one of its own ancestors (`a: &x { b: *x }`),
  * which `toJS` turns into a cyclic object the diff would recurse into
  * forever. Only the current ancestor chain is tracked, so the same anchor
@@ -24,6 +18,12 @@ function isCyclic(value: unknown, ancestors = new Set<object>()): boolean {
   return cyclic
 }
 
+/** Parses one side of the diff. YAML is a superset of JSON, so YAML mode
+ * also takes JSON input, which lets a YAML manifest be compared against
+ * its JSON form. A YAML stream with several `---` documents is compared as
+ * a list of documents (the shape of a multi-resource Kubernetes file). An
+ * empty input is `{ ok: false, error: null }`: nothing to diff, but not an
+ * error worth showing either. */
 export function parseDocument(input: string, format: DocumentFormat): ParseResult {
   if (!input.trim()) return { ok: false, error: null }
   try {
