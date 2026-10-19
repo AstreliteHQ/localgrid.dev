@@ -53,6 +53,7 @@ import { csvViewerDefinition } from './csv-viewer/definition'
 import { clipboardInspectorDefinition } from './clipboard-inspector/definition'
 import { kubeconfigViewerDefinition } from './kubeconfig-viewer/definition'
 import { matrixCalculatorDefinition } from './matrix-calculator/definition'
+import { jsonYamlDiffDefinition } from './json-yaml-diff/definition'
 import { k8sResourceCalculatorDefinition } from './k8s-resource-calculator/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
@@ -113,6 +114,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   kubeconfigViewerDefinition,
   matrixCalculatorDefinition,
   k8sResourceCalculatorDefinition,
+  jsonYamlDiffDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
