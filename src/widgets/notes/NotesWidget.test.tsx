@@ -14,7 +14,7 @@ function notesField() {
  * capturing what the throwaway anchor was given instead of letting it
  * actually fire. */
 function stubDownload() {
-  const createObjectURL = vi.fn(() => 'blob:mock-url')
+  const createObjectURL = vi.fn((_blob: Blob) => 'blob:mock-url')
   const revokeObjectURL = vi.fn()
   URL.createObjectURL = createObjectURL
   URL.revokeObjectURL = revokeObjectURL
