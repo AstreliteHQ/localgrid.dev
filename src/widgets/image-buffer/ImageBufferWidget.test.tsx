@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -153,13 +154,18 @@ describe('ImageBufferWidget', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
   })
 
-  it('offers the selected image as a download under its own name', () => {
+  it('downloads the selected image under its own name', async () => {
+    const user = userEvent.setup()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     render(<ImageBufferWidget instanceId="test" mode="grid" />)
-    dropFiles([imageFile('screenshot.png')])
+    const file = imageFile('screenshot.png')
+    dropFiles([file])
 
-    const link = screen.getByRole('link', { name: 'Download screenshot.png' })
-    expect(link).toHaveAttribute('download', 'screenshot.png')
-    expect(link).toHaveAttribute('href', expect.stringMatching(/^blob:/))
+    await user.click(screen.getByRole('button', { name: 'Download screenshot.png' }))
+
+    expect(click).toHaveBeenCalledTimes(1)
+    expect(click.mock.contexts[0]).toMatchObject({ download: 'screenshot.png', href: expect.stringMatching(/^blob:/) })
+    click.mockRestore()
   })
 
   it('copies the selected image to the clipboard as PNG', async () => {
@@ -197,5 +203,24 @@ describe('ImageBufferWidget', () => {
 
     render(<ImageBufferWidget instanceId="test" mode="grid" />)
     expect(screen.getByRole('img', { name: 'screenshot.png preview' })).toBeInTheDocument()
+  })
+
+  it('shows live image URLs when remounted with images already buffered', () => {
+    const { unmount } = render(<ImageBufferWidget instanceId="test" mode="grid" />)
+    dropFiles([imageFile('screenshot.png')])
+    unmount()
+
+    // StrictMode re-runs every effect on mount, which used to revoke the URLs
+    // of a widget (re)opened with images already in it, such as the overlay.
+    render(
+      <StrictMode>
+        <ImageBufferWidget instanceId="test" mode="overlay" />
+      </StrictMode>,
+    )
+
+    expect(screen.getByRole('img', { name: 'screenshot.png preview' })).toHaveAttribute(
+      'src',
+      expect.stringMatching(/^blob:/),
+    )
   })
 })

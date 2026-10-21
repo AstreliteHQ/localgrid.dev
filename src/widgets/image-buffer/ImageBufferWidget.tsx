@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from 'react'
 import { nanoid } from 'nanoid'
 import { AlertTriangle, Check, Clipboard, ClipboardPaste, Download, FolderOpen, ImageUp, Trash2, X } from 'lucide-react'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { isFileDrag } from '@/components/codeEditorFileDrop'
 import { cn } from '@/lib/utils'
@@ -17,19 +17,53 @@ const DEFAULT_SELECTED: string | null = null
 
 type CopyStatus = 'idle' | 'copied' | 'failed'
 
-/** One object URL per image, recreated when the image list changes and
- * revoked on the way out. Same create/revoke pairing ImageConverterWidget
- * uses for its single result, just for the whole list at once. */
-function useObjectUrls(images: BufferImage[]): Map<string, string> {
-  const urls = useMemo(() => new Map(images.map((image) => [image.id, URL.createObjectURL(image.file)])), [images])
+/** Shows `file` through an object URL that the same effect creates and
+ * revokes, so a remount (the overlay, StrictMode) always ends up with a live
+ * URL. The `src` is set on the element directly, mirroring how
+ * ImageConverterWidget pairs create and revoke for its single result. */
+function FileImage({ file, alt, className }: { file: File; alt: string; className?: string }) {
+  const ref = useRef<HTMLImageElement>(null)
 
   useEffect(() => {
+    const image = ref.current
+    if (!image) return
+    const url = URL.createObjectURL(file)
+    image.src = url
     return () => {
-      urls.forEach((url) => URL.revokeObjectURL(url))
+      image.removeAttribute('src')
+      URL.revokeObjectURL(url)
     }
-  }, [urls])
+  }, [file])
 
-  return urls
+  return <img ref={ref} alt={alt} className={className} />
+}
+
+/** Hands `file` to the browser's download flow under its own name. The URL
+ * only needs to outlive the click, so it is revoked shortly after. */
+function downloadFile(file: File) {
+  const url = URL.createObjectURL(file)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.name
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+function ImageThumb({ image, selected, onSelect }: { image: BufferImage; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      title={imageLabel(image.file)}
+      className={cn(
+        'size-10 shrink-0 overflow-hidden rounded border bg-muted/30 outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring/50',
+        selected ? 'border-ring' : 'border-border hover:border-ring/60',
+      )}
+    >
+      <FileImage file={image.file} alt={imageLabel(image.file)} className="size-full object-cover" />
+    </button>
+  )
 }
 
 /** A scratch pad for images, kept apart from the Notes widget: paste a
@@ -45,7 +79,6 @@ export default function ImageBufferWidget({ instanceId, mode }: WidgetProps) {
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
   const copyStatusTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const urls = useObjectUrls(images)
 
   useWidgetDirty(instanceId, images.length > 0)
   useEffect(() => () => clearTimeout(copyStatusTimeoutRef.current), [])
@@ -53,7 +86,6 @@ export default function ImageBufferWidget({ instanceId, mode }: WidgetProps) {
   // A stale or missing selection falls back to the newest image, so removing
   // the selected one (or never having picked one) needs no extra bookkeeping.
   const selected = images.find((image) => image.id === selectedId) ?? images.at(-1) ?? null
-  const selectedUrl = selected ? urls.get(selected.id) : undefined
 
   const addFiles = (files: FileList | File[]) => {
     const { images: picked, errors } = pickImageFiles(files, () => nanoid(8))
@@ -185,21 +217,12 @@ export default function ImageBufferWidget({ instanceId, mode }: WidgetProps) {
       {images.length > 0 && (
         <div className="flex max-h-24 shrink-0 flex-wrap gap-1.5 overflow-y-auto" aria-label="Buffered images">
           {images.map((image) => (
-            <button
+            <ImageThumb
               key={image.id}
-              type="button"
-              onClick={() => setSelectedId(image.id)}
-              aria-pressed={image.id === selected?.id}
-              title={imageLabel(image.file)}
-              className={cn(
-                'size-10 shrink-0 overflow-hidden rounded border bg-muted/30 outline-none transition-colors focus-visible:ring-1 focus-visible:ring-ring/50',
-                image.id === selected?.id ? 'border-ring' : 'border-border hover:border-ring/60',
-              )}
-            >
-              {urls.get(image.id) && (
-                <img src={urls.get(image.id)} alt={imageLabel(image.file)} className="size-full object-cover" />
-              )}
-            </button>
+              image={image}
+              selected={image.id === selected?.id}
+              onSelect={() => setSelectedId(image.id)}
+            />
           ))}
         </div>
       )}
@@ -212,13 +235,11 @@ export default function ImageBufferWidget({ instanceId, mode }: WidgetProps) {
               mode === 'overlay' && 'p-4',
             )}
           >
-            {selectedUrl && (
-              <img
-                src={selectedUrl}
-                alt={`${imageLabel(selected.file)} preview`}
-                className="max-h-full max-w-full object-contain"
-              />
-            )}
+            <FileImage
+              file={selected.file}
+              alt={`${imageLabel(selected.file)} preview`}
+              className="max-h-full max-w-full object-contain"
+            />
           </div>
 
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -249,17 +270,15 @@ export default function ImageBufferWidget({ instanceId, mode }: WidgetProps) {
               )}
               {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy'}
             </Button>
-            {selectedUrl && (
-              <a
-                href={selectedUrl}
-                download={selected.file.name || undefined}
-                aria-label={`Download ${imageLabel(selected.file)}`}
-                className={buttonVariants({ size: 'sm' })}
-              >
-                <Download />
-                Download
-              </a>
-            )}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => downloadFile(selected.file)}
+              aria-label={`Download ${imageLabel(selected.file)}`}
+            >
+              <Download />
+              Download
+            </Button>
             <div className="ml-auto flex shrink-0 items-center">
               <Button
                 type="button"
