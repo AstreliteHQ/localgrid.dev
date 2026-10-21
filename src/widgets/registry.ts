@@ -40,6 +40,7 @@ import { complexityEstimatorDefinition } from './complexity-estimator/definition
 import { curlBuilderDefinition } from './curl-builder/definition'
 import { timezoneCalculatorDefinition } from './timezone-calculator/definition'
 import { imageConverterDefinition } from './image-converter/definition'
+import { imageBufferDefinition } from './image-buffer/definition'
 import { jinjaTemplateRendererDefinition } from './jinja-template-renderer/definition'
 import { chartGeneratorDefinition } from './chart-generator/definition'
 import { mergePdfsDefinition } from './merge-pdfs/definition'
@@ -100,6 +101,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   curlBuilderDefinition,
   timezoneCalculatorDefinition,
   imageConverterDefinition,
+  imageBufferDefinition,
   jinjaTemplateRendererDefinition,
   chartGeneratorDefinition,
   mergePdfsDefinition,
