@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { EditorContent, useEditor, useEditorState, type Editor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Placeholder } from '@tiptap/extensions'
-import { TextSelection, type Transaction } from '@tiptap/pm/state'
+import { NodeSelection, TextSelection, type Transaction } from '@tiptap/pm/state'
 import {
   AlertTriangle,
   Bold,
@@ -84,9 +84,11 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
     if (!editor) return
     // Reading a large screenshot takes a moment; keep the target position
     // pointing at the same spot if the note is edited in the meantime.
+    // assoc -1 keeps it before text typed right at the caret, so the image
+    // still comes first, in the order things were pasted and typed.
     let target = position
     const mapTarget = ({ transaction }: { transaction: Transaction }) => {
-      target = transaction.mapping.map(target)
+      target = transaction.mapping.map(target, -1)
     }
     editor.on('transaction', mapTarget)
     let sources: string[]
@@ -106,10 +108,12 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
         target,
         sources.map((src, index) => ({ type: 'image', attrs: { src, alt: files[index].name || 'Pasted image' } })),
       )
-      // Inserting leaves the last image node-selected, so the next key
-      // would replace it. Move the caret into the text after it instead,
-      // adding an empty paragraph when the image ended the note.
+      // Inserting at the edge of a paragraph leaves the last image
+      // node-selected, so the next key would replace it. Move the caret into
+      // the text after it instead, adding an empty paragraph when the image
+      // ended the note. (Mid-paragraph inserts already leave a text caret.)
       .command(({ tr }) => {
+        if (!(tr.selection instanceof NodeSelection)) return true
         const after = tr.selection.to
         if (!tr.doc.nodeAt(after)?.isTextblock) {
           tr.insert(after, tr.doc.type.schema.nodes.paragraph.create())

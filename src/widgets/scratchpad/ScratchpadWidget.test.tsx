@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { JSONContent } from '@tiptap/react'
+import type { Editor, JSONContent } from '@tiptap/react'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import ScratchpadWidget from './ScratchpadWidget'
 
@@ -127,6 +127,35 @@ describe('ScratchpadWidget', () => {
     // The caret lands in a paragraph after the image, so the next key
     // types text instead of replacing the node-selected image.
     expect(storedDoc()?.content?.map((node) => node.type)).toEqual(['image', 'paragraph'])
+  })
+
+  it('keeps a pasted image ahead of text typed while it is being read', async () => {
+    seed({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Before' }] }] })
+    let finishRead = () => {}
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+      finishRead = () => {
+        Object.defineProperty(this, 'result', { value: PNG_DATA_URL })
+        this.onload?.(new ProgressEvent('load') as ProgressEvent<FileReader>)
+      }
+    })
+    render(<ScratchpadWidget instanceId="test" mode="grid" />)
+    // TipTap exposes its instance on the editor's root element.
+    const editor = (editorElement() as HTMLElement & { editor: Editor }).editor
+    act(() => {
+      editor.commands.setTextSelection(editor.state.doc.content.size - 1)
+    })
+    const file = new File([new Uint8Array([137, 80, 78, 71])], 'shot.png', { type: 'image/png' })
+
+    fireEvent.paste(editorElement(), { clipboardData: { files: [file], getData: () => '', types: ['Files'] } })
+    act(() => {
+      editor.commands.insertContent(' after')
+    })
+    await act(async () => finishRead())
+
+    await waitFor(() =>
+      expect(storedDoc()?.content?.map((node) => node.type)).toEqual(['paragraph', 'image', 'paragraph']),
+    )
+    expect(editor.getText({ blockSeparator: '|', textSerializers: { image: () => 'IMG' } })).toBe('Before|IMG| after')
   })
 
   it('says so when a pasted image cannot be read', async () => {
