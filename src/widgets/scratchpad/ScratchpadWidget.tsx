@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { EditorContent, useEditor, useEditorState, type Editor, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Placeholder } from '@tiptap/extensions'
-import { TextSelection } from '@tiptap/pm/state'
+import { TextSelection, type Transaction } from '@tiptap/pm/state'
 import {
   AlertTriangle,
   Bold,
@@ -19,6 +19,7 @@ import {
   SquareCode,
   Strikethrough,
 } from 'lucide-react'
+import { ErrorMessage } from '@/components/ErrorMessage'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
@@ -39,6 +40,9 @@ type CopyStatus = 'idle' | 'copied' | 'failed'
 export default function ScratchpadWidget({ instanceId }: WidgetProps) {
   const [doc, setDoc] = useWidgetState(instanceId, 'doc', DEFAULT_DOC)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // UI-only, like TodoListWidget's expandedId: a failed read is worth a
+  // note under the toolbar, not persisted state.
+  const [imageError, setImageError] = useState<string | null>(null)
 
   const editor = useEditor({
     extensions: [
@@ -77,12 +81,29 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
   // Declared after useEditor (whose handlers close over it) but only ever
   // called from events, by which point `editor` is set.
   async function insertImages(position: number, files: File[]) {
-    const sources = await Promise.all(files.map(readAsDataUrl))
+    if (!editor) return
+    // Reading a large screenshot takes a moment; keep the target position
+    // pointing at the same spot if the note is edited in the meantime.
+    let target = position
+    const mapTarget = ({ transaction }: { transaction: Transaction }) => {
+      target = transaction.mapping.map(target)
+    }
+    editor.on('transaction', mapTarget)
+    let sources: string[]
+    try {
+      sources = await Promise.all(files.map(readAsDataUrl))
+    } catch {
+      setImageError('Could not read that image.')
+      return
+    } finally {
+      editor.off('transaction', mapTarget)
+    }
+    setImageError(null)
     editor
-      ?.chain()
+      .chain()
       .focus()
       .insertContentAt(
-        position,
+        target,
         sources.map((src, index) => ({ type: 'image', attrs: { src, alt: files[index].name || 'Pasted image' } })),
       )
       // Inserting leaves the last image node-selected, so the next key
@@ -157,6 +178,8 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
           </Button>
         </div>
       </div>
+
+      {imageError && <ErrorMessage>{imageError}</ErrorMessage>}
 
       <EditorContent
         editor={editor}

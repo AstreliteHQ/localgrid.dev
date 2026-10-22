@@ -129,6 +129,21 @@ describe('ScratchpadWidget', () => {
     expect(storedDoc()?.content?.map((node) => node.type)).toEqual(['image', 'paragraph'])
   })
 
+  it('says so when a pasted image cannot be read', async () => {
+    vi.spyOn(FileReader.prototype, 'readAsDataURL').mockImplementation(function (this: FileReader) {
+      queueMicrotask(() => this.onerror?.(new ProgressEvent('error') as ProgressEvent<FileReader>))
+    })
+    render(<ScratchpadWidget instanceId="test" mode="grid" />)
+    const file = new File([new Uint8Array([137, 80, 78, 71])], 'shot.png', { type: 'image/png' })
+
+    await act(async () => {
+      fireEvent.paste(editorElement(), { clipboardData: { files: [file], getData: () => '', types: ['Files'] } })
+    })
+
+    expect(await screen.findByText('Could not read that image.')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
   it('treats a note holding only an image as content worth copying', async () => {
     seed({ type: 'doc', content: [{ type: 'image', attrs: { src: PNG_DATA_URL, alt: 'shot.png' } }] })
     render(<ScratchpadWidget instanceId="test" mode="grid" />)
