@@ -56,6 +56,7 @@ import { matrixCalculatorDefinition } from './matrix-calculator/definition'
 import { jsonYamlDiffDefinition } from './json-yaml-diff/definition'
 import { k8sResourceCalculatorDefinition } from './k8s-resource-calculator/definition'
 import { todoListDefinition } from './todo-list/definition'
+import { scratchpadDefinition } from './scratchpad/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -117,6 +118,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   k8sResourceCalculatorDefinition,
   jsonYamlDiffDefinition,
   todoListDefinition,
+  scratchpadDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
