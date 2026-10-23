@@ -28,5 +28,7 @@ updates:
         patterns: ['@lezer/*']
       testing-library:
         patterns: ['@testing-library/*']
+      tiptap:
+        patterns: ['@tiptap/*']
       types:
         patterns: ['@types/*']
