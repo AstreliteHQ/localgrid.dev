@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.8.0...v0.9.0) (2026-10-23)
+
+
+### Features
+
+* **notes:** add a button to download the note as a .txt file ([#127](https://github.com/AstreliteHQ/localgrid.dev/issues/127)) ([cced683](https://github.com/AstreliteHQ/localgrid.dev/commit/cced683e88e7509aed59a047247e2913ca9828da))
+* **widgets:** add Scratchpad rich text widget with pasted images ([#130](https://github.com/AstreliteHQ/localgrid.dev/issues/130)) ([68c0aa6](https://github.com/AstreliteHQ/localgrid.dev/commit/68c0aa6c32981d34ce71ea8eaf4ce0536739321a))
+* **widgets:** add To-Do List widget ([#114](https://github.com/AstreliteHQ/localgrid.dev/issues/114)) ([1f79955](https://github.com/AstreliteHQ/localgrid.dev/commit/1f79955eec82cd43e0ca4981b64719cba9a6ac99))
+
+
+### Dependencies
+
+* bump the tiptap group with 5 updates ([#132](https://github.com/AstreliteHQ/localgrid.dev/issues/132)) ([622f6da](https://github.com/AstreliteHQ/localgrid.dev/commit/622f6da541964992cfb85a3410592a988bc063ee))
+
 ## [0.8.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.7.0...v0.8.0) (2026-10-19)
 
 
