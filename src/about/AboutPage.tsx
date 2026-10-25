@@ -79,8 +79,9 @@ export function AboutPage() {
             everything you typed exactly where it was.
           </Feature>
           <Feature icon={Share2} title="Save and share">
-            Layouts persist to <code className="font-mono">localStorage</code> automatically, and
-            can be shared with a teammate through a URL or QR code.
+            Layouts and widget setup, like your World Clock cities, persist to{' '}
+            <code className="font-mono">localStorage</code> automatically. Share them with a teammate
+            through a URL or QR code, choosing exactly what goes in the link.
           </Feature>
         </div>
       </section>

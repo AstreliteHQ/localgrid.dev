@@ -28,12 +28,16 @@ After any code change, run `npx tsc -b --noEmit`, `npm run lint`, and `npm test`
 - `src/dashboard/` the grid, tabs, sharing.
 - `src/components/` shared UI (`Field`, `CopyButton`, `SegmentedControl`, `CodeEditor`, `ui/*` primitives).
 - `src/widgets/useWidgetState.ts` / `useWidgetDirty.ts` per-widget-instance state and "has unsaved content" tracking, used by nearly every widget.
+- `src/widgets/widgetConfig.ts` `useWidgetConfig` and `sanitizeConfig`: persisted, shareable widget setup.
+- `src/settings/` the Settings dialog (General, Share).
+- `docs/widget-architecture.md` layout vs configuration vs state, lifecycle, persistence and share format.
 
 ## Conventions
 
 - Widget component signature is always `({ instanceId, mode }: WidgetProps)`.
 - Persist widget state with `useWidgetState(instanceId, field, initial)`, not plain `useState` it survives tab switches and remounts.
-- Report dirtiness with `useWidgetDirty(instanceId, isDirty)`, comparing current state to the widget's own defaults.
+- Report dirtiness with `useWidgetDirty(instanceId, isDirty)`, comparing current state to the widget's own defaults. Never include config fields.
+- Use `useWidgetConfig` (plus a `configSchema` in `definition.ts`) only for setup that is tedious to redo and then used passively, like World Clock cities; everything else stays on `useWidgetState`. See `docs/widget-architecture.md`.
 - Use `cn` from `@/lib/utils` (not the deprecated `@/lib/cn`) for conditional class names.
 - Reuse existing shared components (`Field`, `CopyButton`, `SegmentedControl`, `ErrorMessage`, `NumberField`) instead of hand-rolling equivalents.
 - Colors come from the semantic tokens in `src/index.css` (`success`, `destructive`, `muted`, etc.), not raw Tailwind palette classes, unless a widget has a real reason to deviate.

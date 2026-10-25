@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CopyPlus, Move } from 'lucide-react'
 import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { GridPositionDialog } from '@/widget-shell/GridPositionDialog'
+import { WidgetConfigIndicator } from '@/widget-shell/WidgetConfigIndicator'
 import { Button } from '@/components/ui/button'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
@@ -60,6 +61,7 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
         extraActions={
           !isExpanded && (
             <>
+              <WidgetConfigIndicator instanceId={instance.instanceId} title={widget.name} />
               {showMoveControl && (
                 <Button
                   type="button"

@@ -58,6 +58,13 @@ interface DashboardState extends PersistedDashboardState {
   /** Keyboard-accessible alternative to dragging/resizing a grid item — used
    * by the move/resize dialog in the widget shell's "…" menu. */
   setWidgetPosition: (dashboardId: string, instanceId: string, position: GridPosition) => void
+  /** Writes one configuration field on a pinned instance, wherever it is.
+   * Called by `useWidgetConfig`. */
+  setWidgetConfig: (instanceId: string, field: string, value: unknown) => void
+  /** Drops one instance's configuration; its widget falls back to defaults. */
+  resetWidgetConfig: (instanceId: string) => void
+  /** Drops the configuration of every instance on every dashboard. */
+  resetAllWidgetConfig: () => void
 
   addDashboard: (name: string) => void
   renameDashboard: (id: string, name: string) => void
@@ -129,6 +136,37 @@ const STARTER_DASHBOARDS: Dashboard[] = [
     ]),
   },
 ]
+
+/** Updates matching instances on every dashboard, keeping untouched
+ * dashboards and instances at their original references. */
+function updateInstances(
+  dashboards: Dashboard[],
+  matches: (widget: DashboardWidgetInstance) => boolean,
+  update: (widget: DashboardWidgetInstance) => DashboardWidgetInstance,
+): Dashboard[] {
+  return dashboards.map((dashboard) =>
+    dashboard.widgets.some(matches)
+      ? { ...dashboard, widgets: dashboard.widgets.map((widget) => (matches(widget) ? update(widget) : widget)) }
+      : dashboard,
+  )
+}
+
+function withoutConfig({ config: _config, ...widget }: DashboardWidgetInstance): DashboardWidgetInstance {
+  return widget
+}
+
+/** Config an ephemeral overlay instance kept in useWidgetState's store,
+ * carried over when that instance gets pinned. */
+function ephemeralConfig(widgetId: string, instanceId: string): Record<string, unknown> | undefined {
+  const fields = Object.keys(getWidgetDefinition(widgetId)?.configSchema?.entries ?? {})
+  const { values } = useWidgetStateStore.getState()
+  const config = Object.fromEntries(
+    fields
+      .filter((field) => `${instanceId}:${field}` in values)
+      .map((field) => [field, values[`${instanceId}:${field}`]]),
+  )
+  return Object.keys(config).length > 0 ? config : undefined
+}
 
 function nextAvailableY(widgets: DashboardWidgetInstance[]): number {
   return widgets.reduce((max, widget) => Math.max(max, widget.y + widget.h), 0)
@@ -205,6 +243,7 @@ export const useDashboardStore = create<DashboardState>()(
         set((state) => ({
           dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) => {
             if (widgets.some((widget) => widget.instanceId === instanceId)) return widgets
+            const config = ephemeralConfig(widgetId, instanceId)
             return [
               ...widgets,
               {
@@ -214,6 +253,7 @@ export const useDashboardStore = create<DashboardState>()(
                 y: nextAvailableY(widgets),
                 w: definition.defaultSize.w,
                 h: definition.defaultSize.h,
+                ...(config && { config }),
               },
             ]
           }),
@@ -235,6 +275,7 @@ export const useDashboardStore = create<DashboardState>()(
               y: nextAvailableY(widgets),
               w: original.w,
               h: original.h,
+              ...(original.config && { config: original.config }),
             },
           ]),
         }))
@@ -291,6 +332,32 @@ export const useDashboardStore = create<DashboardState>()(
           dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) =>
             widgets.map((widget) => (widget.instanceId === instanceId ? { ...widget, ...position } : widget)),
           ),
+        }))
+      },
+
+      setWidgetConfig: (instanceId, field, value) => {
+        set((state) => ({
+          dashboards: updateInstances(
+            state.dashboards,
+            (widget) => widget.instanceId === instanceId,
+            (widget) => ({ ...widget, config: { ...widget.config, [field]: value } }),
+          ),
+        }))
+      },
+
+      resetWidgetConfig: (instanceId) => {
+        set((state) => ({
+          dashboards: updateInstances(
+            state.dashboards,
+            (widget) => widget.instanceId === instanceId && widget.config !== undefined,
+            withoutConfig,
+          ),
+        }))
+      },
+
+      resetAllWidgetConfig: () => {
+        set((state) => ({
+          dashboards: updateInstances(state.dashboards, (widget) => widget.config !== undefined, withoutConfig),
         }))
       },
 

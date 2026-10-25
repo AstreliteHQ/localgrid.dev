@@ -1,10 +1,11 @@
-import { useState, type ReactNode } from 'react'
-import { Plus, Share2 } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { Plus, Settings } from 'lucide-react'
 import { useCommandPaletteStore } from '@/command-palette/useCommandPaletteStore'
+import { SettingsDialog } from '@/settings/SettingsDialog'
 import { ThemeToggle } from '@/theme/ThemeToggle'
+import { useSettingsStore } from '@/settings/useSettingsStore'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
-import { ShareModal } from './ShareModal'
 
 /** "Add tools" is the single entry point for finding *and* adding a
  * widget now — the command palette's own rows carry an Add button, so there
@@ -12,11 +13,12 @@ import { ShareModal } from './ShareModal'
  * redundant.
  *
  * `children` (the dashboard-wide actions from AppHeader) share one
- * ButtonGroup with Share, so on mobile they read as a single compact strip of
- * icons instead of separate padded buttons. */
+ * ButtonGroup with Settings, so on mobile they read as a single compact strip
+ * of icons instead of separate padded buttons. Sharing lives in the Settings
+ * dialog; the theme switch is both here and in Settings > General. */
 export function DashboardToolbar({ children }: { children?: ReactNode }) {
-  const [shareOpen, setShareOpen] = useState(false)
   const setPaletteOpen = useCommandPaletteStore((state) => state.setOpen)
+  const openSettings = useSettingsStore((state) => state.openSettings)
 
   return (
     <div className="flex items-center gap-2">
@@ -34,13 +36,13 @@ export function DashboardToolbar({ children }: { children?: ReactNode }) {
       </Button>
       <ButtonGroup>
         {children}
-        <Button type="button" variant="outline" size="sm" onClick={() => setShareOpen(true)} aria-label="Share">
-          <Share2 className="size-3.5" />
-          <span className="hidden sm:inline">Share</span>
+        <Button type="button" variant="outline" size="sm" onClick={() => openSettings()} aria-label="Settings">
+          <Settings className="size-3.5" />
+          <span className="hidden sm:inline">Settings</span>
         </Button>
       </ButtonGroup>
       <ThemeToggle />
-      <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
+      <SettingsDialog />
     </div>
   )
 }

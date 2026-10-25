@@ -12,6 +12,7 @@ import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
+import { useWidgetConfig } from '@/widgets/widgetConfig'
 import type { WidgetProps } from '@/widgets/types'
 import { detectFileKind, type FileKind } from './detectFileKind'
 import { watermarkImage } from './watermarkImage'
@@ -57,11 +58,13 @@ function watermarkedFileName(sourceName: string, extension: string): string {
 
 export default function WatermarkWidget({ instanceId }: WidgetProps) {
   const [file, setFile] = useWidgetState<File | null>(instanceId, 'file', null)
-  const [text, setText] = useWidgetState(instanceId, 'text', DEFAULT_TEXT)
-  const [opacity, setOpacity] = useWidgetState(instanceId, 'opacity', DEFAULT_OPACITY)
-  const [color, setColor] = useWidgetState(instanceId, 'color', DEFAULT_COLOR)
-  const [fontSize, setFontSize] = useWidgetState(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
-  const [position, setPosition] = useWidgetState<WatermarkPosition>(instanceId, 'position', DEFAULT_POSITION)
+  // The stamp preset is configuration: kept across reloads and files, and
+  // outside the dirty check. Only the file is state.
+  const [text, setText] = useWidgetConfig(instanceId, 'text', DEFAULT_TEXT)
+  const [opacity, setOpacity] = useWidgetConfig(instanceId, 'opacity', DEFAULT_OPACITY)
+  const [color, setColor] = useWidgetConfig(instanceId, 'color', DEFAULT_COLOR)
+  const [fontSize, setFontSize] = useWidgetConfig(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
+  const [position, setPosition] = useWidgetConfig<WatermarkPosition>(instanceId, 'position', DEFAULT_POSITION)
   const [detection, setDetection] = useState<Detection | null>(null)
   const [dragging, setDragging] = useState(false)
   const [working, setWorking] = useState(false)
@@ -77,15 +80,7 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
   // publishing an output that no longer matches the current settings.
   const applyTokenRef = useRef(0)
 
-  useWidgetDirty(
-    instanceId,
-    file !== null ||
-      text !== DEFAULT_TEXT ||
-      opacity !== DEFAULT_OPACITY ||
-      color !== DEFAULT_COLOR ||
-      fontSize !== DEFAULT_FONT_SIZE ||
-      position !== DEFAULT_POSITION,
-  )
+  useWidgetDirty(instanceId, file !== null)
 
   const publishUrls = (urls: string[]) => {
     for (const url of urlsRef.current) URL.revokeObjectURL(url)

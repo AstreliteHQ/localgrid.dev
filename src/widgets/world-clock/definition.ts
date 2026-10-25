@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { Globe } from 'lucide-react'
+import * as v from 'valibot'
 import type { WidgetDefinition } from '@/widgets/types'
 
 export const worldClockDefinition: WidgetDefinition = {
@@ -11,5 +12,6 @@ export const worldClockDefinition: WidgetDefinition = {
   defaultSize: { w: 5, h: 4 },
   minSize: { w: 4, h: 4 },
   component: lazy(() => import('./WorldClockWidget')),
+  configSchema: v.object({ selectedIds: v.array(v.string()) }),
   keywords: ['world clock', 'timezone', 'time zone', 'converter', 'utc', 'map', 'city', 'meeting planner', 'timeline'],
 }

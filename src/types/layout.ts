@@ -1,6 +1,6 @@
-/** A single widget placed on a dashboard: which widget it is, and its
- * position/size in grid units. This is exactly what gets persisted and
- * shared — never the widget's own internal/live state. */
+/** A single widget placed on a dashboard: which widget it is, its
+ * position/size in grid units, and its optional configuration. This is
+ * exactly what gets persisted and shared, never the widget's live state. */
 export interface DashboardWidgetInstance {
   instanceId: string
   widgetId: string
@@ -8,6 +8,9 @@ export interface DashboardWidgetInstance {
   y: number
   w: number
   h: number
+  /** Setup fields written by `useWidgetConfig`, validated against the
+   * widget's `configSchema`. See docs/widget-architecture.md. */
+  config?: Record<string, unknown>
 }
 
 /** A named tab — its own independent grid of widgets. */
