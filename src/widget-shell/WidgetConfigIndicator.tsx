@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { BookmarkCheck } from 'lucide-react'
+import { DataTree } from '@/components/data-tree/DataTree'
+import { buildJsonTree } from '@/components/data-tree/treeModel'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
-import { useHasWidgetConfig } from '@/widgets/widgetConfig'
+import { findWidgetInstance, useHasWidgetConfig } from '@/widgets/widgetConfig'
 
 interface WidgetConfigIndicatorProps {
   instanceId: string
@@ -12,9 +14,11 @@ interface WidgetConfigIndicatorProps {
 
 /** Shown in a pinned widget's title bar while it holds saved configuration.
  * Deliberately distinct from the dirty dot: config is never lost on reload.
- * Clicking it offers the only per-widget way to reset that configuration. */
+ * Clicking it shows the stored configuration and offers the only per-widget
+ * way to reset it. */
 export function WidgetConfigIndicator({ instanceId, title }: WidgetConfigIndicatorProps) {
   const hasConfig = useHasWidgetConfig(instanceId)
+  const config = useDashboardStore((state) => findWidgetInstance(state.dashboards, instanceId)?.config)
   const resetWidgetConfig = useDashboardStore((state) => state.resetWidgetConfig)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -36,12 +40,20 @@ export function WidgetConfigIndicator({ instanceId, title }: WidgetConfigIndicat
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reset {title} configuration?</DialogTitle>
+            <DialogTitle>{title} configuration</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">Restores the default settings.</p>
+          <div className="max-h-64 overflow-y-auto rounded-md border border-border p-2">
+            <DataTree
+              root={buildJsonTree(config)}
+              label={`${title} configuration`}
+              toolbar={false}
+              statusBar={false}
+              scroll={false}
+            />
+          </div>
           <DialogFooter>
             <Button variant="ghost" size="sm" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              Close
             </Button>
             <Button
               size="sm"

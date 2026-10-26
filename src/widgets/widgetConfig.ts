@@ -16,8 +16,10 @@ export function findWidgetInstance(dashboards: Dashboard[], instanceId: string):
 }
 
 function isValidField(widgetId: string, field: string, value: unknown): boolean {
-  const entry = getWidgetDefinition(widgetId)?.configSchema?.entries[field]
-  return entry !== undefined && v.safeParse(entry, value).success
+  const entries = getWidgetDefinition(widgetId)?.configSchema?.entries
+  // Own keys only: an inherited name like `toString` is not a schema entry.
+  if (!entries || !Object.hasOwn(entries, field)) return false
+  return v.safeParse(entries[field], value).success
 }
 
 /** Keeps only the fields that match the widget's `configSchema`. Returns

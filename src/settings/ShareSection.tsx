@@ -2,6 +2,8 @@ import { useId, useMemo, useRef, useState } from 'react'
 import { QRCodeCanvas } from 'qrcode.react'
 import { AlertTriangle, Check, Copy, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { DataTree } from '@/components/data-tree/DataTree'
+import { buildJsonTree } from '@/components/data-tree/treeModel'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toWire, type WireWorkspace } from '@/dashboard/layoutCodec'
@@ -21,7 +23,7 @@ const QR_LENGTH_LIMIT = 1500
 export function ShareSection() {
   const dashboards = useDashboardStore((state) => state.dashboards)
   const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
-  const [includeLayout, setIncludeLayout] = useState(false)
+  const [includeLayout, setIncludeLayout] = useState(true)
   const [includeConfig, setIncludeConfig] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const qrContainerRef = useRef<HTMLDivElement>(null)
@@ -167,9 +169,15 @@ function SharePreview({ wire }: { wire: WireWorkspace | null }) {
                   {widget.w}×{widget.h} at ({widget.x}, {widget.y})
                 </span>
                 {widget.c && (
-                  <pre className="mt-1 overflow-x-auto rounded bg-muted p-2 font-mono text-[11px] text-foreground">
-                    {JSON.stringify(widget.c, null, 2)}
-                  </pre>
+                  <div className="mt-1 rounded bg-muted p-1">
+                    <DataTree
+                      root={buildJsonTree(widget.c)}
+                      label={`${getWidgetDefinition(widget.wid)?.name ?? widget.wid} configuration`}
+                      toolbar={false}
+                      statusBar={false}
+                      scroll={false}
+                    />
+                  </div>
                 )}
               </li>
             ))}

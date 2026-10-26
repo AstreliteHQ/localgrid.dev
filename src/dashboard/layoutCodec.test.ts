@@ -162,6 +162,25 @@ describe('layoutCodec: widget configuration', () => {
     }
   })
 
+  it('ignores config fields named after inherited properties without throwing', () => {
+    const encoded = encodeRaw({
+      v: 1,
+      a: 'd',
+      d: [
+        {
+          id: 'd',
+          n: 'D',
+          ws: [{ wid: 'world-clock', x: 0, y: 0, w: 5, h: 4, c: { toString: 'x', constructor: 1 } }],
+        },
+      ],
+    })
+
+    let result: ReturnType<typeof decodeWorkspace> | undefined
+    expect(() => (result = decodeWorkspace(encoded))).not.toThrow()
+    expect(result?.ok).toBe(true)
+    if (result?.ok) expect(result.workspace.dashboards[0].widgets[0]).not.toHaveProperty('config')
+  })
+
   it('omits config from the encoded payload by default', () => {
     const configured: Dashboard[] = [
       {

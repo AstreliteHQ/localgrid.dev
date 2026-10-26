@@ -93,7 +93,7 @@ export function GeneralSection() {
         <dl className="grid grid-cols-3 gap-2 text-xs">
           <Stat label="Dashboards" value={`${dashboardCount} / ${MAX_DASHBOARDS}`} />
           <Stat label="Widgets" value={String(widgetCount)} />
-          <Stat label="Configured widgets" value={String(configuredCount)} />
+          <Stat label="Widget configuration"value={String(configuredCount)} />
         </dl>
       </section>
 

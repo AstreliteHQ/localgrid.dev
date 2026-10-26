@@ -63,19 +63,15 @@ describe('SettingsDialog', () => {
     expect(screen.getByRole('link', { name: /about page/i }).getAttribute('href')).toMatch(/about\.html$/)
   })
 
-  it('shares only the address by default, and configuration only once layout is on', async () => {
+  it('shares the layout by default, configuration on demand, and the address alone without layout', async () => {
     const user = userEvent.setup()
     useSettingsStore.getState().openSettings('share')
     render(<SettingsDialog />)
 
     const link = screen.getByRole('textbox', { name: /share link/i }) as HTMLInputElement
+    const layoutToggle = screen.getByRole('checkbox', { name: /include layout/i })
     const configToggle = screen.getByRole('checkbox', { name: /include widget configuration/i })
-    expect(new URL(link.value).hash).toBe('')
-    expect(screen.getByText(/link to localgrid only/i)).toBeInTheDocument()
-    expect(configToggle).toBeDisabled()
-
-    await user.click(screen.getByRole('checkbox', { name: /include layout/i }))
-
+    expect(layoutToggle).toBeChecked()
     expect(new URL(link.value).hash).toMatch(/^#layout=/)
     expect(screen.getByText('World Clock')).toBeInTheDocument()
     expect(screen.queryByText(/"paris"/)).not.toBeInTheDocument()
@@ -83,5 +79,11 @@ describe('SettingsDialog', () => {
     await user.click(configToggle)
 
     expect(screen.getByText(/"paris"/)).toBeInTheDocument()
+
+    await user.click(layoutToggle)
+
+    expect(new URL(link.value).hash).toBe('')
+    expect(screen.getByText(/link to localgrid only/i)).toBeInTheDocument()
+    expect(configToggle).toBeDisabled()
   })
 })
