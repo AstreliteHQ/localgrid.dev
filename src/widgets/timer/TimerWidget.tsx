@@ -7,6 +7,7 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
+import { useWidgetConfig } from '@/widgets/widgetConfig'
 import type { WidgetProps } from '@/widgets/types'
 import {
   clampPart,
@@ -61,9 +62,10 @@ export default function TimerWidget({ instanceId }: WidgetProps) {
   const [swStartedAt, setSwStartedAt] = useWidgetState<number | null>(instanceId, 'swStartedAt', null)
   const [swLaps, setSwLaps] = useWidgetState<number[]>(instanceId, 'swLaps', [])
 
-  const [cdHours, setCdHours] = useWidgetState(instanceId, 'cdHours', 0)
-  const [cdMinutes, setCdMinutes] = useWidgetState(instanceId, 'cdMinutes', 5)
-  const [cdSeconds, setCdSeconds] = useWidgetState(instanceId, 'cdSeconds', 0)
+  // The countdown preset is configuration; the running countdown is state.
+  const [cdHours, setCdHours] = useWidgetConfig(instanceId, 'cdHours', 0)
+  const [cdMinutes, setCdMinutes] = useWidgetConfig(instanceId, 'cdMinutes', 5)
+  const [cdSeconds, setCdSeconds] = useWidgetConfig(instanceId, 'cdSeconds', 0)
   const [cdRemainingMs, setCdRemainingMs] = useWidgetState(instanceId, 'cdRemainingMs', 0)
   const [cdEndAt, setCdEndAt] = useWidgetState<number | null>(instanceId, 'cdEndAt', null)
   const [cdRunning, setCdRunning] = useWidgetState(instanceId, 'cdRunning', false)

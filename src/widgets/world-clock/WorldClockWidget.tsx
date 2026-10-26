@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
+import { useWidgetConfig } from '@/widgets/widgetConfig'
 import type { WidgetProps } from '@/widgets/types'
 import { WORLD_CITIES, defaultCityIds, getCity, type City } from './cities'
 import {
@@ -51,18 +52,12 @@ function toLocalDatetimeInputValue(date: Date): string {
   )}`
 }
 
-function sameIds(a: string[], b: string[]): boolean {
-  return a.length === b.length && a.every((id) => b.includes(id))
-}
-
 export default function WorldClockWidget({ instanceId }: WidgetProps) {
-  const [selectedIds, setSelectedIds] = useWidgetState<string[]>(instanceId, 'selectedIds', () =>
+  // Configuration: survives reloads and "Clear state", so it stays out of
+  // the dirty check below.
+  const [selectedIds, setSelectedIds] = useWidgetConfig<string[]>(instanceId, 'selectedIds', () =>
     defaultCityIds(LOCAL_TIME_ZONE),
   )
-  // Same "capture the mount-time default once" trick TimestampConverterWidget
-  // uses for its epoch — there's no fixed constant to diff against here
-  // either, since the default itself depends on the browser's time zone.
-  const [initialSelectedIds] = useWidgetState<string[]>(instanceId, 'initialSelectedIds', selectedIds)
   // A display preference rather than content, so it stays out of the
   // dirty check below.
   const [view, setView] = useWidgetState<ViewMode>(instanceId, 'view', 'map')
@@ -97,7 +92,7 @@ export default function WorldClockWidget({ instanceId }: WidgetProps) {
   // reliably trigger the re-render that value change needs.
   const [dateFieldFocused, setDateFieldFocused] = useState(false)
 
-  useWidgetDirty(instanceId, !sameIds(selectedIds, initialSelectedIds) || referenceMode === 'custom')
+  useWidgetDirty(instanceId, referenceMode === 'custom')
 
   const [liveNow, setLiveNow] = useState(() => Date.now())
   useEffect(() => {

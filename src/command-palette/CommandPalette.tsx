@@ -7,7 +7,7 @@ import { groupWidgetsByCategory } from '@/widgets/categories'
 import { matchesQuery } from '@/widgets/matchesQuery'
 import { WIDGET_LIST } from '@/widgets/registry'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
-import { ShareModal } from '@/dashboard/ShareModal'
+import { useSettingsStore } from '@/settings/useSettingsStore'
 import { Button } from '@/components/ui/button'
 import { useCommandPaletteStore } from './useCommandPaletteStore'
 
@@ -30,14 +30,14 @@ const GROUP_HEADING_CLASS =
  * Each row does double duty: selecting it (Enter, or clicking the row)
  * previews the widget fullscreen without pinning it; the Add button pins it
  * to the active dashboard directly, no separate "browse and add" modal
- * needed. Reuses the share modal for its own action rather than duplicating
- * that logic. */
+ * needed. Its Share action opens the Settings dialog on the Share section
+ * rather than duplicating that logic. */
 export function CommandPalette() {
   const open = useCommandPaletteStore((state) => state.open)
   const setOpen = useCommandPaletteStore((state) => state.setOpen)
   const toggle = useCommandPaletteStore((state) => state.toggle)
   const [query, setQuery] = useState('')
-  const [shareOpen, setShareOpen] = useState(false)
+  const openSettings = useSettingsStore((state) => state.openSettings)
   const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
   const addWidget = useDashboardStore((state) => state.addWidget)
   const openEphemeral = useOverlayStore((state) => state.openEphemeral)
@@ -83,7 +83,7 @@ export function CommandPalette() {
             <Command.Item
               onSelect={() => {
                 setOpen(false)
-                setShareOpen(true)
+                openSettings('share')
               }}
               className={ITEM_CLASS}
             >
@@ -138,8 +138,6 @@ export function CommandPalette() {
           ))}
         </Command.List>
       </Command.Dialog>
-
-      <ShareModal open={shareOpen} onClose={() => setShareOpen(false)} />
     </>
   )
 }

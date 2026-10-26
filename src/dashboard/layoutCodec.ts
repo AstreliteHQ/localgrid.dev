@@ -2,6 +2,7 @@ import LZString from 'lz-string'
 import { nanoid } from 'nanoid'
 import * as v from 'valibot'
 import { getWidgetDefinition } from '@/widgets/registry'
+import { sanitizeConfig } from '@/widgets/widgetConfig'
 import { decompressLzString } from '@/lib/lzString'
 import {
   DASHBOARD_LAYOUT_VERSION,
@@ -40,6 +41,10 @@ const WireWidgetSchema = v.object({
   y: v.number(),
   w: v.number(),
   h: v.number(),
+  // Widget configuration, only present when the sender opted in. Optional
+  // so links made before it existed still decode. Validated per widget in
+  // `finalizeWorkspace`, not here.
+  c: v.optional(v.record(v.string(), v.unknown())),
 })
 
 const WireDashboardSchema = v.object({
@@ -56,9 +61,16 @@ const WireWorkspaceSchema = v.object({
   a: v.string(),
 })
 
-type WireWorkspace = v.InferOutput<typeof WireWorkspaceSchema>
+export type WireWorkspace = v.InferOutput<typeof WireWorkspaceSchema>
 
-function toWire(dashboards: Dashboard[], activeDashboardId: string): WireWorkspace {
+export interface EncodeOptions {
+  /** Adds each widget's `config` as `c`. Off unless the user opts in. */
+  includeConfig?: boolean
+}
+
+/** The exact payload a share link carries, before compression. Exported so
+ * the share preview renders the same data that gets encoded. */
+export function toWire(dashboards: Dashboard[], activeDashboardId: string, options: EncodeOptions = {}): WireWorkspace {
   return {
     v: SHARE_WIRE_VERSION,
     a: activeDashboardId,
@@ -71,6 +83,7 @@ function toWire(dashboards: Dashboard[], activeDashboardId: string): WireWorkspa
         y: widget.y,
         w: widget.w,
         h: widget.h,
+        ...(options.includeConfig && widget.config && Object.keys(widget.config).length > 0 && { c: widget.config }),
       })),
     })),
   }
@@ -92,6 +105,7 @@ function fromWire(wire: WireWorkspace): WorkspaceLayoutV2 {
         y: widget.y,
         w: widget.w,
         h: widget.h,
+        ...(widget.c && { config: widget.c }),
       })),
     })),
   }
@@ -115,20 +129,30 @@ const LegacyLayoutSchema = v.object({
 
 /** Workspace -> compressed, URL-safe string for the `#layout=` fragment,
  * via the compact wire shape above (not the storage shape verbatim). */
-export function encodeWorkspace(dashboards: Dashboard[], activeDashboardId: string): string {
-  const wire = toWire(dashboards, activeDashboardId)
+export function encodeWorkspace(
+  dashboards: Dashboard[],
+  activeDashboardId: string,
+  options: EncodeOptions = {},
+): string {
+  const wire = toWire(dashboards, activeDashboardId, options)
   return LZString.compressToEncodedURIComponent(JSON.stringify(wire))
 }
 
 export type DecodeResult = { ok: true; workspace: WorkspaceLayoutV2 } | { ok: false; error: string }
 
 /** Drops any widget instance whose id no longer exists in the registry
- * (e.g. a stale link after a widget was renamed or removed), and repairs
+ * (e.g. a stale link after a widget was renamed or removed), strips config
+ * fields that don't match the widget's schema, and repairs
  * `activeDashboardId` if it doesn't point at a surviving dashboard. */
 function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
   const dashboards = workspace.dashboards.map((dashboard) => ({
     ...dashboard,
-    widgets: dashboard.widgets.filter((widget) => getWidgetDefinition(widget.widgetId)),
+    widgets: dashboard.widgets
+      .filter((widget) => getWidgetDefinition(widget.widgetId))
+      .map(({ config, ...widget }) => {
+        const sanitized = sanitizeConfig(widget.widgetId, config)
+        return sanitized ? { ...widget, config: sanitized } : widget
+      }),
   }))
   if (dashboards.length === 0) {
     return { ok: false, error: "This share link doesn't contain any dashboards." }

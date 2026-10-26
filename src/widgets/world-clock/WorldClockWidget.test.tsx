@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useDashboardStore } from '@/dashboard/useDashboardStore'
+import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import WorldClockWidget from './WorldClockWidget'
 
 // Default rows depend on the host's own time zone (see defaultCityIds), so
@@ -280,5 +282,29 @@ describe('WorldClockWidget', () => {
 
     // One frame for the column, shared by every city row.
     expect(screen.getAllByTestId('timeline-reference-hour')).toHaveLength(1)
+  })
+})
+
+describe('WorldClockWidget configuration', () => {
+  it('saves the city list on the pinned instance and keeps it through Clear state', async () => {
+    const user = userEvent.setup()
+    useDashboardStore.setState({
+      dashboards: [
+        { id: 'd', name: 'D', widgets: [{ instanceId: 'pinned', widgetId: 'world-clock', x: 0, y: 0, w: 5, h: 4 }] },
+      ],
+      activeDashboardId: 'd',
+    })
+    const { unmount } = render(<WorldClockWidget instanceId="pinned" mode="grid" />)
+
+    const { name } = await pickFirstAvailableCity(user)
+    await user.click(screen.getByRole('button', { name: /^add$/i }))
+    const saved = useDashboardStore.getState().dashboards[0].widgets[0].config?.selectedIds as string[]
+    expect(saved.length).toBeGreaterThan(0)
+
+    unmount()
+    useWidgetStateStore.getState().resetInstances(['pinned'])
+    render(<WorldClockWidget instanceId="pinned" mode="grid" />)
+
+    expect(screen.getByText(name)).toBeInTheDocument()
   })
 })

@@ -130,3 +130,68 @@ describe('layoutCodec — backward compatibility with pre-tabs share links', () 
     }
   })
 })
+
+describe('layoutCodec: widget configuration', () => {
+  function encodeRaw(payload: unknown): string {
+    return LZString.compressToEncodedURIComponent(JSON.stringify(payload))
+  }
+
+  it('strips config fields that do not match the widget schema', () => {
+    const encoded = encodeRaw({
+      v: 1,
+      a: 'd',
+      d: [
+        {
+          id: 'd',
+          n: 'D',
+          ws: [
+            { wid: 'watermark', x: 0, y: 0, w: 4, h: 6, c: { text: 'Draft', opacity: 'high', script: '<b>' } },
+            { wid: 'uuid-generator', x: 0, y: 6, w: 2, h: 2, c: { version: 'v4' } },
+          ],
+        },
+      ],
+    })
+
+    const result = decodeWorkspace(encoded)
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      const [watermark, uuid] = result.workspace.dashboards[0].widgets
+      expect(watermark.config).toEqual({ text: 'Draft' })
+      expect(uuid).not.toHaveProperty('config')
+    }
+  })
+
+  it('ignores config fields named after inherited properties without throwing', () => {
+    const encoded = encodeRaw({
+      v: 1,
+      a: 'd',
+      d: [
+        {
+          id: 'd',
+          n: 'D',
+          ws: [{ wid: 'world-clock', x: 0, y: 0, w: 5, h: 4, c: { toString: 'x', constructor: 1 } }],
+        },
+      ],
+    })
+
+    let result: ReturnType<typeof decodeWorkspace> | undefined
+    expect(() => (result = decodeWorkspace(encoded))).not.toThrow()
+    expect(result?.ok).toBe(true)
+    if (result?.ok) expect(result.workspace.dashboards[0].widgets[0]).not.toHaveProperty('config')
+  })
+
+  it('omits config from the encoded payload by default', () => {
+    const configured: Dashboard[] = [
+      {
+        id: 'd',
+        name: 'D',
+        widgets: [{ instanceId: 'a', widgetId: 'timer', x: 0, y: 0, w: 2, h: 3, config: { cdMinutes: 15 } }],
+      },
+    ]
+
+    const json = LZString.decompressFromEncodedURIComponent(encodeWorkspace(configured, 'd'))
+
+    expect(JSON.parse(json).d[0].ws[0]).not.toHaveProperty('c')
+  })
+})

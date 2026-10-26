@@ -376,3 +376,53 @@ describe('migrateDashboardState — v1 to v2 upgrade', () => {
     expect(migrateDashboardState(current, 2)).toBe(current)
   })
 })
+
+describe('useDashboardStore: widget configuration', () => {
+  function widgetsOf(dashboardId: string) {
+    return useDashboardStore.getState().dashboards.find((d) => d.id === dashboardId)!.widgets
+  }
+
+  beforeEach(() => {
+    useDashboardStore.setState({
+      dashboards: [
+        {
+          id: DASHBOARD_A,
+          name: 'A',
+          widgets: [{ instanceId: 'clock', widgetId: 'world-clock', x: 0, y: 0, w: 5, h: 4 }],
+        },
+        {
+          id: DASHBOARD_B,
+          name: 'B',
+          widgets: [{ instanceId: 'timer', widgetId: 'timer', x: 0, y: 0, w: 2, h: 3, config: { cdMinutes: 25 } }],
+        },
+      ],
+      activeDashboardId: DASHBOARD_A,
+    })
+  })
+
+  it('setWidgetConfig finds the instance on any dashboard and leaves others untouched', () => {
+    const before = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)
+
+    useDashboardStore.getState().setWidgetConfig('clock', 'selectedIds', ['paris'])
+
+    expect(widgetsOf(DASHBOARD_A)[0].config).toEqual({ selectedIds: ['paris'] })
+    expect(useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)).toBe(before)
+  })
+
+  it('duplicateWidget copies the configuration', () => {
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_B, 'timer')
+
+    const [original, copy] = widgetsOf(DASHBOARD_B)
+    expect(copy.instanceId).not.toBe(original.instanceId)
+    expect(copy.config).toEqual({ cdMinutes: 25 })
+  })
+
+  it('resetAllWidgetConfig drops configuration on every dashboard', () => {
+    useDashboardStore.getState().setWidgetConfig('clock', 'selectedIds', ['paris'])
+
+    useDashboardStore.getState().resetAllWidgetConfig()
+
+    expect(widgetsOf(DASHBOARD_A)[0]).not.toHaveProperty('config')
+    expect(widgetsOf(DASHBOARD_B)[0]).not.toHaveProperty('config')
+  })
+})

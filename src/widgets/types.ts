@@ -1,5 +1,6 @@
 import type { ComponentType, LazyExoticComponent } from 'react'
 import type { LucideIcon } from 'lucide-react'
+import type * as v from 'valibot'
 
 export type WidgetCategory =
   | 'encoding'
@@ -41,4 +42,11 @@ export interface WidgetDefinition {
   component: LazyExoticComponent<ComponentType<WidgetProps>>
   /** Extra search terms surfaced in the tool browser / command palette. */
   keywords?: string[]
+  /** Fields this widget persists as configuration via `useWidgetConfig`.
+   * Only for setup that is tedious to redo and then used passively; see
+   * docs/widget-architecture.md. Field names are a storage contract: never
+   * rename them. */
+  configSchema?: WidgetConfigSchema
 }
+
+export type WidgetConfigSchema = v.ObjectSchema<v.ObjectEntries, undefined>

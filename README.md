@@ -50,9 +50,11 @@ from the tool browser or the command palette (`Cmd/Ctrl+K`) without pinning it.
 
 ### Save and share
 
-Layouts persist to `localStorage` automatically, and can be shared with a teammate through a
-URL or QR code. Only the layout travels, not live widget content, and opening a shared link
-always asks before it touches your local dashboard.
+Layouts persist to `localStorage` automatically, and so does the setup of widgets that are
+tedious to redo, like World Clock cities or a watermark preset. From **Settings > Share** you
+choose what a link carries: just the address, the layout, or the layout plus widget setup, with
+a full preview of the data before you copy it. Live widget content never travels, and opening a
+shared link always asks before it touches your local dashboard.
 
 ## Widgets
 
@@ -160,6 +162,11 @@ and the fullscreen overlay each mount their own independent copy of the same com
 read and write the same entry in a shared, instanceId-keyed store (`useWidgetState`), so
 switching between the two is just two mounts of the same state rather than a portal carrying
 one DOM tree between them. See `src/overlay/WidgetOverlay.tsx`.
+
+Widgets keep three kinds of data: layout (position and size), configuration (setup that
+persists and can be shared, via `useWidgetConfig`) and state (in-memory content, via
+`useWidgetState`). How each one is stored, reset and shared is described in
+[docs/widget-architecture.md](docs/widget-architecture.md).
 
 ## Testing
 
