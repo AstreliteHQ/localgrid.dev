@@ -46,6 +46,7 @@ import { mergePdfsDefinition } from './merge-pdfs/definition'
 import { splitPdfDefinition } from './split-pdf/definition'
 import { watermarkDefinition } from './watermark/definition'
 import { pngOptimizerDefinition } from './png-optimizer/definition'
+import { imageMetadataDefinition } from './image-metadata/definition'
 import { codeSnippetDefinition } from './code-snippet/definition'
 import { jsonSchemaValidatorDefinition } from './json-schema-validator/definition'
 import { semverDefinition } from './semver/definition'
@@ -108,6 +109,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   splitPdfDefinition,
   watermarkDefinition,
   pngOptimizerDefinition,
+  imageMetadataDefinition,
   codeSnippetDefinition,
   jsonSchemaValidatorDefinition,
   semverDefinition,
