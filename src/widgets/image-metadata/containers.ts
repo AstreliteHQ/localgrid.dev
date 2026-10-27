@@ -119,12 +119,16 @@ function classifyJpegSegment(segment: JpegSegment): JpegBlock | null {
 
 function readJpegBlocks(bytes: Uint8Array): MetadataBlocks {
   const blocks: MetadataBlocks = { exif: null, xmp: null, photoshop: null }
+  // Photoshop splits a resource block too large for one segment across
+  // several APP13 segments, which readers join back together.
+  const photoshop: Uint8Array[] = []
   for (const segment of readJpeg(bytes).segments) {
     const kind = classifyJpegSegment(segment)
     if (kind === 'exif') blocks.exif ??= segment.payload.slice(EXIF_HEADER.length)
     else if (kind === 'xmp') blocks.xmp ??= decoder.decode(segment.payload.subarray(XMP_HEADER.length))
-    else if (kind === 'photoshop') blocks.photoshop ??= segment.payload.slice(PHOTOSHOP_HEADER.length)
+    else if (kind === 'photoshop') photoshop.push(segment.payload.subarray(PHOTOSHOP_HEADER.length))
   }
+  if (photoshop.length > 0) blocks.photoshop = concat(photoshop)
   return blocks
 }
 
@@ -160,7 +164,13 @@ function writeJpegBlocks(bytes: Uint8Array, blocks: MetadataBlocks): Uint8Array 
     } else if (kind === 'xmp' && blocks.xmp !== null) {
       segments.push({ marker: 0xe1, payload: jpegPayload(XMP_HEADER, encoder.encode(blocks.xmp), 'XMP') })
     } else if (kind === 'photoshop' && blocks.photoshop) {
-      segments.push({ marker: 0xed, payload: jpegPayload(PHOTOSHOP_HEADER, blocks.photoshop, 'IPTC') })
+      const step = MAX_JPEG_PAYLOAD - PHOTOSHOP_HEADER.length
+      for (let at = 0; at < blocks.photoshop.length; at += step) {
+        segments.push({
+          marker: 0xed,
+          payload: jpegPayload(PHOTOSHOP_HEADER, blocks.photoshop.subarray(at, at + step), 'IPTC'),
+        })
+      }
     }
   }
   return writeJpeg({ segments, scan: file.scan })

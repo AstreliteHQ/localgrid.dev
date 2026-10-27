@@ -57,6 +57,25 @@ describe('parseExif / serializeExif', () => {
     )
   })
 
+  it('skips a broken sub-IFD and keeps the rest of the block', () => {
+    const bytes = sampleExif()
+    const data = parseExif(bytes)
+    const view = new DataView(bytes.buffer)
+    // Point the GPS IFD pointer in IFD0 at the last two bytes, claiming
+    // far more entries than fit.
+    const count = view.getUint16(8, true)
+    for (let index = 0; index < count; index += 1) {
+      const at = 10 + index * 12
+      if (view.getUint16(at, true) === 0x8825) view.setUint32(at + 8, bytes.length - 2, true)
+    }
+    view.setUint16(bytes.length - 2, 0xffff, true)
+    const broken = parseExif(bytes)
+    expect(broken.entries.some((entry) => entry.ifd === 'gps')).toBe(false)
+    expect(broken.entries.filter((entry) => entry.ifd === 'ifd0')).toEqual(
+      data.entries.filter((entry) => entry.ifd === 'ifd0'),
+    )
+  })
+
   it('rejects data that is not TIFF', () => {
     expect(() => parseExif(new Uint8Array(20))).toThrow(/malformed/)
   })

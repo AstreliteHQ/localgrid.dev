@@ -98,12 +98,22 @@ export function parseExif(bytes: Uint8Array): ExifData {
     if (thumbOffset >= 0 && thumbLength > 0 && thumbOffset + thumbLength <= bytes.length) {
       thumbnail = bytes.slice(thumbOffset, thumbOffset + thumbLength)
     }
-    for (const [pointer, child] of pointers) if (pointer > 0) readIfd(pointer, child)
+    for (const [pointer, child] of pointers) if (pointer > 0) readChild(pointer, child)
     return view.getUint32(offset + 2 + count * 12, littleEndian)
   }
 
+  // A broken sub-IFD is dropped like a broken entry, so the rest of the
+  // block (GPS in particular) can still be listed and stripped.
+  const readChild = (offset: number, ifd: ExifIfd) => {
+    try {
+      readIfd(offset, ifd)
+    } catch {
+      // Skipped.
+    }
+  }
+
   const next = readIfd(view.getUint32(4, littleEndian), 'ifd0')
-  if (next > 0) readIfd(next, 'ifd1')
+  if (next > 0) readChild(next, 'ifd1')
   return { littleEndian, entries, thumbnail }
 }
 

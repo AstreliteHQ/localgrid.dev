@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { readChunks } from '@/widgets/png-optimizer/png'
 import { detectContainer, readMetadataBlocks, writeMetadataBlocks, type ContainerFormat } from './containers'
+import { parsePhotoshopResources, serializePhotoshopResources } from './iptc'
 import { buildJpeg, buildPng, buildWebp, SAMPLE_XMP, sampleExif, samplePhotoshop } from './testImages'
 
 const builders: Record<ContainerFormat, typeof buildJpeg> = { jpeg: buildJpeg, png: buildPng, webp: buildWebp }
@@ -52,6 +53,20 @@ describe('jpeg specifics', () => {
     const bytes = buildJpeg({ photoshop })
     expect(readMetadataBlocks(bytes, 'jpeg').photoshop).toEqual(photoshop)
     expect(writeMetadataBlocks(bytes, 'jpeg', { exif: null, xmp: null, photoshop: null })).toEqual(buildJpeg())
+  })
+
+  it('splits a large Photoshop block across APP13 segments and joins it back', () => {
+    const photoshop = serializePhotoshopResources([
+      { id: 0x040c, name: new Uint8Array(0), data: new Uint8Array(100_000).fill(7) },
+      ...parsePhotoshopResources(samplePhotoshop()),
+    ])
+    const split = writeMetadataBlocks(buildJpeg({ photoshop: samplePhotoshop() }), 'jpeg', {
+      exif: null,
+      xmp: null,
+      photoshop,
+    })
+    expect(readMetadataBlocks(split, 'jpeg').photoshop).toEqual(photoshop)
+    expect(writeMetadataBlocks(split, 'jpeg', readMetadataBlocks(split, 'jpeg'))).toEqual(split)
   })
 
   it('refuses a block too large for one segment', () => {
