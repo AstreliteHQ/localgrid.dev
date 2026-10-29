@@ -1,8 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { EditorView } from '@codemirror/view'
-import { AlertTriangle, Check, Clipboard, Code2, Download } from 'lucide-react'
+import { AlertTriangle, Check, Code2, Copy, Download } from 'lucide-react'
 import { CodeEditor } from '@/components/CodeEditor'
-import { CopyButton } from '@/components/CopyButton'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Combobox,
@@ -271,7 +270,6 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
           <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
           {hasCode && result && (
             <div className="flex flex-wrap items-center gap-1">
-              <CopyButton value={code} label="" ariaLabel="Copy code" className="size-7 gap-0 p-0" />
               <Button
                 type="button"
                 variant="ghost"
@@ -290,7 +288,7 @@ export default function CodeSnippetWidget({ instanceId }: WidgetProps) {
                 ) : copyStatus === 'failed' ? (
                   <AlertTriangle className="size-3.5" />
                 ) : (
-                  <Clipboard className="size-3.5" />
+                  <Copy className="size-3.5" />
                 )}
                 <span className="sr-only">
                   {copyStatus === 'copied' ? 'Copied' : copyStatus === 'failed' ? 'Copy failed' : 'Copy image'}

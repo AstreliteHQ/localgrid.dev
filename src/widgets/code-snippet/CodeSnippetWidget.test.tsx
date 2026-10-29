@@ -191,16 +191,12 @@ describe('CodeSnippetWidget', () => {
     expect(options.theme.id).toBe('nord')
   })
 
-  it('offers a "Copy code" button that copies the raw code text, not the image', async () => {
-    const user = userEvent.setup()
-    const writeText = vi.fn().mockResolvedValue(undefined)
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+  it('offers a single copy button, for the image', async () => {
     render(<CodeSnippetWidget instanceId="test" mode="grid" />)
     await screen.findByAltText('Syntax-highlighted code preview')
 
-    await user.click(screen.getByRole('button', { name: /copy code/i }))
-
-    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('function greet'))
+    expect(screen.getAllByRole('button', { name: /copy/i })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /copy code/i })).not.toBeInTheDocument()
   })
 
   it('copies the rendered image to the clipboard', async () => {

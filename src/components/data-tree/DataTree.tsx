@@ -429,8 +429,10 @@ export function DataTree({ root, label, toolbar = true, statusBar = true, scroll
               </span>
               <span className="shrink-0">{statsLine(selectedNode)}</span>
               <div className="ml-auto flex shrink-0 items-center">
-                <CopyButton value={selectedNode.path} label="" ariaLabel="Copy path" className="px-1 py-0.5" />
-                <CopyButton value={copyText(selectedNode)} label="" ariaLabel="Copy value" className="px-1 py-0.5" />
+                {/* Two copy actions side by side, so each carries a short
+                 * label: icon-only they looked identical. */}
+                <CopyButton value={selectedNode.path} label="Path" className="px-1 py-0.5" />
+                <CopyButton value={copyText(selectedNode)} label="Value" className="px-1 py-0.5" />
               </div>
             </>
           ) : (
