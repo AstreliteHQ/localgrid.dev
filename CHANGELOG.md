@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.9.0...v0.10.0) (2026-10-29)
+
+
+### Features
+
+* add widget configuration and settings menu ([#133](https://github.com/AstreliteHQ/localgrid.dev/issues/133)) ([b853315](https://github.com/AstreliteHQ/localgrid.dev/commit/b853315ff5570f3a7a73031fea6d05cbc590a33a))
+* **widgets:** add Image Metadata viewer and editor widget ([#135](https://github.com/AstreliteHQ/localgrid.dev/issues/135)) ([41e1c54](https://github.com/AstreliteHQ/localgrid.dev/commit/41e1c543312ee2d44ddd102447f0de0739c331ba))
+* **widgets:** align clipboard buttons across Notes, Code Snippet and tree view ([#136](https://github.com/AstreliteHQ/localgrid.dev/issues/136)) ([1320412](https://github.com/AstreliteHQ/localgrid.dev/commit/1320412a38cee6ac2d2586bb62164022c477c7ff))
+
 ## [0.9.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.8.0...v0.9.0) (2026-10-23)
 
 
