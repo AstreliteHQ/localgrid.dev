@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Download } from 'lucide-react'
 import { CodeEditor } from '@/components/CodeEditor'
+import { CopyButton } from '@/components/CopyButton'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
@@ -41,20 +42,6 @@ export default function NotesWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <div className="flex shrink-0 items-center justify-end">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={handleDownload}
-          disabled={!content}
-          title={`Download as ${DOWNLOAD_FILENAME}`}
-          className="h-auto gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
-        >
-          <Download className="size-3.5" />
-          Download
-        </Button>
-      </div>
-
       <CodeEditor
         value={content}
         onChange={setContent}
@@ -69,9 +56,29 @@ export default function NotesWidget({ instanceId }: WidgetProps) {
         onOpenChange={setStatsOpen}
         className="shrink-0 rounded-md border border-border bg-background px-2 py-1.5 dark:bg-muted/40"
       >
-        <CollapsibleTrigger>
-          <span className="font-medium">Statistics</span>
-        </CollapsibleTrigger>
+        {/* Copy and download share the statistics bar's header row rather
+         * than a row of their own above the editor, which leaves the editor
+         * all the remaining height. */}
+        <div className="flex items-center gap-1">
+          <CollapsibleTrigger className="min-w-0 flex-1">
+            <span className="font-medium">Statistics</span>
+          </CollapsibleTrigger>
+          <div className="flex shrink-0 items-center border-l border-border pl-1">
+            <CopyButton value={content} label="" ariaLabel="Copy note" className="px-1 py-0.5" />
+            <Button
+              type="button"
+              size="icon-xs"
+              variant="ghost"
+              onClick={handleDownload}
+              disabled={!content}
+              aria-label={`Download as ${DOWNLOAD_FILENAME}`}
+              title={`Download as ${DOWNLOAD_FILENAME}`}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Download className="size-3.5" />
+            </Button>
+          </div>
+        </div>
         <CollapsibleContent>
           <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 pt-2 font-mono text-[11px] sm:grid-cols-3">
             <StatItem label="Characters" value={stats.characters} />

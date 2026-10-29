@@ -94,6 +94,17 @@ describe('NotesWidget', () => {
     expect(screen.queryByText('Characters')).not.toBeInTheDocument()
   })
 
+  it('copies the note content to the clipboard', async () => {
+    const user = userEvent.setup()
+    render(<NotesWidget instanceId="test" mode="grid" />)
+
+    expect(screen.getByRole('button', { name: 'Copy note' })).toBeDisabled()
+    setCodeMirrorValue(notesField(), 'hello world')
+    await user.click(screen.getByRole('button', { name: 'Copy note' }))
+
+    expect(await navigator.clipboard.readText()).toBe('hello world')
+  })
+
   it('disables the download button while the note is empty', () => {
     render(<NotesWidget instanceId="test" mode="grid" />)
 

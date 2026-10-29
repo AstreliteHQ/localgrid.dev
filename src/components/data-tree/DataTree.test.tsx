@@ -107,6 +107,19 @@ describe('DataTree', () => {
     expect(screen.getByText(/object · 2 direct/)).toBeInTheDocument()
   })
 
+  it("labels the selected node's copy path and copy value buttons apart", async () => {
+    const user = userEvent.setup()
+    renderJson()
+
+    await user.click(screen.getByText('theme'))
+
+    await user.click(screen.getByRole('button', { name: 'Path' }))
+    expect(await navigator.clipboard.readText()).toBe('$.theme')
+
+    await user.click(screen.getByRole('button', { name: 'Value' }))
+    expect(JSON.parse(await navigator.clipboard.readText())).toEqual(SAMPLE.theme)
+  })
+
   it('walks and toggles rows from the keyboard', async () => {
     const user = userEvent.setup()
     renderJson({ first: { inner: 1 }, second: 2 })
