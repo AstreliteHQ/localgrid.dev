@@ -60,6 +60,9 @@ Reference examples:
   confidentiality stamp reused on every file. The file itself stays state.
 - **Timer** `cdHours`, `cdMinutes`, `cdSeconds`: the countdown preset (standup, pomodoro).
   The running countdown and the stopwatch stay state.
+- **To-Do List** `remember`, `savedItems`: an opt-in exception for user input. Items are
+  state until the user ticks "Remember tasks", which moves them into configuration (and
+  unticking moves them back and drops the configuration).
 
 Not configuration: anything quick to pick again (UUID version, hash algorithm, code-snippet
 language or theme, duplicate-remover options), user input and results (text, files, tokens),
