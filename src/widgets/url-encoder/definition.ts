@@ -12,4 +12,8 @@ export const urlEncoderDefinition: WidgetDefinition = {
   minSize: { w: 2, h: 2 },
   component: lazy(() => import('./UrlEncoderWidget')),
   keywords: ['url', 'uri', 'encode', 'decode', 'percent'],
+  connectors: {
+    inputs: [{ field: 'input', label: 'Text' }],
+    output: { label: 'Result' },
+  },
 }

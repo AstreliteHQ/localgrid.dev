@@ -3,6 +3,8 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -29,6 +31,7 @@ export default function UrlEncoderWidget({ instanceId }: WidgetProps) {
       return { output: '', error: 'Invalid input for decoding' }
     }
   }, [input, direction, mode])
+  useWidgetOutput(instanceId, output)
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -50,16 +53,18 @@ export default function UrlEncoderWidget({ instanceId }: WidgetProps) {
           ]}
         />
       </div>
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder={
-          direction === 'encode' ? 'Text or URL to encode…' : 'URL to decode…'
-        }
-        spellCheck={false}
-        className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
-      />
-      <div className="relative flex-1">
+      <InputSlot input="input" className="flex flex-1 flex-col">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder={
+            direction === 'encode' ? 'Text or URL to encode…' : 'URL to decode…'
+          }
+          spellCheck={false}
+          className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
+        />
+      </InputSlot>
+      <OutputSlot className="flex-1">
         <Textarea
           readOnly
           value={error ?? output}
@@ -78,7 +83,7 @@ export default function UrlEncoderWidget({ instanceId }: WidgetProps) {
             className="absolute right-1 top-1 bg-inherit"
           />
         )}
-      </div>
+      </OutputSlot>
     </div>
   )
 }

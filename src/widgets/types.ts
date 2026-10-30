@@ -47,6 +47,22 @@ export interface WidgetDefinition {
    * docs/widget-architecture.md. Field names are a storage contract: never
    * rename them. */
   configSchema?: WidgetConfigSchema
+  /** Inputs and output other widgets can be wired to. See the Connectors
+   * section of docs/widget-architecture.md. */
+  connectors?: WidgetConnectors
+}
+
+export interface WidgetInput {
+  /** The `useWidgetState` field incoming values are written into. Never
+   * rename: saved connections refer to it. */
+  field: string
+  label: string
+}
+
+export interface WidgetConnectors {
+  inputs?: WidgetInput[]
+  /** Set when the widget publishes a value with `useWidgetOutput`. */
+  output?: { label: string }
 }
 
 export type WidgetConfigSchema = v.ObjectSchema<v.ObjectEntries, undefined>

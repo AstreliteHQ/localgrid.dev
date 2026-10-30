@@ -1,10 +1,12 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import ReactGridLayout, { useContainerWidth, type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './grid-placeholder.css'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useWidgetDragStore } from '@/sidebar/useWidgetDragStore'
+import { ConnectionLayer } from '@/connectors/ConnectionLayer'
+import { useConnectorSettings } from '@/connectors/useConnectorSettings'
 import { getWidgetDefinition } from '@/widgets/registry'
 import {
   EDITABLE_BREAKPOINT,
@@ -19,6 +21,17 @@ import { useDashboardStore } from './useDashboardStore'
 // layout's autoSize would otherwise collapse it to ~0px, leaving nowhere to
 // drop the first widget.
 const EMPTY_GRID_MIN_HEIGHT = 240
+
+function sameGrid(a: Layout | null, b: Layout): boolean {
+  return (
+    a !== null &&
+    a.length === b.length &&
+    a.every((item, index) => {
+      const other = b[index]
+      return item.i === other.i && item.x === other.x && item.y === other.y && item.w === other.w && item.h === other.h
+    })
+  )
+}
 
 interface GridLayoutProps {
   dashboardId: string
@@ -36,7 +49,17 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
   const applyLayoutUpdate = useDashboardStore((state) => state.applyLayoutUpdate)
   const addWidgetAt = useDashboardStore((state) => state.addWidgetAt)
   const isEditable = useMediaQuery(EDITABLE_BREAKPOINT)
+  const connectorsEnabled = useConnectorSettings((state) => state.enabled)
   const { width, containerRef, mounted } = useContainerWidth()
+  // What the grid actually shows, which connection wires are routed on. It
+  // differs from the stored layout mid drag or resize, and after the grid
+  // compacts on its own (e.g. widgets moving up once one is removed), which
+  // is never written back to the store (see onDragStop below). Only used to
+  // draw wires, never fed back into the grid, so it can't loop. Only updated
+  // when a grid cell changes, not on every pointer move.
+  const [renderedLayout, setRenderedLayout] = useState<Layout | null>(null)
+  const trackLayout = (next: Layout) =>
+    setRenderedLayout((current) => (sameGrid(current, next) ? current : next))
 
   const layout: Layout = useMemo(
     () =>
@@ -81,6 +104,15 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
 
   return (
     <div ref={containerRef} className="relative flex-1">
+      {mounted && connectorsEnabled && (
+        <ConnectionLayer
+          layout={renderedLayout ?? layout}
+          width={width}
+          cols={GRID_COLS}
+          rowHeight={GRID_ROW_HEIGHT}
+          margin={GRID_MARGIN[0]}
+        />
+      )}
       {mounted && (
         <ReactGridLayout
           layout={layout}
@@ -94,7 +126,7 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
             // of truth for the outer gap is enough.
             containerPadding: [0, 0],
           }}
-          dragConfig={{ handle: '.widget-drag-handle' }}
+          dragConfig={{ handle: '.widget-drag-handle', cancel: '[data-connector-port]' }}
           dropConfig={{
             enabled: true,
             onDragOver: (event) => {
@@ -117,6 +149,9 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
           // layouts forever (Maximum update depth exceeded).
           onDragStop={(layout) => applyLayoutUpdate(dashboardId, layout)}
           onResizeStop={(layout) => applyLayoutUpdate(dashboardId, layout)}
+          onLayoutChange={trackLayout}
+          onDrag={trackLayout}
+          onResize={trackLayout}
           onDrop={(layout, item) => {
             const { draggingWidgetId } = useWidgetDragStore.getState()
             // `item` is only defined if onDragOver above accepted the drag.

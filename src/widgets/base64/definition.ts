@@ -12,4 +12,8 @@ export const base64Definition: WidgetDefinition = {
   minSize: { w: 2, h: 2 },
   component: lazy(() => import('./Base64Widget')),
   keywords: ['base64', 'encode', 'decode', 'btoa', 'atob'],
+  connectors: {
+    inputs: [{ field: 'input', label: 'Text' }],
+    output: { label: 'Result' },
+  },
 }

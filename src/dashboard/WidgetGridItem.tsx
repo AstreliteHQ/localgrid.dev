@@ -4,9 +4,13 @@ import { WidgetShell } from '@/widget-shell/WidgetShell'
 import { GridPositionDialog } from '@/widget-shell/GridPositionDialog'
 import { WidgetConfigIndicator } from '@/widget-shell/WidgetConfigIndicator'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { WIDGET_REGISTRY } from '@/widgets/registry'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { useWidgetResetNonce } from '@/widgets/useWidgetDirty'
+import { ConnectorInstanceContext } from '@/connectors/connectorsContext'
+import { ConnectorPort } from '@/connectors/ConnectorPort'
+import { useConnectorSettings } from '@/connectors/useConnectorSettings'
 import type { DashboardWidgetInstance } from '@/types/layout'
 import { GRID_COLS, GRID_MAX_ROW_SPAN } from './gridConstants'
 import { useDashboardStore } from './useDashboardStore'
@@ -40,6 +44,7 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
   const setWidgetPosition = useDashboardStore((state) => state.setWidgetPosition)
   const duplicateWidget = useDashboardStore((state) => state.duplicateWidget)
   const resetNonce = useWidgetResetNonce(instance.instanceId)
+  const showConnectors = useConnectorSettings((state) => state.enabled) && editable
 
   const isExpanded = overlayTarget?.kind === 'pinned' && overlayTarget.instanceId === instance.instanceId
 
@@ -47,14 +52,17 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
 
   const WidgetComponent = widget.component
   const showMoveControl = editable && !isExpanded
+  const connectors = showConnectors && !isExpanded ? widget.connectors : undefined
+  const inputs = connectors?.inputs?.length ? connectors.inputs : undefined
 
   return (
-    <>
+    <ConnectorInstanceContext.Provider value={showConnectors ? instance.instanceId : null}>
       <WidgetShell
         instanceId={instance.instanceId}
         title={widget.name}
         icon={widget.icon}
         dragHandleClassName={isExpanded ? undefined : 'widget-drag-handle cursor-move'}
+        headerClassName={cn(inputs && 'pl-7', connectors?.output && 'pr-7')}
         isExpanded={isExpanded}
         onToggleExpand={() => (isExpanded ? closeOverlay() : expandPinned(instance.instanceId, widget.id))}
         onRemove={isExpanded ? undefined : onRemove}
@@ -98,6 +106,8 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
           <WidgetComponent key={`${instance.instanceId}-${resetNonce}`} instanceId={instance.instanceId} mode="grid" />
         )}
       </WidgetShell>
+      {inputs && <ConnectorPort instanceId={instance.instanceId} kind="input" inputs={inputs} />}
+      {connectors?.output && <ConnectorPort instanceId={instance.instanceId} kind="output" />}
       {showMoveControl && positionDialogOpen && (
         <GridPositionDialog
           onClose={() => setPositionDialogOpen(false)}
@@ -114,6 +124,6 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
           onApply={(next) => setWidgetPosition(dashboardId, instance.instanceId, next)}
         />
       )}
-    </>
+    </ConnectorInstanceContext.Provider>
   )
 }

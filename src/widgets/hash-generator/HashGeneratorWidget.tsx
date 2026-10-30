@@ -4,6 +4,8 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { CopyButton } from '@/components/CopyButton'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -56,6 +58,7 @@ export default function HashGeneratorWidget({ instanceId }: WidgetProps) {
   // Derived rather than reset via effect: clears instantly when input is
   // cleared instead of waiting a tick for the effect above to run.
   const displayedHash = input ? hash : ''
+  useWidgetOutput(instanceId, displayedHash)
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -65,14 +68,16 @@ export default function HashGeneratorWidget({ instanceId }: WidgetProps) {
         options={ALGORITHMS.map((value) => ({ label: value, value }))}
         className="flex-wrap"
       />
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder="Text to hash…"
-        spellCheck={false}
-        className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
-      />
-      <div className="relative">
+      <InputSlot input="input" className="flex flex-1 flex-col">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Text to hash…"
+          spellCheck={false}
+          className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
+        />
+      </InputSlot>
+      <OutputSlot>
         {/* Distinct, lighter readonly-output palette — deliberately not the
          * default Input look (see plan §6.2). */}
         <Input
@@ -82,7 +87,7 @@ export default function HashGeneratorWidget({ instanceId }: WidgetProps) {
           className="border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
         />
         <CopyButton value={displayedHash} className="absolute right-1 top-1" />
-      </div>
+      </OutputSlot>
     </div>
   )
 }

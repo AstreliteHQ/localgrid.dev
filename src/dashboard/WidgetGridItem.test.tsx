@@ -5,6 +5,7 @@ import { act } from 'react'
 import { WidgetOverlay } from '@/overlay/WidgetOverlay'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import type { Dashboard, DashboardWidgetInstance } from '@/types/layout'
+import { useConnectionStore } from '@/connectors/useConnectionStore'
 import { useDashboardStore } from './useDashboardStore'
 import { WidgetGridItem } from './WidgetGridItem'
 
@@ -127,5 +128,31 @@ describe('WidgetGridItem — duplicate button', () => {
     await screen.findByText('Expanded')
 
     expect(screen.queryByRole('button', { name: /duplicate/i })).not.toBeInTheDocument()
+  })
+})
+
+describe('WidgetGridItem connectors', () => {
+  it('shows IN and OUT tabs on a connectable widget in the editable grid', () => {
+    render(<WidgetGridItem dashboardId={DASHBOARD_ID} instance={INSTANCE} onRemove={() => {}} editable />)
+
+    expect(screen.getByRole('button', { name: 'Input connector' })).toHaveTextContent('IN')
+    expect(screen.getByRole('button', { name: 'Output connector' })).toHaveTextContent('OUT')
+  })
+
+  it('gives a receiver with several inputs an IN tab that opens the input list', async () => {
+    const user = userEvent.setup()
+    const diff: DashboardWidgetInstance = { instanceId: 'test-diff', widgetId: 'text-diff', x: 0, y: 0, w: 6, h: 5 }
+    render(<WidgetGridItem dashboardId={DASHBOARD_ID} instance={diff} onRemove={() => {}} editable />)
+
+    expect(screen.queryByRole('button', { name: 'Output connector' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Inputs' }))
+
+    expect(useConnectionStore.getState().menu).toMatchObject({ to: 'test-diff' })
+  })
+
+  it('shows no tabs on the read-only stack', () => {
+    render(<WidgetGridItem dashboardId={DASHBOARD_ID} instance={INSTANCE} onRemove={() => {}} editable={false} />)
+
+    expect(screen.queryByRole('button', { name: /connector/i })).not.toBeInTheDocument()
   })
 })

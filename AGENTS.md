@@ -31,6 +31,7 @@ After any code change, run `npx tsc -b --noEmit`, `npm run lint`, and `npm test`
 - `src/widgets/widgetConfig.ts` `useWidgetConfig` and `sanitizeConfig`: persisted, shareable widget setup.
 - `src/settings/` the Settings dialog (General, Share).
 - `docs/widget-architecture.md` layout vs configuration vs state, lifecycle, persistence and share format.
+- `docs/connectors.md` widget connectors: model, data flow, loop guardrails, routing, settings and sharing.
 
 ## Conventions
 

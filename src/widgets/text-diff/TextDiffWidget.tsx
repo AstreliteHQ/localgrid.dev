@@ -5,6 +5,7 @@ import { CopyButton } from '@/components/CopyButton'
 import { CodeEditor } from '@/components/CodeEditor'
 import { Button } from '@/components/ui/button'
 import { useIsDarkTheme } from '@/theme/useThemeStore'
+import { InputSlot } from '@/connectors/ConnectorSlots'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -155,6 +156,9 @@ export default function TextDiffWidget({ instanceId }: WidgetProps) {
             }}
             className="h-full overflow-hidden rounded-md border border-border bg-background dark:bg-muted/40"
           />
+          {/* One merge view holds both texts, so each input marks its half. */}
+          <InputSlot input="original" className="absolute inset-y-0 left-0 w-1/2" />
+          <InputSlot input="changed" className="absolute inset-y-0 right-0 w-1/2" />
           {!lineIdentical && (
             <CopyButton value={lineCopyText} className="absolute right-1 top-1 z-10 bg-inherit" />
           )}
@@ -162,20 +166,24 @@ export default function TextDiffWidget({ instanceId }: WidgetProps) {
       ) : (
         <>
           <div className="grid min-h-0 flex-[2] grid-cols-2 gap-2">
-            <CodeEditor
-              value={original}
-              onChange={setOriginal}
-              placeholder="Original text…"
-              aria-label="Original text"
-              className="min-h-0"
-            />
-            <CodeEditor
-              value={changed}
-              onChange={setChanged}
-              placeholder="Changed text…"
-              aria-label="Changed text"
-              className="min-h-0"
-            />
+            <InputSlot input="original" className="flex min-h-0 flex-col">
+              <CodeEditor
+                value={original}
+                onChange={setOriginal}
+                placeholder="Original text…"
+                aria-label="Original text"
+                className="min-h-0 flex-1"
+              />
+            </InputSlot>
+            <InputSlot input="changed" className="flex min-h-0 flex-col">
+              <CodeEditor
+                value={changed}
+                onChange={setChanged}
+                placeholder="Changed text…"
+                aria-label="Changed text"
+                className="min-h-0 flex-1"
+              />
+            </InputSlot>
           </div>
 
           <div className="relative min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background font-mono dark:bg-muted/40">

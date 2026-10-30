@@ -12,4 +12,8 @@ export const lzStringDefinition: WidgetDefinition = {
   minSize: { w: 2, h: 2 },
   component: lazy(() => import('./LzStringWidget')),
   keywords: ['lz-string', 'lzstring', 'compress', 'decompress', 'share link', 'url-safe'],
+  connectors: {
+    inputs: [{ field: 'input', label: 'Text' }],
+    output: { label: 'Result' },
+  },
 }

@@ -17,6 +17,8 @@ interface WidgetShellProps {
   children: ReactNode
   /** Applied to the title bar so react-grid-layout can use it as the drag handle. */
   dragHandleClassName?: string
+  /** Extra title bar classes, e.g. room for the connector tabs on its edges. */
+  headerClassName?: string
   isExpanded?: boolean
   /** Toggles between grid and fullscreen-overlay. */
   onToggleExpand?: () => void
@@ -38,6 +40,7 @@ export function WidgetShell({
   icon: Icon,
   children,
   dragHandleClassName,
+  headerClassName,
   isExpanded,
   onToggleExpand,
   onClose,
@@ -57,6 +60,7 @@ export function WidgetShell({
         className={cn(
           'flex shrink-0 items-center justify-between border-b border-border px-2 py-1.5',
           dragHandleClassName,
+          headerClassName,
         )}
       >
         <span className="flex min-w-0 items-center gap-1.5 truncate text-xs font-medium text-foreground">

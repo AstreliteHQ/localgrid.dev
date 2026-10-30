@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { toWire, type WireWorkspace } from '@/dashboard/layoutCodec'
 import { buildShareUrl } from '@/dashboard/shareUrl'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
+import { useConnectionStore } from '@/connectors/useConnectionStore'
 import { getWidgetDefinition } from '@/widgets/registry'
 
 type CopyStatus = 'idle' | 'copied' | 'failed'
@@ -25,20 +26,33 @@ export function ShareSection() {
   const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
   const [includeLayout, setIncludeLayout] = useState(true)
   const [includeConfig, setIncludeConfig] = useState(false)
+  const [includeConnections, setIncludeConnections] = useState(true)
+  const connections = useConnectionStore((state) => state.connections)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const qrContainerRef = useRef<HTMLDivElement>(null)
   const layoutId = useId()
   const configId = useId()
+  const connectionsId = useId()
 
   const shareConfig = includeLayout && includeConfig
+  const hasConnections = connections.length > 0
+  const shareConnections = includeLayout && includeConnections && hasConnections ? connections : undefined
   const shareUrl = useMemo(
-    () => buildShareUrl(dashboards, activeDashboardId, { includeLayout, includeConfig: shareConfig }),
-    [dashboards, activeDashboardId, includeLayout, shareConfig],
+    () =>
+      buildShareUrl(dashboards, activeDashboardId, {
+        includeLayout,
+        includeConfig: shareConfig,
+        connections: shareConnections,
+      }),
+    [dashboards, activeDashboardId, includeLayout, shareConfig, shareConnections],
   )
   // Same function the encoder uses, so the preview is exactly what's sent.
   const wire = useMemo(
-    () => (includeLayout ? toWire(dashboards, activeDashboardId, { includeConfig: shareConfig }) : null),
-    [dashboards, activeDashboardId, includeLayout, shareConfig],
+    () =>
+      includeLayout
+        ? toWire(dashboards, activeDashboardId, { includeConfig: shareConfig, connections: shareConnections })
+        : null,
+    [dashboards, activeDashboardId, includeLayout, shareConfig, shareConnections],
   )
   const qrEligible = shareUrl.length <= QR_LENGTH_LIMIT
 
@@ -92,6 +106,29 @@ export function ShareSection() {
             Include widget configuration
             <span className="block text-xs text-muted-foreground">
               {includeLayout ? 'Saved widget settings. May contain text you entered.' : 'Requires layout.'}
+            </span>
+          </span>
+        </label>
+        <label
+          htmlFor={connectionsId}
+          className={cn('flex items-start gap-2 text-sm', (!includeLayout || !hasConnections) && 'opacity-50')}
+        >
+          <input
+            id={connectionsId}
+            type="checkbox"
+            checked={shareConnections !== undefined}
+            disabled={!includeLayout || !hasConnections}
+            onChange={(event) => setIncludeConnections(event.target.checked)}
+            className="mt-1 accent-primary"
+          />
+          <span>
+            Include connectors
+            <span className="block text-xs text-muted-foreground">
+              {!includeLayout
+                ? 'Requires layout.'
+                : hasConnections
+                  ? 'Connections between widget outputs and inputs.'
+                  : 'No connections to share.'}
             </span>
           </span>
         </label>
@@ -182,8 +219,28 @@ function SharePreview({ wire }: { wire: WireWorkspace | null }) {
               </li>
             ))}
           </ul>
+          {dashboard.l && (
+            <ConnectionsPreview widgetIds={dashboard.ws.map((widget) => widget.wid)} links={dashboard.l} />
+          )}
         </div>
       ))}
     </div>
+  )
+}
+
+function ConnectionsPreview({ widgetIds, links }: { widgetIds: string[]; links: [number, number, string][] }) {
+  const nameOf = (index: number) => getWidgetDefinition(widgetIds[index])?.name ?? widgetIds[index]
+  const inputLabel = (index: number, field: string) =>
+    getWidgetDefinition(widgetIds[index])?.connectors?.inputs?.find((input) => input.field === field)?.label ?? field
+  return (
+    <ul aria-label="Shared connections" className="flex flex-col gap-0.5 pl-3 text-muted-foreground">
+      {links.map(([from, to, input], index) => (
+        <li key={index}>
+          <span className="text-foreground">{nameOf(from)}</span> →{' '}
+          <span className="text-foreground">{nameOf(to)}</span>
+          <span className="ml-1">({inputLabel(to, input)})</span>
+        </li>
+      ))}
+    </ul>
   )
 }

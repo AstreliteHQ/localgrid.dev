@@ -1,3 +1,5 @@
+import type { Connection } from '@/connectors/connectionGraph'
+
 /** A single widget placed on a dashboard: which widget it is, its
  * position/size in grid units, and its optional configuration. This is
  * exactly what gets persisted and shared, never the widget's live state. */
@@ -30,6 +32,9 @@ export interface WorkspaceLayoutV2 {
   version: typeof WORKSPACE_LAYOUT_VERSION
   dashboards: Dashboard[]
   activeDashboardId: string
+  /** Links between widgets, only when a share link carried them. Persisted
+   * separately (see useConnectionStore), never part of the stored layout. */
+  connections?: Connection[]
 }
 
 /** Pre-tabs share-link shape. Kept only so `layoutCodec.ts` can still decode

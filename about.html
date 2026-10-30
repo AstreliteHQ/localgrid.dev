@@ -59,10 +59,13 @@
     <script>
       // Applies the saved theme before first paint, so there's no flash of
       // the wrong theme while the app bundle loads. Storage key and the
-      // resolution logic must stay in sync with src/theme/useThemeStore.ts.
+      // resolution logic must stay in sync with src/settings/settingsStorage.ts
+      // and src/theme/useThemeStore.ts. The second read covers a theme saved
+      // under the old key that the app has not migrated yet.
       ;(function () {
         try {
-          var stored = localStorage.getItem('localgrid.theme')
+          var settings = JSON.parse(localStorage.getItem('localgrid.settings') || '{}') || {}
+          var stored = settings.theme || localStorage.getItem('localgrid.theme')
           var isDark =
             stored === 'dark' ||
             (stored !== 'light' &&
