@@ -108,7 +108,11 @@ export function Dashboard() {
             <ShareLoadPrompt
               workspace={pendingWorkspace}
               onAccept={() => {
-                importWorkspace(pendingWorkspace.dashboards, pendingWorkspace.activeDashboardId)
+                importWorkspace(
+                  pendingWorkspace.dashboards,
+                  pendingWorkspace.activeDashboardId,
+                  pendingWorkspace.connections,
+                )
                 dismiss()
               }}
               onDismiss={dismiss}

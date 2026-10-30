@@ -12,4 +12,8 @@ export const jsonFormatterDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./JsonFormatterWidget')),
   keywords: ['json', 'format', 'pretty', 'minify', 'viewer'],
+  connectors: {
+    inputs: [{ field: 'input', label: 'JSON' }],
+    output: { label: 'Formatted JSON' },
+  },
 }

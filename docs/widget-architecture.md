@@ -98,7 +98,12 @@ localStorage keys, all prefixed `localgrid.`:
 
 - `localgrid.dashboard`: dashboards, layout and configuration (zustand `persist`, versioned
   by `DASHBOARD_STORAGE_VERSION`).
-- `localgrid.theme`, `localgrid.sidebar-collapsed`: preferences.
+- `localgrid.settings`: everything set in the Settings dialog, one section per feature
+  (`theme`, `connectors`). Each owner validates its section on read
+  (`src/settings/settingsStorage.ts`). A theme saved under the old `localgrid.theme` key is
+  moved in on first load.
+- `localgrid.connections`: links between widgets.
+- `localgrid.sidebar-collapsed`: whether the sidebar is collapsed.
 
 Settings > General lists them with their size and can erase them.
 
@@ -107,10 +112,12 @@ A share link puts a compact JSON payload, LZ-compressed, in the URL fragment
 
 ```text
 { v: 1, a: activeDashboardId,
-  d: [{ id, n: name, ws: [{ wid: widgetId, x, y, w, h, c?: config }] }] }
+  d: [{ id, n: name, ws: [{ wid: widgetId, x, y, w, h, c?: config }],
+        l?: [[fromIndex, toIndex, input]] }] }
 ```
 
-`c` is only written when the user turns on "Include widget configuration". Settings > Share
+`c` is only written when the user turns on "Include widget configuration". `l` (connections,
+indexes into `ws` since instance ids don't travel) only with "Include connectors". Settings > Share
 previews the exact `toWire` output before the user copies the link.
 
 Validation boundary: the decoder (`decodeWorkspace` then `finalizeWorkspace`) drops unknown
@@ -135,3 +142,41 @@ Compatibility rules:
 5. Test that the value lands on the pinned instance and survives a remount after
    `resetInstances` (see `WorldClockWidget.test.tsx`), and that bad values are stripped
    (`widgetConfig.test.ts`).
+
+## 7. Connectors
+
+Widgets can be wired together on the dashboard grid: one widget's output feeds another
+widget's input. A widget opts in declaratively; the framework (`src/connectors/`) owns the
+wiring, drag and drop, routing, loop prevention and every connector visual. How it works and
+the rules it follows: [connectors.md](connectors.md).
+
+1. Declare the inputs and output in `definition.ts`:
+
+   ```ts
+   connectors: {
+     inputs: [
+       { field: 'original', label: 'Original' },
+       { field: 'changed', label: 'Changed' },
+     ],
+     output: { label: 'Result' }, // omit for a widget that only receives
+   }
+   ```
+
+   Each input `field` is an existing `useWidgetState` field. Incoming values are written
+   straight into it, so the widget code reading it does not change. The field must render
+   its state (a controlled input): a value written from outside has to show up.
+   Never rename a declared `field`, saved connections refer to it.
+
+2. If there is an output, publish it with one line: `useWidgetOutput(instanceId, output)`.
+
+3. Optionally wrap the matching UI in `<InputSlot input="original">` and `<OutputSlot>`
+   (`@/connectors/ConnectorSlots`). Slots show the source of a connected input, the drop
+   zone while a wire is dragged, and an outline while a wire is hovered. Without children,
+   a slot marks a region over part of another element (see `TextDiffWidget`). Without
+   slots, the widget still connects through its header IN tab.
+
+Values are strings. Links live in `localgrid.connections`, at most one per input, and a link
+that would close a loop is refused. They travel in a share link only with "Include
+connectors", and are checked against the declared inputs on the way in. Settings >
+Connectors can turn the feature off (links are kept but paused), change the conveyor colors
+and animation, or remove every link.

@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react'
-import { Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
+import { Cable, Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { AboutSection } from './AboutSection'
+import { ConnectorsSection } from './ConnectorsSection'
 import { GeneralSection } from './GeneralSection'
 import { ShareSection } from './ShareSection'
 import { useSettingsStore, type SettingsSection } from './useSettingsStore'
@@ -17,6 +18,7 @@ interface SectionEntry {
 /** Adding a section is one entry here plus its id in `SettingsSection`. */
 const SECTIONS: SectionEntry[] = [
   { id: 'general', label: 'General', icon: Settings2, component: GeneralSection },
+  { id: 'connectors', label: 'Connectors', icon: Cable, component: ConnectorsSection },
   { id: 'share', label: 'Share', icon: Share2, component: ShareSection },
   { id: 'about', label: 'About', icon: Info, component: AboutSection },
 ]

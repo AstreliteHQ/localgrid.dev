@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useConnectionStore } from '@/connectors/useConnectionStore'
+import { useConnectorSettings } from '@/connectors/useConnectorSettings'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { useThemeStore } from '@/theme/useThemeStore'
 import { SettingsDialog } from './SettingsDialog'
@@ -85,5 +87,47 @@ describe('SettingsDialog', () => {
     expect(new URL(link.value).hash).toBe('')
     expect(screen.getByText(/link to localgrid only/i)).toBeInTheDocument()
     expect(configToggle).toBeDisabled()
+  })
+
+  it('turns connectors off and edits a conveyor color from the Connectors section', async () => {
+    const user = userEvent.setup()
+    useSettingsStore.getState().openSettings('connectors')
+    render(<SettingsDialog />)
+
+    await user.click(screen.getByRole('checkbox', { name: /enable connectors/i }))
+    expect(useConnectorSettings.getState().enabled).toBe(false)
+    expect(screen.getByRole('button', { name: 'Always' })).toBeDisabled()
+
+    await user.click(screen.getByRole('checkbox', { name: /enable connectors/i }))
+    await user.click(screen.getByRole('button', { name: 'Always' }))
+    expect(useConnectorSettings.getState().animation).toBe('always')
+  })
+
+  it('shares connectors when there are some, listed in the preview', async () => {
+    const user = userEvent.setup()
+    useDashboardStore.setState({
+      dashboards: [
+        {
+          id: 'dash',
+          name: 'Team',
+          widgets: [
+            { instanceId: 'src', widgetId: 'base64', x: 0, y: 0, w: 3, h: 3 },
+            { instanceId: 'hash', widgetId: 'hash-generator', x: 3, y: 0, w: 3, h: 3 },
+          ],
+        },
+      ],
+      activeDashboardId: 'dash',
+    })
+    useConnectionStore.getState().connect('src', 'hash', 'input')
+    useSettingsStore.getState().openSettings('share')
+    render(<SettingsDialog />)
+
+    const toggle = screen.getByRole('checkbox', { name: /include connectors/i })
+    expect(toggle).toBeChecked()
+    expect(screen.getByRole('list', { name: /shared connections/i })).toHaveTextContent('Base64 → Hash Generator')
+
+    await user.click(toggle)
+
+    expect(screen.queryByRole('list', { name: /shared connections/i })).not.toBeInTheDocument()
   })
 })

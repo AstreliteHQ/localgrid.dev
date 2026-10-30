@@ -12,4 +12,8 @@ export const hashGeneratorDefinition: WidgetDefinition = {
   minSize: { w: 2, h: 3 },
   component: lazy(() => import('./HashGeneratorWidget')),
   keywords: ['hash', 'md5', 'sha1', 'sha256', 'sha512', 'checksum'],
+  connectors: {
+    inputs: [{ field: 'input', label: 'Text' }],
+    output: { label: 'Hash' },
+  },
 }

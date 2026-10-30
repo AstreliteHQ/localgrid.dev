@@ -51,6 +51,8 @@ export function ShareLoadPrompt({ workspace, onAccept, onDismiss }: ShareLoadPro
             {configuredWidgets > 0
               ? `It also sets up ${configuredWidgets} widget${configuredWidgets === 1 ? '' : 's'} (configuration only, not their content).`
               : 'Only widget placement is shared, not their content.'}
+            {workspace.connections && workspace.connections.length > 0 &&
+              ` ${workspace.connections.length} connection${workspace.connections.length === 1 ? '' : 's'} between widgets ${workspace.connections.length === 1 ? 'is' : 'are'} included.`}
           </DialogDescription>
         </DialogHeader>
         <ul className="flex flex-wrap gap-1">

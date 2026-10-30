@@ -8,6 +8,8 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { DataTree } from '@/components/data-tree/DataTree'
 import { buildJsonTree } from '@/components/data-tree/treeModel'
 import { Textarea } from '@/components/ui/textarea'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -55,6 +57,7 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
     if (!hasData) return ''
     return viewMode === 'minified' ? JSON.stringify(data) : JSON.stringify(data, null, 2)
   }, [data, hasData, viewMode])
+  useWidgetOutput(instanceId, formattedOutput)
 
   // Rebuilt on every keystroke, which is cheap (the walk is linear and holds
   // the parsed values by reference) — and DataTree keys its expansion and
@@ -85,40 +88,46 @@ export default function JsonFormatterWidget({ instanceId }: WidgetProps) {
         label="Resize input and output"
         className="flex-1"
         first={
-          <CodeEditor
-            value={input}
-            onChange={setInput}
-            language="json"
-            placeholder="Paste JSON…"
-            aria-label="JSON input"
-            className="min-h-0 flex-1"
-          />
+          <InputSlot input="input" className="flex min-h-0 flex-1 flex-col">
+            {/* Plain mode has no output pane, so the editor also marks the output. */}
+            {viewMode === 'plain' && <OutputSlot className="absolute inset-0" />}
+            <CodeEditor
+              value={input}
+              onChange={setInput}
+              language="json"
+              placeholder="Paste JSON…"
+              aria-label="JSON input"
+              className="min-h-0 flex-1"
+            />
+          </InputSlot>
         }
         second={
           viewMode !== 'plain' && (
-            <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-background p-2 dark:bg-muted/40">
-              {error ? (
-                <ErrorMessage>{error}</ErrorMessage>
-              ) : !hasData ? (
-                <p className="text-xs text-muted-foreground">Output will appear here</p>
-              ) : showTree ? (
-                <DataTree root={tree} label="JSON tree" className="flex-1" />
-              ) : (
-                <>
-                  <div className="-mr-1 -mt-1 flex shrink-0 justify-end gap-0.5">
-                    <ReuseButton value={formattedOutput} onReuse={setInput} direction={splitDirection} />
-                    <CopyButton value={formattedOutput} />
-                  </div>
-                  <Textarea
-                    readOnly
-                    value={formattedOutput}
-                    spellCheck={false}
-                    aria-label="JSON output"
-                    className="min-h-0 w-full flex-1 resize-none overflow-auto border-0 bg-transparent p-0 font-mono text-xs"
-                  />
-                </>
-              )}
-            </div>
+            <OutputSlot className="flex min-h-0 flex-1 flex-col">
+              <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border border-border bg-background p-2 dark:bg-muted/40">
+                {error ? (
+                  <ErrorMessage>{error}</ErrorMessage>
+                ) : !hasData ? (
+                  <p className="text-xs text-muted-foreground">Output will appear here</p>
+                ) : showTree ? (
+                  <DataTree root={tree} label="JSON tree" className="flex-1" />
+                ) : (
+                  <>
+                    <div className="-mr-1 -mt-1 flex shrink-0 justify-end gap-0.5">
+                      <ReuseButton value={formattedOutput} onReuse={setInput} direction={splitDirection} />
+                      <CopyButton value={formattedOutput} />
+                    </div>
+                    <Textarea
+                      readOnly
+                      value={formattedOutput}
+                      spellCheck={false}
+                      aria-label="JSON output"
+                      className="min-h-0 w-full flex-1 resize-none overflow-auto border-0 bg-transparent p-0 font-mono text-xs"
+                    />
+                  </>
+                )}
+              </div>
+            </OutputSlot>
           )
         }
       />

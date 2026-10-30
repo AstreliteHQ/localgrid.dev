@@ -1,11 +1,12 @@
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Monitor, Moon, Sun } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
-import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { MAX_DASHBOARDS, useDashboardStore } from '@/dashboard/useDashboardStore'
 import { DASHBOARD_STORAGE_KEY } from '@/dashboard/persistence'
+import { CONNECTIONS_STORAGE_KEY } from '@/connectors/useConnectionStore'
 import { useThemeStore, type Theme } from '@/theme/useThemeStore'
+import { ConfirmButton } from './ConfirmButton'
+import { SETTINGS_STORAGE_KEY } from './settingsStorage'
 
 const THEME_OPTIONS: { label: ReactNode; value: Theme }[] = [
   {
@@ -38,7 +39,8 @@ const STORAGE_PREFIX = 'localgrid.'
 
 const STORAGE_LABELS: Record<string, string> = {
   [DASHBOARD_STORAGE_KEY]: 'Dashboards and widgets',
-  'localgrid.theme': 'Theme',
+  [CONNECTIONS_STORAGE_KEY]: 'Widget connections',
+  [SETTINGS_STORAGE_KEY]: 'Settings',
   'localgrid.sidebar-collapsed': 'Sidebar',
 }
 
@@ -147,64 +149,4 @@ function Stat({ label, value }: { label: string; value: string }) {
 function eraseLocalData() {
   for (const { key } of readStoredItems()) window.localStorage.removeItem(key)
   window.location.reload()
-}
-
-interface ConfirmButtonProps {
-  label: string
-  title: string
-  description: string
-  confirmLabel: string
-  onConfirm: () => void
-  disabled?: boolean
-  destructive?: boolean
-}
-
-function ConfirmButton({
-  label,
-  title,
-  description,
-  confirmLabel,
-  onConfirm,
-  disabled,
-  destructive,
-}: ConfirmButtonProps) {
-  const [open, setOpen] = useState(false)
-  return (
-    <>
-      <Button
-        type="button"
-        variant={destructive ? 'destructive' : 'outline'}
-        size="sm"
-        disabled={disabled}
-        onClick={() => setOpen(true)}
-      >
-        {label}
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">{description}</p>
-          <DialogFooter>
-            <Button variant="ghost" size="sm" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant={destructive ? 'destructive' : 'default'}
-              size="sm"
-              onClick={() => {
-                onConfirm()
-                setOpen(false)
-              }}
-              // Same solid style as AppHeader's "Clean" confirm.
-              className={destructive ? 'bg-destructive text-white hover:bg-destructive/90' : undefined}
-            >
-              {confirmLabel}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  )
 }

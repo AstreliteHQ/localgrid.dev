@@ -5,6 +5,8 @@ import { CopyButton } from '@/components/CopyButton'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { decodeLzStringStrict } from '@/lib/lzString'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -26,6 +28,7 @@ export default function LzStringWidget({ instanceId }: WidgetProps) {
     const decoded = decodeLzStringStrict(input)
     return decoded !== null ? { output: decoded, error: null } : { output: '', error: 'Invalid LZ-String input' }
   }, [input, direction])
+  useWidgetOutput(instanceId, output)
 
   return (
     <div className="flex h-full flex-col gap-2">
@@ -37,14 +40,16 @@ export default function LzStringWidget({ instanceId }: WidgetProps) {
           { label: 'Decompress', value: 'decompress' },
         ]}
       />
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder={direction === 'compress' ? 'Text to compress…' : 'LZ-String to decompress…'}
-        spellCheck={false}
-        className="h-20 w-full flex-1 resize-none p-2 font-mono text-xs"
-      />
-      <div className="relative flex-1">
+      <InputSlot input="input" className="flex flex-1 flex-col">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder={direction === 'compress' ? 'Text to compress…' : 'LZ-String to decompress…'}
+          spellCheck={false}
+          className="h-20 w-full flex-1 resize-none p-2 font-mono text-xs"
+        />
+      </InputSlot>
+      <OutputSlot className="flex-1">
         <Textarea
           readOnly
           value={error ?? output}
@@ -58,7 +63,7 @@ export default function LzStringWidget({ instanceId }: WidgetProps) {
           )}
         />
         {!error && <CopyButton value={output} className="absolute right-1 top-1 bg-inherit" />}
-      </div>
+      </OutputSlot>
     </div>
   )
 }

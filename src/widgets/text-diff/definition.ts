@@ -12,4 +12,10 @@ export const textDiffDefinition: WidgetDefinition = {
   minSize: { w: 4, h: 4 },
   component: lazy(() => import('./TextDiffWidget')),
   keywords: ['diff', 'compare', 'comparison', 'difference', 'merge', 'patch'],
+  connectors: {
+    inputs: [
+      { field: 'original', label: 'Original' },
+      { field: 'changed', label: 'Changed' },
+    ],
+  },
 }
