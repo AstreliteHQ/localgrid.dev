@@ -11,6 +11,12 @@ const SEARCH_CLASSES =
 
 type Status = 'idle' | 'copied' | 'failed'
 
+/** Emoji data is served from this app's own origin (emitted at build time
+ * from the pinned emojibase-data package, see vite.config.ts) rather than
+ * frimousse's default of cdn.jsdelivr.net, so the Content-Security-Policy can
+ * keep `connect-src` to 'self' and the picker works offline. */
+const EMOJIBASE_URL = `${import.meta.env.BASE_URL}emojibase`
+
 /** Search + copy-to-clipboard emoji picker. All emoji data, search matching,
  * and keyboard navigation come from frimousse — this widget only supplies
  * styling and the copy-on-select behavior. */
@@ -39,6 +45,7 @@ export default function EmojiPickerWidget({ instanceId }: WidgetProps) {
   return (
     <EmojiPicker.Root
       onEmojiSelect={handleSelect}
+      emojibaseUrl={EMOJIBASE_URL}
       className="flex h-full flex-col gap-2 text-xs"
       // frimousse defaults --frimousse-emoji-font to a hardcoded list of
       // per-OS emoji font names ('Apple Color Emoji', 'Segoe UI Emoji',

@@ -74,6 +74,7 @@
     "codemirror": "^6.0.2",
     "colord": "^2.9.3",
     "diff": "^9.0.0",
+    "emojibase-data": "^18.0.0",
     "fflate": "^0.8.3",
     "frimousse": "^0.3.0",
     "lucide-react": "^1.56.0",
