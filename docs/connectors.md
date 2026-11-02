@@ -26,7 +26,7 @@ dialog and the share codec (see [File map](#file-map)).
 ## Model
 
 ```text
-Connection { from: instanceId, to: instanceId, input: field }
+Connection { from: instanceId, to: instanceId, input: field, color?: paletteIndex }
 
 base64 (output) ──► hash-generator.input
 url-encoder (output) ──► text-diff.original
@@ -98,12 +98,13 @@ refused even though the two fields differ.
 
 ## UI
 
-| Element                          | Component                                     | Behavior                                                                                                                                                                                    |
-| -------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| IN / OUT tabs on the header edge | `ConnectorPort`, rendered by `WidgetGridItem` | Drag from OUT to connect. On a widget with one input, clicking a connected IN disconnects it. With several inputs, it opens the input list. Always visible, outside the widget's own scroll |
-| Field markers                    | `InputSlot`, `OutputSlot`                     | Purely visual. Show the source ("← Base64") or a dot, a labeled drop zone while a wire is dragged, and an outline while the wire is hovered                                                 |
-| Wires                            | `ConnectionLayer`                             | A conveyor band with `>` chevrons pointing from output to input. Drawn below the widgets so the tabs sit on top of the wire ends                                                            |
-| Input menu                       | `InputMenu`                                   | Picks the input when a drop is ambiguous, or lists inputs with a disconnect button each                                                                                                     |
+| Element                          | Component                                     | Behavior                                                                                                                                                                                                                                  |
+| -------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IN / OUT tabs on the header edge | `ConnectorPort`, rendered by `WidgetGridItem` | Drag from OUT to connect. On a widget with one input, clicking a connected IN disconnects it. With several inputs, it opens the input list. Always visible, outside the widget's own scroll                                               |
+| Field markers                    | `InputSlot`, `OutputSlot`                     | Purely visual, and nothing on an unwired field. A connected input shows its source ("← Base64") or a colored dot; a connected output a colored dot. A labeled drop zone while a wire is dragged, and an outline while the wire is hovered |
+| Wires                            | `ConnectionLayer`                             | A conveyor band with `>` chevrons pointing from output to input. Drawn below the widgets so the tabs sit on top of the wire ends                                                                                                          |
+| Input menu                       | `InputMenu`                                   | Picks the input when a drop is ambiguous, or lists inputs with a disconnect button each                                                                                                                                                   |
+| Link menu                        | `LinkMenu`                                    | Opens on a click on a wire, in a gap between widgets. Picks the link's color from the palette, or "Auto" for its source's color, and removes the link                                                                                     |
 
 Where a drop lands decides the input (`resolveDrop`):
 
@@ -121,7 +122,9 @@ expanded overlay and the mobile stack show no connectors.
 Hover is computed, not taken from pointer events. The wires sit below the widgets, so
 `ConnectionLayer` measures the distance from the pointer to each route (`distanceToRoute`)
 and stores the hovered key in `useConnectionStore.hovered`. The tabs and slots read that key
-to highlight themselves.
+to highlight themselves. Clicks work the same way: a press and release on the same wire,
+both in an empty gap, opens its link menu. Comparing press and release (rather than `click`)
+keeps the end of a widget drag from counting as a wire click.
 
 ## Routing
 
@@ -158,8 +161,9 @@ Settings > Connectors, stored as the `connectors` section of `localgrid.settings
 - **Conveyor animation**: on hover, always, or off. Always off under reduced motion.
 - **Show the source on connected fields**: a label, or a dot only.
 - **Colors**: six user colors, one per source widget (`connectionColor` hashes the source id).
-  Text on colored labels switches between dark and white for contrast
-  (`readableTextColor`).
+  A link can pick another palette entry from its link menu; it stores the palette position,
+  not the color, so editing the palette still applies (`linkColor`). Text on colored labels
+  switches between dark and white for contrast (`readableTextColor`).
 - **Remove all connections.**
 
 ## Storage and sharing
@@ -169,7 +173,8 @@ Settings > Connectors, stored as the `connectors` section of `localgrid.settings
   `input` field.
 - **Share links** carry connections only with "Include connectors". Instance ids don't
   travel, so each dashboard gets an optional `l: [[fromIndex, toIndex, input]]` that indexes
-  into its widget list `ws`. On decode (`finalizeConnections`), a link is kept only if:
+  into its widget list `ws`. A link's chosen color is not shared. On decode
+  (`finalizeConnections`), a link is kept only if:
   - both widgets survived,
   - the source declares an output,
   - the target declares that input,
@@ -189,6 +194,8 @@ Settings > Connectors, stored as the `connectors` section of `localgrid.settings
 | `ConnectorPort.tsx`        | Header IN / OUT tabs                                                     |
 | `ConnectionLayer.tsx`      | Wires, drag preview, drop resolution, hover                              |
 | `InputMenu.tsx`            | Input chooser and list                                                   |
+| `LinkMenu.tsx`             | Color and remove menu of a clicked wire                                  |
+| `Conveyor.tsx`             | Conveyor drawing shared by wires and the settings banner                 |
 | `connectionRouting.ts`     | Gap routing, anchors, rounded paths, hover distance                      |
 | `useInstanceDefinition.ts` | Instance id to widget definition (labels, source names)                  |
 | `connectorsContext.ts`     | `ConnectorInstanceContext`                                               |
@@ -200,4 +207,3 @@ Outside the folder:
 - `useDashboardStore.ts`: removes links of removed widgets, and handles connections on import.
 - `layoutCodec.ts`, `shareUrl.ts`, `ShareSection.tsx`, `ShareLoadPrompt.tsx`: sharing.
 - `ConnectorsSection.tsx`: the settings section.
-

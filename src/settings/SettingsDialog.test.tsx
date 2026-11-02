@@ -93,6 +93,7 @@ describe('SettingsDialog', () => {
     const user = userEvent.setup()
     useSettingsStore.getState().openSettings('connectors')
     render(<SettingsDialog />)
+    expect(screen.getByRole('img', { name: /output flowing into/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('checkbox', { name: /enable connectors/i }))
     expect(useConnectorSettings.getState().enabled).toBe(false)

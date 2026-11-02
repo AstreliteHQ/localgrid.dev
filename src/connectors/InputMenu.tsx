@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import type { WidgetInput } from '@/widgets/types'
 import { canConnect, readableTextColor } from './connectionGraph'
 import { useConnectionStore } from './useConnectionStore'
-import { useConnectorColor } from './useConnectorSettings'
+import { useLinkColor } from './useConnectorSettings'
 import { useInstanceDefinition } from './useInstanceDefinition'
 
 /** Small list of a widget's inputs. Picks the input for a dropped connection
@@ -28,8 +28,9 @@ export function InputMenu() {
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onPointerDown={closeMenu} />
+      <div data-connector-overlay className="fixed inset-0 z-40" onPointerDown={closeMenu} />
       <div
+        data-connector-overlay
         role="menu"
         aria-label={menu.from ? 'Connect to input' : 'Inputs'}
         style={{ left: menu.x, top: menu.y }}
@@ -56,7 +57,7 @@ function InputMenuRow({ to, from, input }: { to: string; from?: string; input: W
   const { connect, disconnect, closeMenu } = useConnectionStore.getState()
   const sourceName = useInstanceDefinition(link?.from)?.name
 
-  const color = useConnectorColor(link?.from)
+  const color = useLinkColor(link)
   const source = color && (
     <span
       style={{ backgroundColor: color, color: readableTextColor(color) }}

@@ -22,6 +22,14 @@ export interface InputMenu {
   from?: string
 }
 
+/** Menu opened by clicking a wire, at a viewport position. */
+export interface LinkMenu {
+  /** `connectionKey` of the clicked link. */
+  key: string
+  x: number
+  y: number
+}
+
 interface ConnectionState {
   connections: Connection[]
   /** Last value each source published, pushed to a link as soon as it is made. */
@@ -31,10 +39,13 @@ interface ConnectionState {
   /** `connectionKey` of the wire under the pointer, highlighted everywhere. */
   hovered: string | null
   menu: InputMenu | null
+  linkMenu: LinkMenu | null
   /** Returns false when the link breaks a rule (see `canConnect`). Replaces
    * whatever was feeding that input before. */
   connect: (from: string, to: string, input: string) => boolean
   disconnect: (to: string, input: string) => void
+  /** Sets a link's palette color, or `undefined` to go back to its source's color. */
+  setLinkColor: (to: string, input: string, color: number | undefined) => void
   /** Drops every link touching these instances. Called when widgets are removed. */
   removeInstances: (instanceIds: string[]) => void
   /** Replaces every link, e.g. with the ones a share link carried. */
@@ -45,6 +56,8 @@ interface ConnectionState {
   setHovered: (key: string | null) => void
   openMenu: (menu: InputMenu) => void
   closeMenu: () => void
+  openLinkMenu: (menu: LinkMenu) => void
+  closeLinkMenu: () => void
 }
 
 const bursts = new Map<string, { start: number; count: number }>()
@@ -84,6 +97,7 @@ export const useConnectionStore = create<ConnectionState>()(
         drag: null,
         hovered: null,
         menu: null,
+        linkMenu: null,
 
         connect: (from, to, input) => {
           const { connections, outputs } = get()
@@ -95,6 +109,15 @@ export const useConnectionStore = create<ConnectionState>()(
           if (from in outputs) push(link, outputs[from])
           return true
         },
+
+        setLinkColor: (to, input, color) =>
+          set((state) => ({
+            connections: state.connections.map((link) => {
+              if (link.to !== to || link.input !== input) return link
+              const { color: _previous, ...rest } = link
+              return color === undefined ? rest : { ...rest, color }
+            }),
+          })),
 
         disconnect: (to, input) =>
           set((state) => ({
@@ -121,6 +144,8 @@ export const useConnectionStore = create<ConnectionState>()(
         setHovered: (key) => set((state) => (state.hovered === key ? state : { hovered: key })),
         openMenu: (menu) => set({ menu }),
         closeMenu: () => set({ menu: null }),
+        openLinkMenu: (linkMenu) => set({ linkMenu }),
+        closeLinkMenu: () => set({ linkMenu: null }),
       }
     },
     {

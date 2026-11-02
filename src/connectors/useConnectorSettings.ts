@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { readSettings, writeSettingsSection } from '@/settings/settingsStorage'
-import { DEFAULT_CONNECTOR_COLORS, connectionColor } from './connectionGraph'
+import { DEFAULT_CONNECTOR_COLORS, linkColor, type Connection } from './connectionGraph'
 
 export type ConveyorAnimation = 'hover' | 'always' | 'off'
 
@@ -68,8 +68,8 @@ useConnectorSettings.subscribe(({ enabled, animation, showSourceLabels, colors }
   writeSettingsSection('connectors', { enabled, animation, showSourceLabels, colors }),
 )
 
-/** Color of the wires leaving `from`, from the user's palette. */
-export function useConnectorColor(from: string | undefined): string | undefined {
+/** Color of a link from the user's palette (see `linkColor`). */
+export function useLinkColor(link: Pick<Connection, 'from' | 'color'> | undefined): string | undefined {
   const colors = useConnectorSettings((state) => state.colors)
-  return from === undefined ? undefined : connectionColor(from, colors)
+  return link && linkColor(link, colors)
 }

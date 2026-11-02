@@ -7,6 +7,7 @@ import { useConnectionStore } from '@/connectors/useConnectionStore'
 import { useConnectorSettings, type ConveyorAnimation } from '@/connectors/useConnectorSettings'
 import { cn } from '@/lib/utils'
 import { ConfirmButton } from './ConfirmButton'
+import { ConnectorsBanner } from './ConnectorsBanner'
 
 const ANIMATION_OPTIONS: { label: string; value: ConveyorAnimation }[] = [
   { label: 'On hover', value: 'hover' },
@@ -28,11 +29,10 @@ export function ConnectorsSection() {
 
   return (
     <div className="flex flex-col gap-6">
+      <ConnectorsBanner />
+
       <section className="flex flex-col gap-2">
         <h3 className="text-sm font-medium text-foreground">Connectors</h3>
-        <p className="text-xs text-muted-foreground">
-          Drag from a widget's OUT tab onto another widget to send its output there.
-        </p>
         <label htmlFor={enabledId} className="flex items-start gap-2 text-sm">
           <input
             id={enabledId}

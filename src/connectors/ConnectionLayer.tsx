@@ -1,16 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Layout } from 'react-grid-layout'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
-import { canConnect, connectionColor, connectionKey } from './connectionGraph'
-import {
-  distanceToRoute,
-  outputAnchor,
-  roundedPath,
-  routeConnection,
-  type GridGeometry,
-  type Point,
-} from './connectionRouting'
+import { canConnect, connectionKey, linkColor } from './connectionGraph'
+import { distanceToRoute, outputAnchor, routeConnection, type GridGeometry, type Point } from './connectionRouting'
+import { CONVEYOR_WIDTH, Conveyor } from './Conveyor'
 import { InputMenu } from './InputMenu'
+import { LinkMenu } from './LinkMenu'
 import { useConnectionStore } from './useConnectionStore'
 import { useConnectorSettings } from './useConnectorSettings'
 import { instanceDefinition } from './useInstanceDefinition'
@@ -24,14 +19,6 @@ interface ConnectionLayerProps {
   rowHeight: number
   margin: number
 }
-
-/** Conveyor band width, a bit under the 16px grid gap. */
-const BAND_WIDTH = 12
-// One `>` every 12px: a 10px JetBrains Mono glyph is 6px wide, plus 6px of
-// letter spacing. Scrolling by exactly one step makes the loop seamless.
-const GLYPH_SIZE = 10
-const GLYPH_SPACING = 6
-const GLYPH_STEP = GLYPH_SIZE * 0.6 + GLYPH_SPACING
 
 /** Connects a dropped wire. A drop on an input slot picks that input. A drop
  * anywhere else on a widget picks its only input, or its only free one, and
@@ -55,13 +42,6 @@ function resolveDrop(from: string, x: number, y: number) {
   const pick = inputs.length === 1 ? allowed[0] : free.length === 1 ? free[0] : undefined
   if (pick) connect(from, to, pick.field)
   else if (allowed.length > 0) openMenu({ to, from, x, y })
-}
-
-function routeLength(points: readonly Point[]): number {
-  let length = 0
-  for (let i = 0; i < points.length - 1; i++)
-    length += Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y)
-  return length
 }
 
 /** Conveyor-style wires between connected widgets, routed through the gaps
@@ -94,15 +74,7 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
         // Small shift so wires sharing a gap still show both edges.
         const lane = ((index % 3) - 1) * 2
         const points = routeConnection(from, to, layout, geometry, lane)
-        return [
-          {
-            key: connectionKey(link),
-            points,
-            d: roundedPath(points),
-            glyphs: '>'.repeat(Math.ceil(routeLength(points) / GLYPH_STEP)),
-            color: connectionColor(link.from, colors),
-          },
-        ]
+        return [{ key: connectionKey(link), points, color: linkColor(link, colors) }]
       }),
     [connections, rects, layout, geometry, colors],
   )
@@ -110,20 +82,48 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
   useEffect(() => {
     const container = svgRef.current?.parentElement
     if (!container || wires.length === 0) return
-    const { setHovered } = useConnectionStore.getState()
-    const onMove = (event: PointerEvent) => {
+    const { setHovered, openLinkMenu } = useConnectionStore.getState()
+    const wireAt = (event: PointerEvent) => {
       const origin = svgRef.current?.getBoundingClientRect()
-      if (!origin) return
+      if (!origin) return undefined
       const point = { x: event.clientX - origin.left, y: event.clientY - origin.top }
-      const hit = wires.find((wire) => distanceToRoute(point, wire.points) <= BAND_WIDTH / 2 + 1)
-      setHovered(hit?.key ?? null)
+      return wires.find((wire) => distanceToRoute(point, wire.points) <= CONVEYOR_WIDTH / 2 + 1)?.key
     }
-    const onLeave = () => setHovered(null)
+    // Only a press in the empty gaps opens a wire's menu: never one on a
+    // widget, its tabs or an open connector menu.
+    const inGap = (event: PointerEvent) =>
+      !(event.target as Element | null)?.closest('.react-grid-item, [data-connector-overlay]')
+    // Down and up on the same wire, rather than `click`: after a widget drag,
+    // `click` fires on the grid container and would look like a wire click.
+    let pressed: string | undefined
+    const onMove = (event: PointerEvent) => {
+      const key = wireAt(event)
+      setHovered(key ?? null)
+      container.style.cursor = key && inGap(event) ? 'pointer' : ''
+    }
+    const onDown = (event: PointerEvent) => {
+      pressed = inGap(event) ? wireAt(event) : undefined
+    }
+    const onUp = (event: PointerEvent) => {
+      const key = inGap(event) ? wireAt(event) : undefined
+      if (pressed && key === pressed && !useConnectionStore.getState().drag) {
+        openLinkMenu({ key, x: event.clientX, y: event.clientY })
+      }
+      pressed = undefined
+    }
+    const onLeave = () => {
+      setHovered(null)
+      container.style.cursor = ''
+    }
     container.addEventListener('pointermove', onMove)
+    container.addEventListener('pointerdown', onDown)
+    container.addEventListener('pointerup', onUp)
     container.addEventListener('pointerleave', onLeave)
     return () => {
-      setHovered(null)
+      onLeave()
       container.removeEventListener('pointermove', onMove)
+      container.removeEventListener('pointerdown', onDown)
+      container.removeEventListener('pointerup', onUp)
       container.removeEventListener('pointerleave', onLeave)
     }
   }, [wires])
@@ -165,35 +165,15 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
         {wires.map((wire) => {
           const isHovered = wire.key === hovered
           const isMoving = !reduceMotion && (animation === 'always' || (animation === 'hover' && isHovered))
-          const pathId = `connector-wire-${wire.key.replace(':', '-')}`
           return (
             <g key={wire.key} data-connector-wire={wire.key} data-hovered={isHovered || undefined}>
-              <path
-                id={pathId}
-                d={wire.d}
-                fill="none"
-                strokeWidth={BAND_WIDTH}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                stroke={wire.color}
-                className="transition-opacity"
-                opacity={isHovered ? 0.5 : 0.22}
+              <Conveyor
+                id={`connector-wire-${wire.key}`}
+                points={wire.points}
+                color={wire.color}
+                highlighted={isHovered}
+                moving={isMoving}
               />
-              <text
-                fill={wire.color}
-                className="font-mono font-bold transition-opacity"
-                fontSize={GLYPH_SIZE}
-                letterSpacing={GLYPH_SPACING}
-                dominantBaseline="central"
-                opacity={isHovered ? 1 : 0.65}
-              >
-                <textPath href={`#${pathId}`}>
-                  {wire.glyphs}
-                  {isMoving && (
-                    <animate attributeName="startOffset" from="0" to={GLYPH_STEP} dur="0.5s" repeatCount="indefinite" />
-                  )}
-                </textPath>
-              </text>
             </g>
           )
         })}
@@ -210,6 +190,7 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
         </svg>
       )}
       <InputMenu />
+      <LinkMenu />
     </>
   )
 }

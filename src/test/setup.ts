@@ -12,7 +12,7 @@ import { DEFAULT_CONNECTOR_SETTINGS, useConnectorSettings } from '@/connectors/u
 // widget test file to remember a unique id per test.
 afterEach(() => {
   useWidgetStateStore.setState({ values: {} })
-  useConnectionStore.setState({ connections: [], outputs: {}, drag: null, hovered: null, menu: null })
+  useConnectionStore.setState({ connections: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null })
   useConnectorSettings.setState(DEFAULT_CONNECTOR_SETTINGS)
 })
 

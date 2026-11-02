@@ -7,6 +7,8 @@ export interface Connection {
   from: string
   to: string
   input: string
+  /** Palette position chosen for this link; absent means the source's color. */
+  color?: number
 }
 
 /** Input assumed for links saved before widgets declared their inputs. */
@@ -47,9 +49,14 @@ export function sanitizeConnections(value: unknown): Connection[] {
     const input = typeof item.input === 'string' ? item.input : LEGACY_INPUT
     const key = connectionKey({ to: item.to, input })
     if (kept.some((link) => connectionKey(link) === key) || !canConnect(kept, item.from, item.to, input)) continue
-    kept.push({ from: item.from, to: item.to, input })
+    const color = isPaletteIndex(item.color) ? item.color : undefined
+    kept.push({ from: item.from, to: item.to, input, ...(color !== undefined && { color }) })
   }
   return kept
+}
+
+function isPaletteIndex(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 0 && (value as number) < DEFAULT_CONNECTOR_COLORS.length
 }
 
 /** Default conveyor colors, user editable in Settings > Connectors. */
@@ -60,6 +67,11 @@ export function connectionColor(from: string, colors: readonly string[]): string
   let hash = 0
   for (let i = 0; i < from.length; i++) hash = (hash * 31 + from.charCodeAt(i)) | 0
   return colors[Math.abs(hash) % colors.length]
+}
+
+/** A link's color: the palette entry chosen for it, or its source's color. */
+export function linkColor(link: Pick<Connection, 'from' | 'color'>, colors: readonly string[]): string {
+  return link.color !== undefined && colors[link.color] ? colors[link.color] : connectionColor(link.from, colors)
 }
 
 /** Text color that stays readable on a connector color. */

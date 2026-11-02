@@ -5,7 +5,7 @@ import { canConnect, connectionKey, readableTextColor } from './connectionGraph'
 import { HEADER_ANCHOR_Y } from './connectionRouting'
 import { ConnectorInstanceContext } from './connectorsContext'
 import { useConnectionStore } from './useConnectionStore'
-import { useConnectorColor } from './useConnectorSettings'
+import { useLinkColor } from './useConnectorSettings'
 
 type ConnectorPortProps =
   | { instanceId: string; kind: 'input'; inputs: WidgetInput[] }
@@ -29,7 +29,7 @@ export function ConnectorPort({ instanceId, kind, inputs }: ConnectorPortProps) 
       state.drag !== null &&
       (inputs ?? []).some((input) => canConnect(state.connections, state.drag!.from, instanceId, input.field)),
   )
-  const color = useConnectorColor(link?.from)
+  const color = useLinkColor(link)
   const { startDrag, disconnect, openMenu } = useConnectionStore.getState()
 
   if (!enabled) return null

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import { canConnect, connectionKey, readableTextColor } from './connectionGraph'
 import { ConnectorInstanceContext } from './connectorsContext'
 import { useConnectionStore } from './useConnectionStore'
-import { useConnectorColor, useConnectorSettings } from './useConnectorSettings'
+import { useLinkColor, useConnectorSettings } from './useConnectorSettings'
 import { useInstanceDefinition } from './useInstanceDefinition'
 
 interface SlotProps {
@@ -54,21 +54,23 @@ function InputSlotOverlay({ instanceId, input }: { instanceId: string; input: st
     }
   }, [definition, declared, input])
 
-  const color = useConnectorColor(link?.from)
+  const color = useLinkColor(link)
   const showSourceLabels = useConnectorSettings((state) => state.showSourceLabels)
 
   return (
     <>
-      {color && showSourceLabels ? (
-        <span
-          style={{ backgroundColor: color, color: readableTextColor(color) }}
-          className="pointer-events-none absolute -top-1.5 left-2 z-20 max-w-[80%] truncate rounded-full px-1.5 font-mono text-[9px] leading-3.5 font-bold"
-        >
-          ← {sourceName ?? 'connected'}
-        </span>
-      ) : (
-        <SlotDot color={color} className="-left-1.5" />
-      )}
+      {/* Unwired fields show nothing: the drop zone below appears while a wire is dragged. */}
+      {color &&
+        (showSourceLabels ? (
+          <span
+            style={{ backgroundColor: color, color: readableTextColor(color) }}
+            className="pointer-events-none absolute -top-1.5 left-2 z-20 max-w-[80%] truncate rounded-full px-1.5 font-mono text-[9px] leading-3.5 font-bold"
+          >
+            ← {sourceName ?? 'connected'}
+          </span>
+        ) : (
+          <SlotDot color={color} className="-left-1.5" />
+        ))}
       {isHovered && color && <HoverOutline color={color} />}
       {isDropTarget && (
         <div
@@ -84,7 +86,7 @@ function InputSlotOverlay({ instanceId, input }: { instanceId: string; input: st
 }
 
 /** Marks the UI field showing the widget's output (the value passed to
- * `useWidgetOutput`). Purely visual. */
+ * `useWidgetOutput`). Purely visual: a colored dot once it feeds a widget. */
 export function OutputSlot({ className, children }: SlotProps) {
   const instanceId = useContext(ConnectorInstanceContext)
   const wrapperClassName = cn('relative', !children && 'pointer-events-none', className)
@@ -104,26 +106,23 @@ function OutputSlotOverlay({ instanceId }: { instanceId: string }) {
       (connection) => connection.from === instanceId && connectionKey(connection) === state.hovered,
     ),
   )
-  const color = useConnectorColor(link?.from)
+  const color = useLinkColor(link)
 
   return (
     <>
-      <SlotDot color={color} className="-right-1.5" />
+      {color && <SlotDot color={color} className="-right-1.5" />}
       {isHovered && color && <HoverOutline color={color} />}
     </>
   )
 }
 
-function SlotDot({ color, className }: { color?: string; className: string }) {
+/** Colored dot marking a connected field. */
+function SlotDot({ color, className }: { color: string; className: string }) {
   return (
     <span
       aria-hidden="true"
-      style={color ? { backgroundColor: color } : undefined}
-      className={cn(
-        'pointer-events-none absolute top-3 z-20 size-2 -translate-y-1/2 rounded-full border',
-        color ? 'border-transparent' : 'border-muted-foreground/60 bg-background',
-        className,
-      )}
+      style={{ backgroundColor: color }}
+      className={cn('pointer-events-none absolute top-3 z-20 size-2 -translate-y-1/2 rounded-full', className)}
     />
   )
 }

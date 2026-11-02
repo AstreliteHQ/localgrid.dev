@@ -72,6 +72,21 @@ describe('useConnectionStore', () => {
     expect(useConnectionStore.getState().connections).toEqual([{ from: 'b', to: 'diff', input: 'changed' }])
   })
 
+  it('sets and clears a link color, and a replacing link starts without one', () => {
+    const store = useConnectionStore.getState()
+    store.connect('a', 'b', 'input')
+
+    store.setLinkColor('b', 'input', 4)
+    expect(useConnectionStore.getState().connections).toEqual([{ from: 'a', to: 'b', input: 'input', color: 4 }])
+
+    store.setLinkColor('b', 'input', undefined)
+    expect(useConnectionStore.getState().connections).toEqual([{ from: 'a', to: 'b', input: 'input' }])
+
+    store.setLinkColor('b', 'input', 1)
+    store.connect('c', 'b', 'input')
+    expect(useConnectionStore.getState().connections).toEqual([{ from: 'c', to: 'b', input: 'input' }])
+  })
+
   it('cuts a link that writes faster than the burst limit', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     const store = useConnectionStore.getState()
@@ -168,5 +183,21 @@ describe('connected widgets', () => {
     )
     expect(container.querySelector('[data-connector-slot="input"]')).toBeInTheDocument()
     expect(container.querySelector('[data-connector-slot="output"]')).toBeInTheDocument()
+  })
+
+  it('marks an output with a dot once it feeds a widget', () => {
+    const { container } = render(
+      <ConnectorInstanceContext.Provider value="source">
+        <Base64Widget instanceId="source" mode="grid" />
+      </ConnectorInstanceContext.Provider>,
+    )
+    const outputDot = () => container.querySelector('[data-connector-slot="output"] > span[aria-hidden]')
+    expect(outputDot()).toBeNull()
+
+    act(() => {
+      useConnectionStore.getState().connect('source', 'target', 'input')
+    })
+
+    expect(outputDot()).toBeInTheDocument()
   })
 })

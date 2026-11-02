@@ -4,6 +4,7 @@ import {
   canConnect,
   connectionColor,
   connectionKey,
+  linkColor,
   readableTextColor,
   sanitizeConnections,
 } from './connectionGraph'
@@ -77,6 +78,25 @@ describe('connectionColor', () => {
     const color = connectionColor('abc', DEFAULT_CONNECTOR_COLORS)
     expect(DEFAULT_CONNECTOR_COLORS).toContain(color)
     expect(connectionColor('abc', DEFAULT_CONNECTOR_COLORS)).toBe(color)
+  })
+})
+
+describe('linkColor', () => {
+  it("uses the link's palette color, or falls back to its source's color", () => {
+    expect(linkColor({ from: 'abc', color: 2 }, DEFAULT_CONNECTOR_COLORS)).toBe(DEFAULT_CONNECTOR_COLORS[2])
+    expect(linkColor({ from: 'abc' }, DEFAULT_CONNECTOR_COLORS)).toBe(connectionColor('abc', DEFAULT_CONNECTOR_COLORS))
+  })
+})
+
+describe('sanitizeConnections colors', () => {
+  it('keeps a valid palette color and drops anything else', () => {
+    expect(
+      sanitizeConnections([
+        { ...link('a', 'b'), color: 3 },
+        { ...link('a', 'c'), color: 9 },
+        { ...link('a', 'd'), color: '#fff' },
+      ]),
+    ).toEqual([{ ...link('a', 'b'), color: 3 }, link('a', 'c'), link('a', 'd')])
   })
 })
 

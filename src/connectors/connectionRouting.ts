@@ -150,6 +150,15 @@ function simplify(points: Point[]): Point[] {
   })
 }
 
+/** Total length of the polyline through `points`. */
+export function routeLength(points: readonly Point[]): number {
+  let length = 0
+  for (let i = 0; i < points.length - 1; i++) {
+    length += Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y)
+  }
+  return length
+}
+
 /** Shortest distance from `point` to the polyline through `points`. */
 export function distanceToRoute(point: Point, points: readonly Point[]): number {
   let best = Infinity
