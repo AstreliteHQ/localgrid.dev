@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware'
 import { nanoid } from 'nanoid'
 import { getWidgetDefinition } from '@/widgets/registry'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
+import { useFlowStore } from '@/flow/useFlowStore'
+import type { Link } from '@/flow/linkGraph'
 import type { Dashboard, DashboardWidgetInstance } from '@/types/layout'
 import { DASHBOARD_STORAGE_KEY, DASHBOARD_STORAGE_VERSION } from './persistence'
 
@@ -72,8 +74,9 @@ interface DashboardState extends PersistedDashboardState {
    * if the removed one was active. */
   removeDashboard: (id: string) => void
   setActiveDashboardId: (id: string) => void
-  /** The share-link accept path — replaces the entire workspace at once. */
-  importWorkspace: (dashboards: Dashboard[], activeDashboardId: string) => void
+  /** The share-link accept path — replaces the entire workspace at once,
+   * links included (none unless the link carried some). */
+  importWorkspace: (dashboards: Dashboard[], activeDashboardId: string, links?: Link[]) => void
 }
 
 /** Instance ids only need to be unique, never meaningful — namespaced by
@@ -292,6 +295,7 @@ export const useDashboardStore = create<DashboardState>()(
         // coming back, so its content would otherwise leak in useWidgetState's
         // store for the rest of the session.
         useWidgetStateStore.getState().resetInstances([instanceId])
+        useFlowStore.getState().removeInstances([instanceId])
       },
 
       clearDashboard: (dashboardId) => {
@@ -302,6 +306,7 @@ export const useDashboardStore = create<DashboardState>()(
           dashboards: updateDashboardWidgets(state.dashboards, dashboardId, () => []),
         }))
         useWidgetStateStore.getState().resetInstances(removedInstanceIds)
+        useFlowStore.getState().removeInstances(removedInstanceIds)
       },
 
       applyLayoutUpdate: (dashboardId, layout) => {
@@ -390,6 +395,7 @@ export const useDashboardStore = create<DashboardState>()(
         })
         if (removedInstanceIds.length > 0) {
           useWidgetStateStore.getState().resetInstances(removedInstanceIds)
+          useFlowStore.getState().removeInstances(removedInstanceIds)
         }
       },
 
@@ -397,7 +403,10 @@ export const useDashboardStore = create<DashboardState>()(
         set((state) => (state.dashboards.some((dashboard) => dashboard.id === id) ? { activeDashboardId: id } : state))
       },
 
-      importWorkspace: (dashboards, activeDashboardId) => set({ dashboards, activeDashboardId }),
+      importWorkspace: (dashboards, activeDashboardId, links = []) => {
+        set({ dashboards, activeDashboardId })
+        useFlowStore.getState().setLinks(links)
+      },
     }),
     {
       name: DASHBOARD_STORAGE_KEY,

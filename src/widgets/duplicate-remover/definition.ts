@@ -29,4 +29,8 @@ export const duplicateRemoverDefinition: WidgetDefinition = {
     'remove duplicates',
     'sort',
   ],
+  flow: {
+    inputs: [{ field: 'input', label: 'List' }],
+    output: { label: 'Unique items' },
+  },
 }

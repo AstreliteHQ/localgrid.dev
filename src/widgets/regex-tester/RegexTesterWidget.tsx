@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
@@ -98,13 +99,15 @@ export default function RegexTesterWidget({ instanceId }: WidgetProps) {
         })}
       </div>
       {error && <ErrorMessage>{error}</ErrorMessage>}
-      <Textarea
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        placeholder="Test string…"
-        spellCheck={false}
-        className="h-16 w-full resize-none p-2 font-mono"
-      />
+      <InputSlot input="text">
+        <Textarea
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          placeholder="Test string…"
+          spellCheck={false}
+          className="h-16 w-full resize-none p-2 font-mono"
+        />
+      </InputSlot>
       <div className="min-h-0 flex-1 overflow-auto rounded-md border border-border bg-background p-2 font-mono dark:bg-muted/40">
         {!error &&
           segments.map((segment, index) =>

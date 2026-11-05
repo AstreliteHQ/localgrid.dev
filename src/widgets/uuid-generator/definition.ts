@@ -27,4 +27,7 @@ export const uuidGeneratorDefinition: WidgetDefinition = {
     'namespace',
     'timestamp',
   ],
+  flow: {
+    output: { label: 'Latest UUID' },
+  },
 }

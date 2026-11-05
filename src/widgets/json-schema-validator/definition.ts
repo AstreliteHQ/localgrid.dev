@@ -12,4 +12,10 @@ export const jsonSchemaValidatorDefinition: WidgetDefinition = {
   minSize: { w: 4, h: 5 },
   component: lazy(() => import('./JsonSchemaValidatorWidget')),
   keywords: ['json schema', 'validate', 'validator', 'yaml', 'schema', 'ajv'],
+  flow: {
+    inputs: [
+      { field: 'schemaText', label: 'Schema' },
+      { field: 'documentText', label: 'Document' },
+    ],
+  },
 }

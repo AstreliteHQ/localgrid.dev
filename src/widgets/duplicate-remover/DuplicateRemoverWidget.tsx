@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot, OutputSlot } from '@/flow/FlowSlots'
+import { useWidgetOutput } from '@/flow/useWidgetOutput'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import {
@@ -63,17 +65,20 @@ export default function DuplicateRemoverWidget({ instanceId }: WidgetProps) {
     [deferredInput, splitMode, trim, ignoreCase, order],
   )
   const output = useMemo(() => joinEntries(result.entries, splitMode, trim), [result, splitMode, trim])
+  useWidgetOutput(instanceId, output)
   const duplicates = useMemo(() => topDuplicates(result.entries, MAX_DUPLICATE_ROWS), [result])
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder="Paste a list, one item per line…"
-        spellCheck={false}
-        className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
-      />
+      <InputSlot input="input" className="flex flex-1 flex-col">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Paste a list, one item per line…"
+          spellCheck={false}
+          className="h-16 w-full flex-1 resize-none p-2 font-mono text-xs"
+        />
+      </InputSlot>
 
       {/* Split and the two comparison toggles decide what counts as an
        * item; the order control only decides how the result is arranged,
@@ -137,7 +142,7 @@ export default function DuplicateRemoverWidget({ instanceId }: WidgetProps) {
       </div>
 
       {tab === 'result' ? (
-        <div className="relative min-h-0 flex-1">
+        <OutputSlot className="min-h-0 flex-1">
           <Textarea
             readOnly
             value={output}
@@ -146,7 +151,7 @@ export default function DuplicateRemoverWidget({ instanceId }: WidgetProps) {
             className="h-full w-full resize-none border-border bg-background p-2 pr-16 font-mono text-xs dark:bg-muted/40"
           />
           <CopyButton value={output} className="absolute right-1 top-1" />
-        </div>
+        </OutputSlot>
       ) : (
         <DuplicatesPane
           duplicates={duplicates}

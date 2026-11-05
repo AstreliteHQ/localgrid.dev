@@ -12,6 +12,8 @@ import { ErrorMessage } from '@/components/ErrorMessage'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { OutputSlot } from '@/flow/FlowSlots'
+import { useWidgetOutput } from '@/flow/useWidgetOutput'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
@@ -83,6 +85,8 @@ export default function UuidGeneratorWidget({ instanceId }: WidgetProps) {
   const [customNamespace, setCustomNamespace] = useWidgetState(instanceId, 'customNamespace', '')
 
   useWidgetDirty(instanceId, uuids.length > 0 || name.length > 0)
+  // Only the latest UUID: earlier ones are history, not a value to pass on.
+  useWidgetOutput(instanceId, uuids[0] ?? '')
 
   const nameBased = isNameBased(version)
   const namespace =
@@ -155,17 +159,19 @@ export default function UuidGeneratorWidget({ instanceId }: WidgetProps) {
         // controls above it, this list can otherwise get squeezed to 0px on
         // a small card — a 0-height element shows no usable scrollbar at
         // all, silently making already-generated UUIDs unreachable.
-        <ul className="min-h-16 flex-1 space-y-1 overflow-auto">
-          {uuids.map((uuid, index) => (
-            <li
-              key={`${uuid}-${index}`}
-              className="flex items-center justify-between gap-2 rounded px-2 py-1 font-mono text-xs hover:bg-accent"
-            >
-              <span className="truncate">{uuid}</span>
-              <CopyButton value={uuid} label="" className="shrink-0 px-1" />
-            </li>
-          ))}
-        </ul>
+        <OutputSlot className="flex min-h-16 flex-1 flex-col">
+          <ul className="min-h-16 flex-1 space-y-1 overflow-auto">
+            {uuids.map((uuid, index) => (
+              <li
+                key={`${uuid}-${index}`}
+                className="flex items-center justify-between gap-2 rounded px-2 py-1 font-mono text-xs hover:bg-accent"
+              >
+                <span className="truncate">{uuid}</span>
+                <CopyButton value={uuid} label="" className="shrink-0 px-1" />
+              </li>
+            ))}
+          </ul>
+        </OutputSlot>
       )}
     </div>
   )

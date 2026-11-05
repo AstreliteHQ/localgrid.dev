@@ -35,4 +35,7 @@ export const contentTypeDetectorDefinition: WidgetDefinition = {
     'encoding',
     'format',
   ],
+  flow: {
+    inputs: [{ field: 'input', label: 'Text' }],
+  },
 }

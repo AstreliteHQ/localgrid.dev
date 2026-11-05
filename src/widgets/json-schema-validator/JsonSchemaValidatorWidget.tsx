@@ -5,6 +5,7 @@ import { ErrorMessage } from '@/components/ErrorMessage'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { validateJsonSchema, type DocumentFormat } from './validateJsonSchema'
@@ -47,14 +48,16 @@ export default function JsonSchemaValidatorWidget({ instanceId }: WidgetProps) {
     <div className="flex h-full flex-col gap-2 text-xs">
       <div className="flex min-h-0 flex-1 flex-col gap-1">
         <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Schema (JSON)</p>
-        <CodeEditor
-          value={schemaText}
-          onChange={setSchemaText}
-          language="json"
-          placeholder="Paste a JSON Schema…"
-          aria-label="JSON Schema"
-          className="min-h-0 flex-1"
-        />
+        <InputSlot input="schemaText" className="flex min-h-0 flex-1 flex-col">
+          <CodeEditor
+            value={schemaText}
+            onChange={setSchemaText}
+            language="json"
+            placeholder="Paste a JSON Schema…"
+            aria-label="JSON Schema"
+            className="min-h-0 flex-1"
+          />
+        </InputSlot>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-1">
@@ -69,17 +72,19 @@ export default function JsonSchemaValidatorWidget({ instanceId }: WidgetProps) {
             ]}
           />
         </div>
-        <CodeEditor
-          value={documentText}
-          onChange={setDocumentText}
-          // No YAML grammar is wired into CodeEditor, so the YAML side
-          // falls back to plaintext (still gets line wrapping, just no
-          // highlighting) — same tradeoff YamlJsonConverterWidget makes.
-          language={format === 'json' ? 'json' : 'plaintext'}
-          placeholder={`Paste ${format === 'json' ? 'JSON' : 'YAML'} to validate…`}
-          aria-label="Document to validate"
-          className="min-h-0 flex-1"
-        />
+        <InputSlot input="documentText" className="flex min-h-0 flex-1 flex-col">
+          <CodeEditor
+            value={documentText}
+            onChange={setDocumentText}
+            // No YAML grammar is wired into CodeEditor, so the YAML side
+            // falls back to plaintext (still gets line wrapping, just no
+            // highlighting) — same tradeoff YamlJsonConverterWidget makes.
+            language={format === 'json' ? 'json' : 'plaintext'}
+            placeholder={`Paste ${format === 'json' ? 'JSON' : 'YAML'} to validate…`}
+            aria-label="Document to validate"
+            className="min-h-0 flex-1"
+          />
+        </InputSlot>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-1">

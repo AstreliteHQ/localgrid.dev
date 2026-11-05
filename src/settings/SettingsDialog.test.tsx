@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useFlowStore } from '@/flow/useFlowStore'
+import { useFlowSettings } from '@/flow/useFlowSettings'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { useThemeStore } from '@/theme/useThemeStore'
 import { SettingsDialog } from './SettingsDialog'
@@ -85,5 +87,49 @@ describe('SettingsDialog', () => {
     expect(new URL(link.value).hash).toBe('')
     expect(screen.getByText(/link to localgrid only/i)).toBeInTheDocument()
     expect(configToggle).toBeDisabled()
+  })
+
+  it('turns flow off and edits a conveyor color from the Flow section', async () => {
+    const user = userEvent.setup()
+    useSettingsStore.getState().openSettings('flow')
+    render(<SettingsDialog />)
+    expect(screen.getByRole('button', { name: 'Flow Experimental' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('img', { name: /output flowing into/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('checkbox', { name: /enable flow/i }))
+    expect(useFlowSettings.getState().enabled).toBe(false)
+    expect(screen.getByRole('button', { name: 'Always' })).toBeDisabled()
+
+    await user.click(screen.getByRole('checkbox', { name: /enable flow/i }))
+    await user.click(screen.getByRole('button', { name: 'Always' }))
+    expect(useFlowSettings.getState().animation).toBe('always')
+  })
+
+  it('shares links when there are some, listed in the preview', async () => {
+    const user = userEvent.setup()
+    useDashboardStore.setState({
+      dashboards: [
+        {
+          id: 'dash',
+          name: 'Team',
+          widgets: [
+            { instanceId: 'src', widgetId: 'base64', x: 0, y: 0, w: 3, h: 3 },
+            { instanceId: 'hash', widgetId: 'hash-generator', x: 3, y: 0, w: 3, h: 3 },
+          ],
+        },
+      ],
+      activeDashboardId: 'dash',
+    })
+    useFlowStore.getState().connect('src', 'hash', 'input')
+    useSettingsStore.getState().openSettings('share')
+    render(<SettingsDialog />)
+
+    const toggle = screen.getByRole('checkbox', { name: /include flow/i })
+    expect(toggle).toBeChecked()
+    expect(screen.getByRole('list', { name: /shared links/i })).toHaveTextContent('Base64 → Hash Generator')
+
+    await user.click(toggle)
+
+    expect(screen.queryByRole('list', { name: /shared links/i })).not.toBeInTheDocument()
   })
 })

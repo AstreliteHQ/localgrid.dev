@@ -3,6 +3,7 @@ import { CopyButton } from '@/components/CopyButton'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { buildChains, type DetectionChain } from './detect'
@@ -25,13 +26,15 @@ export default function ContentTypeDetectorWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder="Paste text to identify…"
-        spellCheck={false}
-        className="h-16 w-full resize-none p-2 font-mono text-xs"
-      />
+      <InputSlot input="input">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Paste text to identify…"
+          spellCheck={false}
+          className="h-16 w-full resize-none p-2 font-mono text-xs"
+        />
+      </InputSlot>
       <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-background p-2 dark:bg-muted/40">
         {chains.length === 0 ? (
           <p className="text-xs text-muted-foreground">
