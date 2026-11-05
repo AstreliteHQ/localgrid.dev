@@ -93,6 +93,7 @@ describe('SettingsDialog', () => {
     const user = userEvent.setup()
     useSettingsStore.getState().openSettings('flow')
     render(<SettingsDialog />)
+    expect(screen.getByRole('button', { name: 'Flow Experimental' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('img', { name: /output flowing into/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('checkbox', { name: /enable flow/i }))

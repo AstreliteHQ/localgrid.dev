@@ -3,6 +3,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { readableTextColor } from '@/flow/linkGraph'
 import { Conveyor } from '@/flow/Conveyor'
 import { useFlowSettings } from '@/flow/useFlowSettings'
+import { ExperimentalBadge } from './ExperimentalBadge'
 
 // Two mini widgets in a 264 × 84 drawing: a source on the left whose header
 // OUT tab feeds the IN tab of a target lower on the right.
@@ -53,6 +54,7 @@ export function FlowBanner() {
           <Tab x={TARGET.x} y={inY} label="IN" color={color} />
         </svg>
         <div className="flex flex-col gap-1">
+          <ExperimentalBadge className="self-start" />
           <p className="text-sm font-medium text-foreground">Use one widget's result in another</p>
           <p className="text-xs text-muted-foreground">
             Drag a widget's OUT tab onto another widget. Here, the text encoded by Base64 goes straight into the Hash

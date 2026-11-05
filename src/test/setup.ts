@@ -1,4 +1,4 @@
-import { afterEach } from 'vitest'
+import { afterEach, beforeEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import { useFlowStore } from '@/flow/useFlowStore'
@@ -13,7 +13,12 @@ import { DEFAULT_FLOW_SETTINGS, useFlowSettings } from '@/flow/useFlowSettings'
 afterEach(() => {
   useWidgetStateStore.setState({ values: {} })
   useFlowStore.setState({ links: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null })
-  useFlowSettings.setState(DEFAULT_FLOW_SETTINGS)
+})
+
+// Flow is off by default while experimental, but most tests that touch it
+// exercise the feature itself.
+beforeEach(() => {
+  useFlowSettings.setState({ ...DEFAULT_FLOW_SETTINGS, enabled: true })
 })
 
 // jsdom doesn't implement matchMedia — useMediaQuery (dark-mode detection,

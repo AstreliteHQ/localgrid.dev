@@ -22,7 +22,8 @@ interface FlowSettingsState extends FlowSettingsValues {
 }
 
 export const DEFAULT_FLOW_SETTINGS: FlowSettingsValues = {
-  enabled: true,
+  // Off until the feature leaves its experimental stage.
+  enabled: false,
   animation: 'hover',
   showSourceLabels: true,
   colors: DEFAULT_FLOW_COLORS,

@@ -10,6 +10,10 @@ describe('useFlowSettings', () => {
     expect(readSettings().flow).toMatchObject({ enabled: false, colors: expect.arrayContaining(['#123456']) })
   })
 
+  it('is off by default while experimental', () => {
+    expect(sanitizeSettings(undefined).enabled).toBe(false)
+  })
+
   it('falls back to the default for each stored value with the wrong shape', () => {
     expect(sanitizeSettings({ enabled: 'yes', animation: 'always', showSourceLabels: false, colors: ['red'] })).toEqual(
       { ...DEFAULT_FLOW_SETTINGS, animation: 'always', showSourceLabels: false },

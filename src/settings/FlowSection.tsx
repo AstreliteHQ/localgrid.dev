@@ -44,7 +44,7 @@ export function FlowSection() {
           <span>
             Enable flow
             <span className="block text-xs text-muted-foreground">
-              When off, IN / OUT tabs and wires are hidden. Links are kept but paused.
+              Off by default. When off, IN / OUT tabs and wires are hidden. Links are kept but paused.
             </span>
           </span>
         </label>

@@ -3,6 +3,7 @@ import { Cable, Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { AboutSection } from './AboutSection'
+import { ExperimentalBadge } from './ExperimentalBadge'
 import { FlowSection } from './FlowSection'
 import { GeneralSection } from './GeneralSection'
 import { ShareSection } from './ShareSection'
@@ -13,12 +14,14 @@ interface SectionEntry {
   label: string
   icon: LucideIcon
   component: ComponentType
+  /** Shows an "Experimental" badge next to the label. */
+  experimental?: boolean
 }
 
 /** Adding a section is one entry here plus its id in `SettingsSection`. */
 const SECTIONS: SectionEntry[] = [
   { id: 'general', label: 'General', icon: Settings2, component: GeneralSection },
-  { id: 'flow', label: 'Flow', icon: Cable, component: FlowSection },
+  { id: 'flow', label: 'Flow', icon: Cable, component: FlowSection, experimental: true },
   { id: 'share', label: 'Share', icon: Share2, component: ShareSection },
   { id: 'about', label: 'About', icon: Info, component: AboutSection },
 ]
@@ -62,6 +65,13 @@ export function SettingsDialog() {
               >
                 <entry.icon className="size-3.5" />
                 {entry.label}
+                {entry.experimental && (
+                  <>
+                    {/* Keeps the accessible name "Flow Experimental", not one word. Too wide
+                     * for the phone strip, where the Flow banner shows it instead. */}{' '}
+                    <ExperimentalBadge className="ml-auto hidden sm:inline-block" />
+                  </>
+                )}
               </button>
             ))}
           </nav>
