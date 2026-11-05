@@ -13,7 +13,4 @@ export const kubeconfigViewerDefinition: WidgetDefinition = {
   minSize: { w: 5, h: 5 },
   component: lazy(() => import('./KubeconfigViewerWidget')),
   keywords: ['kubernetes', 'k8s', 'kubectl', 'kubeconfig', 'cluster', 'context', 'cloud', 'devops'],
-  flow: {
-    inputs: [{ field: 'input', label: 'Kubeconfig' }],
-  },
 }

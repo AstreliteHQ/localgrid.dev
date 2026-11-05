@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
-import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { JwkParseError, computeJwkThumbprint, parseJwkInput, type JwkResult, type ParsedJwk } from './jwk'
@@ -37,15 +36,13 @@ export default function JwkViewerWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <InputSlot input="input">
-        <Textarea
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder='Paste a JWK ({"kty": …}) or a JWK Set ({"keys": [ … ]})…'
-          spellCheck={false}
-          className="h-16 w-full resize-none p-2 font-mono text-xs"
-        />
-      </InputSlot>
+      <Textarea
+        value={input}
+        onChange={(event) => setInput(event.target.value)}
+        placeholder='Paste a JWK ({"kty": …}) or a JWK Set ({"keys": [ … ]})…'
+        spellCheck={false}
+        className="h-16 w-full resize-none p-2 font-mono text-xs"
+      />
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {anyPrivate && (
         // Raw amber, not the destructive token — this is a heads-up about

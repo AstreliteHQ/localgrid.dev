@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
-import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { countTextStats, estimateTokens } from './tokenCounter'
@@ -15,15 +14,13 @@ export default function TokenCounterWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <InputSlot input="input" className="flex min-h-0 flex-1 flex-col">
-        <Textarea
-          value={input}
-          onChange={(event) => setInput(event.target.value)}
-          placeholder="Paste a prompt to estimate its tokens…"
-          spellCheck={false}
-          className="min-h-0 flex-1 resize-none p-2 font-mono text-xs"
-        />
-      </InputSlot>
+      <Textarea
+        value={input}
+        onChange={(event) => setInput(event.target.value)}
+        placeholder="Paste a prompt to estimate its tokens…"
+        spellCheck={false}
+        className="min-h-0 flex-1 resize-none p-2 font-mono text-xs"
+      />
       <div className="rounded-lg border border-border bg-background p-2 dark:bg-muted/40">
         <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
           ChatGPT / Claude tokens
