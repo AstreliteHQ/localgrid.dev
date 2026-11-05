@@ -9,6 +9,8 @@ import { Field } from '@/components/Field'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 
@@ -166,6 +168,17 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
       cancelled = true
     }
   }, [mode, headerJson, payloadJson, secret, setEncoded])
+  // Decoding publishes the payload, encoding the signed token.
+  useWidgetOutput(
+    instanceId,
+    mode === 'decode'
+      ? decoded
+        ? JSON.stringify(decoded.payload, null, 2)
+        : ''
+      : encoded.error
+        ? ''
+        : encoded.token,
+  )
 
   const headerId = useId()
   const payloadId = useId()
@@ -184,13 +197,15 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
 
       {mode === 'decode' ? (
         <>
-          <Textarea
-            value={token}
-            onChange={(event) => setToken(event.target.value)}
-            placeholder="Paste a JWT…"
-            spellCheck={false}
-            className="h-16 w-full resize-none p-2 font-mono text-xs"
-          />
+          <InputSlot input="token">
+            <Textarea
+              value={token}
+              onChange={(event) => setToken(event.target.value)}
+              placeholder="Paste a JWT…"
+              spellCheck={false}
+              className="h-16 w-full resize-none p-2 font-mono text-xs"
+            />
+          </InputSlot>
           {decodeError && <ErrorMessage>{decodeError}</ErrorMessage>}
           {decoded && (
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto">
@@ -199,7 +214,9 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
                * effect. */}
               <ExpiryBadge key={token} payload={decoded.payload} />
               <JsonBlock title="Header" data={decoded.header} text={JSON.stringify(decoded.header, null, 2)} />
-              <JsonBlock title="Payload" data={decoded.payload} text={JSON.stringify(decoded.payload, null, 2)} />
+              <OutputSlot>
+                <JsonBlock title="Payload" data={decoded.payload} text={JSON.stringify(decoded.payload, null, 2)} />
+              </OutputSlot>
               <p className="text-[11px] text-muted-foreground">
                 Signature not verified.
               </p>
@@ -218,13 +235,15 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
             />
           </Field>
           <Field label="Payload" htmlFor={payloadId}>
-            <Textarea
-              id={payloadId}
-              value={payloadJson}
-              onChange={(event) => setPayloadJson(event.target.value)}
-              spellCheck={false}
-              className="h-20 w-full resize-none p-2 font-mono text-xs"
-            />
+            <InputSlot input="payloadJson">
+              <Textarea
+                id={payloadId}
+                value={payloadJson}
+                onChange={(event) => setPayloadJson(event.target.value)}
+                spellCheck={false}
+                className="h-20 w-full resize-none p-2 font-mono text-xs"
+              />
+            </InputSlot>
           </Field>
           <Field label="Secret" htmlFor={secretId}>
             <Input
@@ -240,7 +259,7 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
           {encoded.error ? (
             <ErrorMessage>{encoded.error}</ErrorMessage>
           ) : (
-            <div className="relative mt-auto">
+            <OutputSlot className="mt-auto">
               <Textarea
                 readOnly
                 value={encoded.token}
@@ -248,7 +267,7 @@ export default function JwtDecoderWidget({ instanceId }: WidgetProps) {
                 className="h-16 w-full resize-none border-border bg-background p-2 pr-14 font-mono text-xs dark:bg-muted/40"
               />
               <CopyButton value={encoded.token} className="absolute right-1 top-1" />
-            </div>
+            </OutputSlot>
           )}
           {!encoded.error && !encoded.isSigned && (
             <p className="text-[11px] text-muted-foreground">

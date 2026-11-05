@@ -4,6 +4,8 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { CopyButton } from '@/components/CopyButton'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -23,6 +25,8 @@ export default function NotesWidget({ instanceId }: WidgetProps) {
   // count toward the widget's dirty state below (same as that viewMode).
   const [statsOpen, setStatsOpen] = useWidgetState(instanceId, 'statsOpen', false)
   useWidgetDirty(instanceId, content !== DEFAULT_CONTENT)
+  // Passes the note through unchanged.
+  useWidgetOutput(instanceId, content)
 
   const stats = useMemo(() => computeTextStatistics(content), [content])
   const readingTime = estimateReadingTimeMinutes(stats.words)
@@ -42,14 +46,18 @@ export default function NotesWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <CodeEditor
-        value={content}
-        onChange={setContent}
-        language="plaintext"
-        placeholder="Write something…"
-        aria-label="Notes"
-        className="min-h-0 flex-1"
-      />
+      <InputSlot input="content" className="flex min-h-0 flex-1 flex-col">
+        {/* The note is both the input and the output. */}
+        <OutputSlot className="absolute inset-0" />
+        <CodeEditor
+          value={content}
+          onChange={setContent}
+          language="plaintext"
+          placeholder="Write something…"
+          aria-label="Notes"
+          className="min-h-0 flex-1"
+        />
+      </InputSlot>
 
       <Collapsible
         open={statsOpen}

@@ -26,4 +26,7 @@ export const tokenCounterDefinition: WidgetDefinition = {
     'context window',
     'estimate',
   ],
+  connectors: {
+    inputs: [{ field: 'input', label: 'Text' }],
+  },
 }

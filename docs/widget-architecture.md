@@ -175,6 +175,10 @@ the rules it follows: [connectors.md](connectors.md).
    a slot marks a region over part of another element (see `TextDiffWidget`). Without
    slots, the widget still connects through its header IN tab.
 
+4. Run `src/connectors/connectableWidgets.test.tsx`. It covers every widget declaring
+   `connectors`: a value wired into each visible input must show up in its field, and a
+   declared output must be published. Nothing to add per widget.
+
 Values are strings. Links live in `localgrid.connections`, at most one per input, and a link
 that would close a loop is refused. They travel in a share link only with "Include
 connectors", and are checked against the declared inputs on the way in. Settings >

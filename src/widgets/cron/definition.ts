@@ -5,8 +5,7 @@ import type { WidgetDefinition } from '@/widgets/types'
 export const cronDefinition: WidgetDefinition = {
   id: 'cron',
   name: 'Cron Expression',
-  description:
-    'Describe a cron expression in plain English and preview its next 3 triggers',
+  description: 'Describe a cron expression in plain English and preview its next 3 triggers',
   category: 'formatting',
   icon: CalendarClock,
   defaultSize: { w: 3, h: 3 },

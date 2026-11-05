@@ -7,6 +7,7 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { SplitPane } from '@/components/SplitPane'
 import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/connectors/ConnectorSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { parseDocument, type DocumentFormat } from './parseDocument'
@@ -178,22 +179,26 @@ export default function JsonYamlDiffWidget({ instanceId }: WidgetProps) {
         className="flex-1"
         first={
           <div className="grid min-h-0 flex-1 grid-cols-2 gap-2">
-            <CodeEditor
-              value={original}
-              onChange={setOriginal}
-              language={language}
-              placeholder={`Original ${label}…`}
-              aria-label={`Original ${label}`}
-              className="min-h-0"
-            />
-            <CodeEditor
-              value={changed}
-              onChange={setChanged}
-              language={language}
-              placeholder={`Changed ${label}…`}
-              aria-label={`Changed ${label}`}
-              className="min-h-0"
-            />
+            <InputSlot input="original" className="flex min-h-0 flex-col">
+              <CodeEditor
+                value={original}
+                onChange={setOriginal}
+                language={language}
+                placeholder={`Original ${label}…`}
+                aria-label={`Original ${label}`}
+                className="min-h-0 flex-1"
+              />
+            </InputSlot>
+            <InputSlot input="changed" className="flex min-h-0 flex-col">
+              <CodeEditor
+                value={changed}
+                onChange={setChanged}
+                language={language}
+                placeholder={`Changed ${label}…`}
+                aria-label={`Changed ${label}`}
+                className="min-h-0 flex-1"
+              />
+            </InputSlot>
           </div>
         }
         second={

@@ -12,4 +12,11 @@ export const jwtDecoderDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./JwtDecoderWidget')),
   keywords: ['jwt', 'json web token', 'decode', 'encode', 'sign', 'hs256', 'auth'],
+  connectors: {
+    inputs: [
+      { field: 'token', label: 'Token' },
+      { field: 'payloadJson', label: 'Payload' },
+    ],
+    output: { label: 'Payload or token' },
+  },
 }

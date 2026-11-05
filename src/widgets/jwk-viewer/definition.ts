@@ -25,4 +25,7 @@ export const jwkViewerDefinition: WidgetDefinition = {
     'okp',
     'oct',
   ],
+  connectors: {
+    inputs: [{ field: 'input', label: 'JWK' }],
+  },
 }

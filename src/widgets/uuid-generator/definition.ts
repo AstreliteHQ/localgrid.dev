@@ -27,4 +27,7 @@ export const uuidGeneratorDefinition: WidgetDefinition = {
     'namespace',
     'timestamp',
   ],
+  connectors: {
+    output: { label: 'Latest UUID' },
+  },
 }

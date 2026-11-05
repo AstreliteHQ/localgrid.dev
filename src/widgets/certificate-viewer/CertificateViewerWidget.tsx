@@ -4,6 +4,7 @@ import { ErrorMessage } from '@/components/ErrorMessage'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/connectors/ConnectorSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import {
@@ -62,13 +63,15 @@ export default function CertificateViewerWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2">
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder="Paste one or more PEM certificates (-----BEGIN CERTIFICATE-----)…"
-        spellCheck={false}
-        className="h-16 w-full resize-none p-2 font-mono text-xs"
-      />
+      <InputSlot input="input">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Paste one or more PEM certificates (-----BEGIN CERTIFICATE-----)…"
+          spellCheck={false}
+          className="h-16 w-full resize-none p-2 font-mono text-xs"
+        />
+      </InputSlot>
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {results.length > 0 && (
         <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-auto text-xs">

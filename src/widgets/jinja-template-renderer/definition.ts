@@ -26,4 +26,11 @@ export const jinjaTemplateRendererDefinition: WidgetDefinition = {
     'for loop',
     'filter',
   ],
+  connectors: {
+    inputs: [
+      { field: 'template', label: 'Template' },
+      { field: 'dataInput', label: 'Data' },
+    ],
+    output: { label: 'Rendered text' },
+  },
 }

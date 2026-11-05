@@ -5,6 +5,8 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot, OutputSlot } from '@/connectors/ConnectorSlots'
+import { useWidgetOutput } from '@/connectors/useWidgetOutput'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import {
@@ -27,6 +29,7 @@ export default function InvisibleCharCleanerWidget({ instanceId }: WidgetProps) 
   const groups = useMemo(() => groupMatches(matches), [matches])
   const segments = useMemo(() => buildPreviewSegments(input, matches), [input, matches])
   const cleaned = useMemo(() => cleanText(input), [input])
+  useWidgetOutput(instanceId, cleaned)
   const hiddenRuns = useMemo(() => extractHiddenTagText(input), [input])
 
   return (
@@ -43,22 +46,26 @@ export default function InvisibleCharCleanerWidget({ instanceId }: WidgetProps) 
         <ReferenceTab />
       ) : (
         <>
-          <Textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            placeholder="Paste text to scan for invisible characters…"
-            spellCheck={false}
-            className="h-16 w-full resize-none p-2 font-mono text-xs"
-          />
-          <CleanTab
-            input={input}
-            matches={matches}
-            groups={groups}
-            segments={segments}
-            cleaned={cleaned}
-            hiddenRuns={hiddenRuns}
-            onUseCleaned={() => setInput(cleaned)}
-          />
+          <InputSlot input="input">
+            <Textarea
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Paste text to scan for invisible characters…"
+              spellCheck={false}
+              className="h-16 w-full resize-none p-2 font-mono text-xs"
+            />
+          </InputSlot>
+          <OutputSlot className="flex min-h-0 flex-1 flex-col">
+            <CleanTab
+              input={input}
+              matches={matches}
+              groups={groups}
+              segments={segments}
+              cleaned={cleaned}
+              hiddenRuns={hiddenRuns}
+              onUseCleaned={() => setInput(cleaned)}
+            />
+          </OutputSlot>
         </>
       )}
     </div>

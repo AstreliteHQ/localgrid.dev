@@ -12,4 +12,7 @@ export const csvViewerDefinition: WidgetDefinition = {
   minSize: { w: 4, h: 4 },
   component: lazy(() => import('./CsvViewerWidget')),
   keywords: ['csv', 'tsv', 'table', 'spreadsheet', 'excel', 'data', 'delimiter', 'tabular'],
+  connectors: {
+    inputs: [{ field: 'csvText', label: 'CSV' }],
+  },
 }
