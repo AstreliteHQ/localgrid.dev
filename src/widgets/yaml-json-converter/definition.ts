@@ -12,7 +12,7 @@ export const yamlJsonConverterDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./YamlJsonConverterWidget')),
   keywords: ['yaml', 'yml', 'json', 'convert', 'serialize'],
-  connectors: {
+  flow: {
     inputs: [{ field: 'input', label: 'Source' }],
     output: { label: 'Converted' },
   },

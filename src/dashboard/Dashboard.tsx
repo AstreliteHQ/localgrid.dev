@@ -111,7 +111,7 @@ export function Dashboard() {
                 importWorkspace(
                   pendingWorkspace.dashboards,
                   pendingWorkspace.activeDashboardId,
-                  pendingWorkspace.connections,
+                  pendingWorkspace.links,
                 )
                 dismiss()
               }}

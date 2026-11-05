@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Layout } from 'react-grid-layout'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
-import { canConnect, connectionKey, linkColor } from './connectionGraph'
-import { distanceToRoute, outputAnchor, routeConnection, type GridGeometry, type Point } from './connectionRouting'
+import { canConnect, linkKey, linkColor } from './linkGraph'
+import { distanceToRoute, outputAnchor, routeLink, type GridGeometry, type Point } from './linkRouting'
 import { CONVEYOR_WIDTH, Conveyor } from './Conveyor'
 import { InputMenu } from './InputMenu'
 import { LinkMenu } from './LinkMenu'
-import { useConnectionStore } from './useConnectionStore'
-import { useConnectorSettings } from './useConnectorSettings'
+import { useFlowStore } from './useFlowStore'
+import { useFlowSettings } from './useFlowSettings'
 import { instanceDefinition } from './useInstanceDefinition'
 
-interface ConnectionLayerProps {
+interface FlowLayerProps {
   /** Current grid layout, live while a widget is being dragged or resized. */
   layout: Layout
   /** Grid container width in pixels. */
@@ -24,21 +24,21 @@ interface ConnectionLayerProps {
  * anywhere else on a widget picks its only input, or its only free one, and
  * otherwise asks with the input menu. */
 function resolveDrop(from: string, x: number, y: number) {
-  const { connections, connect, openMenu } = useConnectionStore.getState()
+  const { links, connect, openMenu } = useFlowStore.getState()
   const target = document.elementFromPoint(x, y)
-  const zone = target?.closest<HTMLElement>('[data-connector-drop-input]')
-  if (zone?.dataset.connectorInstance && zone.dataset.connectorDropInput) {
-    connect(from, zone.dataset.connectorInstance, zone.dataset.connectorDropInput)
+  const zone = target?.closest<HTMLElement>('[data-flow-drop-input]')
+  if (zone?.dataset.flowInstance && zone.dataset.flowDropInput) {
+    connect(from, zone.dataset.flowInstance, zone.dataset.flowDropInput)
     return
   }
   const port =
-    target?.closest<HTMLElement>('[data-connector-port="input"]') ??
-    target?.closest('.react-grid-item')?.querySelector<HTMLElement>('[data-connector-port="input"]')
-  const to = port?.dataset.connectorInstance
+    target?.closest<HTMLElement>('[data-flow-port="input"]') ??
+    target?.closest('.react-grid-item')?.querySelector<HTMLElement>('[data-flow-port="input"]')
+  const to = port?.dataset.flowInstance
   if (!to) return
-  const inputs = instanceDefinition(to)?.connectors?.inputs ?? []
-  const allowed = inputs.filter((input) => canConnect(connections, from, to, input.field))
-  const free = allowed.filter((input) => !connections.some((link) => link.to === to && link.input === input.field))
+  const inputs = instanceDefinition(to)?.flow?.inputs ?? []
+  const allowed = inputs.filter((input) => canConnect(links, from, to, input.field))
+  const free = allowed.filter((input) => !links.some((link) => link.to === to && link.input === input.field))
   const pick = inputs.length === 1 ? allowed[0] : free.length === 1 ? free[0] : undefined
   if (pick) connect(from, to, pick.field)
   else if (allowed.length > 0) openMenu({ to, from, x, y })
@@ -49,15 +49,15 @@ function resolveDrop(from: string, x: number, y: number) {
  * the header IN / OUT tabs sit on top of the wire ends, which is why hover is
  * detected by distance rather than pointer events. Must sit in the same
  * positioned container as the grid, before it. */
-export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: ConnectionLayerProps) {
+export function FlowLayer({ layout, width, cols, rowHeight, margin }: FlowLayerProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const connections = useConnectionStore((state) => state.connections)
-  const dragFrom = useConnectionStore((state) => state.drag?.from)
+  const links = useFlowStore((state) => state.links)
+  const dragFrom = useFlowStore((state) => state.drag?.from)
   const [pointer, setPointer] = useState<Point | null>(null)
-  const hovered = useConnectionStore((state) => state.hovered)
+  const hovered = useFlowStore((state) => state.hovered)
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
-  const colors = useConnectorSettings((state) => state.colors)
-  const animation = useConnectorSettings((state) => state.animation)
+  const colors = useFlowSettings((state) => state.colors)
+  const animation = useFlowSettings((state) => state.animation)
 
   const geometry: GridGeometry = useMemo(
     () => ({ cols, rowHeight, margin, colWidth: (width - margin * (cols - 1)) / cols }),
@@ -67,22 +67,22 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
 
   const wires = useMemo(
     () =>
-      connections.flatMap((link, index) => {
+      links.flatMap((link, index) => {
         const from = rects.get(link.from)
         const to = rects.get(link.to)
         if (!from || !to) return []
         // Small shift so wires sharing a gap still show both edges.
         const lane = ((index % 3) - 1) * 2
-        const points = routeConnection(from, to, layout, geometry, lane)
-        return [{ key: connectionKey(link), points, color: linkColor(link, colors) }]
+        const points = routeLink(from, to, layout, geometry, lane)
+        return [{ key: linkKey(link), points, color: linkColor(link, colors) }]
       }),
-    [connections, rects, layout, geometry, colors],
+    [links, rects, layout, geometry, colors],
   )
 
   useEffect(() => {
     const container = svgRef.current?.parentElement
     if (!container || wires.length === 0) return
-    const { setHovered, openLinkMenu } = useConnectionStore.getState()
+    const { setHovered, openLinkMenu } = useFlowStore.getState()
     const wireAt = (event: PointerEvent) => {
       const origin = svgRef.current?.getBoundingClientRect()
       if (!origin) return undefined
@@ -90,9 +90,9 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
       return wires.find((wire) => distanceToRoute(point, wire.points) <= CONVEYOR_WIDTH / 2 + 1)?.key
     }
     // Only a press in the empty gaps opens a wire's menu: never one on a
-    // widget, its tabs or an open connector menu.
+    // widget, its tabs or an open flow menu.
     const inGap = (event: PointerEvent) =>
-      !(event.target as Element | null)?.closest('.react-grid-item, [data-connector-overlay]')
+      !(event.target as Element | null)?.closest('.react-grid-item, [data-flow-overlay]')
     // Down and up on the same wire, rather than `click`: after a widget drag,
     // `click` fires on the grid container and would look like a wire click.
     let pressed: string | undefined
@@ -106,7 +106,7 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
     }
     const onUp = (event: PointerEvent) => {
       const key = inGap(event) ? wireAt(event) : undefined
-      if (pressed && key === pressed && !useConnectionStore.getState().drag) {
+      if (pressed && key === pressed && !useFlowStore.getState().drag) {
         openLinkMenu({ key, x: event.clientX, y: event.clientY })
       }
       pressed = undefined
@@ -130,7 +130,7 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
 
   useEffect(() => {
     if (dragFrom === undefined) return
-    const { endDrag } = useConnectionStore.getState()
+    const { endDrag } = useFlowStore.getState()
     const onMove = (event: PointerEvent) => {
       const origin = svgRef.current?.getBoundingClientRect()
       if (origin) setPointer({ x: event.clientX - origin.left, y: event.clientY - origin.top })
@@ -166,9 +166,9 @@ export function ConnectionLayer({ layout, width, cols, rowHeight, margin }: Conn
           const isHovered = wire.key === hovered
           const isMoving = !reduceMotion && (animation === 'always' || (animation === 'hover' && isHovered))
           return (
-            <g key={wire.key} data-connector-wire={wire.key} data-hovered={isHovered || undefined}>
+            <g key={wire.key} data-flow-wire={wire.key} data-hovered={isHovered || undefined}>
               <Conveyor
-                id={`connector-wire-${wire.key}`}
+                id={`flow-wire-${wire.key}`}
                 points={wire.points}
                 color={wire.color}
                 highlighted={isHovered}

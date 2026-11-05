@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  DEFAULT_CONNECTOR_COLORS,
+  DEFAULT_FLOW_COLORS,
   canConnect,
-  connectionColor,
-  connectionKey,
+  autoLinkColor,
+  linkKey,
   linkColor,
   readableTextColor,
-  sanitizeConnections,
-} from './connectionGraph'
+  sanitizeLinks,
+} from './linkGraph'
 
 const link = (from: string, to: string, input = 'input') => ({ from, to, input })
 
@@ -42,15 +42,15 @@ describe('canConnect', () => {
   })
 })
 
-describe('sanitizeConnections', () => {
+describe('sanitizeLinks', () => {
   it('returns an empty list for anything that is not an array', () => {
-    expect(sanitizeConnections(undefined)).toEqual([])
-    expect(sanitizeConnections({ from: 'a', to: 'b' })).toEqual([])
+    expect(sanitizeLinks(undefined)).toEqual([])
+    expect(sanitizeLinks({ from: 'a', to: 'b' })).toEqual([])
   })
 
   it('drops malformed entries, second links into one input and loops', () => {
     expect(
-      sanitizeConnections([
+      sanitizeLinks([
         link('a', 'b', 'left'),
         { from: 'x' },
         null,
@@ -63,35 +63,35 @@ describe('sanitizeConnections', () => {
   })
 
   it('maps links saved before inputs were declared to the `input` field', () => {
-    expect(sanitizeConnections([{ from: 'a', to: 'b' }])).toEqual([link('a', 'b', 'input')])
+    expect(sanitizeLinks([{ from: 'a', to: 'b' }])).toEqual([link('a', 'b', 'input')])
   })
 })
 
-describe('connectionKey', () => {
+describe('linkKey', () => {
   it('identifies a link by target and input', () => {
-    expect(connectionKey(link('a', 'b', 'left'))).toBe('b:left')
+    expect(linkKey(link('a', 'b', 'left'))).toBe('b:left')
   })
 })
 
-describe('connectionColor', () => {
+describe('autoLinkColor', () => {
   it('picks a stable color from the given palette', () => {
-    const color = connectionColor('abc', DEFAULT_CONNECTOR_COLORS)
-    expect(DEFAULT_CONNECTOR_COLORS).toContain(color)
-    expect(connectionColor('abc', DEFAULT_CONNECTOR_COLORS)).toBe(color)
+    const color = autoLinkColor('abc', DEFAULT_FLOW_COLORS)
+    expect(DEFAULT_FLOW_COLORS).toContain(color)
+    expect(autoLinkColor('abc', DEFAULT_FLOW_COLORS)).toBe(color)
   })
 })
 
 describe('linkColor', () => {
   it("uses the link's palette color, or falls back to its source's color", () => {
-    expect(linkColor({ from: 'abc', color: 2 }, DEFAULT_CONNECTOR_COLORS)).toBe(DEFAULT_CONNECTOR_COLORS[2])
-    expect(linkColor({ from: 'abc' }, DEFAULT_CONNECTOR_COLORS)).toBe(connectionColor('abc', DEFAULT_CONNECTOR_COLORS))
+    expect(linkColor({ from: 'abc', color: 2 }, DEFAULT_FLOW_COLORS)).toBe(DEFAULT_FLOW_COLORS[2])
+    expect(linkColor({ from: 'abc' }, DEFAULT_FLOW_COLORS)).toBe(autoLinkColor('abc', DEFAULT_FLOW_COLORS))
   })
 })
 
-describe('sanitizeConnections colors', () => {
+describe('sanitizeLinks colors', () => {
   it('keeps a valid palette color and drops anything else', () => {
     expect(
-      sanitizeConnections([
+      sanitizeLinks([
         { ...link('a', 'b'), color: 3 },
         { ...link('a', 'c'), color: 9 },
         { ...link('a', 'd'), color: '#fff' },

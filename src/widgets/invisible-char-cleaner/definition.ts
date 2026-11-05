@@ -30,7 +30,7 @@ export const invisibleCharCleanerDefinition: WidgetDefinition = {
     'strip',
     'whitespace',
   ],
-  connectors: {
+  flow: {
     inputs: [{ field: 'input', label: 'Text' }],
     output: { label: 'Cleaned text' },
   },

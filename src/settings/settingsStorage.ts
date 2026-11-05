@@ -6,7 +6,7 @@ export const SETTINGS_STORAGE_KEY = 'localgrid.settings'
 /** Stored values are untrusted: their owners validate them. */
 export interface StoredSettings {
   theme?: unknown
-  connectors?: unknown
+  flow?: unknown
 }
 
 /** Theme was stored on its own before settings were grouped. */

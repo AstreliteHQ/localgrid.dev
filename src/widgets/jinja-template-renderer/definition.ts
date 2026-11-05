@@ -26,7 +26,7 @@ export const jinjaTemplateRendererDefinition: WidgetDefinition = {
     'for loop',
     'filter',
   ],
-  connectors: {
+  flow: {
     inputs: [
       { field: 'template', label: 'Template' },
       { field: 'dataInput', label: 'Data' },

@@ -17,7 +17,7 @@ interface WidgetShellProps {
   children: ReactNode
   /** Applied to the title bar so react-grid-layout can use it as the drag handle. */
   dragHandleClassName?: string
-  /** Extra title bar classes, e.g. room for the connector tabs on its edges. */
+  /** Extra title bar classes, e.g. room for the IN and OUT ports on its edges. */
   headerClassName?: string
   isExpanded?: boolean
   /** Toggles between grid and fullscreen-overlay. */

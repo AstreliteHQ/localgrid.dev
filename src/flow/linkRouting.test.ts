@@ -4,11 +4,11 @@ import {
   inputAnchor,
   outputAnchor,
   roundedPath,
-  routeConnection,
+  routeLink,
   type GridGeometry,
   type GridRect,
   type Point,
-} from './connectionRouting'
+} from './linkRouting'
 
 const geo: GridGeometry = { cols: 12, colWidth: 100, rowHeight: 90, margin: 16 }
 
@@ -35,11 +35,11 @@ function expectClearRoute(points: Point[], rects: GridRect[]) {
   }
 }
 
-describe('routeConnection', () => {
+describe('routeLink', () => {
   it('starts on the source header output and ends on the target header input', () => {
     const from = { x: 0, y: 0, w: 3, h: 3 }
     const to = { x: 5, y: 2, w: 3, h: 3 }
-    const points = routeConnection(from, to, [from, to], geo)
+    const points = routeLink(from, to, [from, to], geo)
 
     expect(points[0]).toEqual(outputAnchor(from, geo))
     expect(points[points.length - 1]).toEqual(inputAnchor(to, geo))
@@ -50,7 +50,7 @@ describe('routeConnection', () => {
   it('runs straight down a shared gutter between facing widgets', () => {
     const from = { x: 0, y: 0, w: 3, h: 3 }
     const to = { x: 3, y: 1, w: 3, h: 3 }
-    const points = routeConnection(from, to, [from, to], geo)
+    const points = routeLink(from, to, [from, to], geo)
 
     expect(points).toHaveLength(4)
     expectClearRoute(points, [from, to])
@@ -62,7 +62,7 @@ describe('routeConnection', () => {
     const to = { x: 8, y: 2, w: 3, h: 2 }
     const rects = [from, wall, to]
 
-    expectClearRoute(routeConnection(from, to, rects, geo), rects)
+    expectClearRoute(routeLink(from, to, rects, geo), rects)
   })
 
   it('stays in the gaps of a packed dashboard, target to the left of the source', () => {
@@ -76,15 +76,15 @@ describe('routeConnection', () => {
       { x: 5, y: 8, w: 3, h: 4 },
     ]
 
-    expectClearRoute(routeConnection(rects[4], rects[2], rects, geo), rects)
-    expectClearRoute(routeConnection(rects[0], rects[6], rects, geo, 6), rects)
+    expectClearRoute(routeLink(rects[4], rects[2], rects, geo), rects)
+    expectClearRoute(routeLink(rects[0], rects[6], rects, geo, 6), rects)
   })
 
   it('never runs along the line above the first row', () => {
     const from = { x: 0, y: 0, w: 3, h: 3 }
     const wall = { x: 3, y: 0, w: 5, h: 6 }
     const to = { x: 8, y: 3, w: 4, h: 3 }
-    const points = routeConnection(from, to, [from, wall, to], geo)
+    const points = routeLink(from, to, [from, wall, to], geo)
 
     expect(points.every((point) => point.y > 0)).toBe(true)
     expectClearRoute(points, [from, wall, to])

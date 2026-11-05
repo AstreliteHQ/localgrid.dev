@@ -29,7 +29,7 @@ export const duplicateRemoverDefinition: WidgetDefinition = {
     'remove duplicates',
     'sort',
   ],
-  connectors: {
+  flow: {
     inputs: [{ field: 'input', label: 'List' }],
     output: { label: 'Unique items' },
   },

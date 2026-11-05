@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid'
 import * as v from 'valibot'
 import { getWidgetDefinition } from '@/widgets/registry'
 import { sanitizeConfig } from '@/widgets/widgetConfig'
-import { sanitizeConnections, type Connection } from '@/connectors/connectionGraph'
+import { sanitizeLinks, type Link } from '@/flow/linkGraph'
 import { decompressLzString } from '@/lib/lzString'
 import {
   DASHBOARD_LAYOUT_VERSION,
@@ -56,7 +56,7 @@ const WireDashboardSchema = v.object({
   // Not `w` — that's already the per-widget width key one level down, and
   // reusing it here for "the widget list" would read as a typo forever.
   ws: v.array(WireWidgetSchema),
-  // Connections, only when the sender opted in: [from, to, input] where
+  // Links, only when the sender opted in: [from, to, input] where
   // `from` and `to` index into `ws` (instance ids don't travel). Optional so
   // older links still decode. Checked against the widgets in
   // `finalizeWorkspace`.
@@ -75,13 +75,13 @@ export interface EncodeOptions {
   /** Adds each widget's `config` as `c`. Off unless the user opts in. */
   includeConfig?: boolean
   /** Links to carry as each dashboard's `l`. Left out when undefined. */
-  connections?: readonly Connection[]
+  links?: readonly Link[]
 }
 
 /** A dashboard's links as `[from, to, input]` widget indexes. */
-function wireLinks(dashboard: Dashboard, connections: readonly Connection[]): [number, number, string][] {
+function wireLinks(dashboard: Dashboard, links: readonly Link[]): [number, number, string][] {
   const index = new Map(dashboard.widgets.map((widget, i) => [widget.instanceId, i]))
-  return connections.flatMap((link) => {
+  return links.flatMap((link) => {
     const from = index.get(link.from)
     const to = index.get(link.to)
     return from === undefined || to === undefined ? [] : [[from, to, link.input] as [number, number, string]]
@@ -95,7 +95,7 @@ export function toWire(dashboards: Dashboard[], activeDashboardId: string, optio
     v: SHARE_WIRE_VERSION,
     a: activeDashboardId,
     d: dashboards.map((dashboard) => {
-      const links = options.connections ? wireLinks(dashboard, options.connections) : []
+      const links = options.links ? wireLinks(dashboard, options.links) : []
       return {
         id: dashboard.id,
         n: dashboard.name,
@@ -116,7 +116,7 @@ export function toWire(dashboards: Dashboard[], activeDashboardId: string, optio
 /** Reconstructs the storage shape from a decoded wire payload, minting a
  * fresh `instanceId` per widget — see the "drops out entirely" note above. */
 function fromWire(wire: WireWorkspace): WorkspaceLayoutV2 {
-  const connections: Connection[] = []
+  const links: Link[] = []
   const dashboards = wire.d.map((dashboard) => {
     const widgets = dashboard.ws.map((widget) => ({
       instanceId: nanoid(8),
@@ -129,7 +129,7 @@ function fromWire(wire: WireWorkspace): WorkspaceLayoutV2 {
     }))
     for (const [from, to, input] of dashboard.l ?? []) {
       if (widgets[from] && widgets[to]) {
-        connections.push({ from: widgets[from].instanceId, to: widgets[to].instanceId, input })
+        links.push({ from: widgets[from].instanceId, to: widgets[to].instanceId, input })
       }
     }
     return { id: dashboard.id, name: dashboard.n, widgets }
@@ -138,7 +138,7 @@ function fromWire(wire: WireWorkspace): WorkspaceLayoutV2 {
     version: WORKSPACE_LAYOUT_VERSION,
     activeDashboardId: wire.a,
     dashboards,
-    ...(wire.d.some((dashboard) => dashboard.l) && { connections }),
+    ...(wire.d.some((dashboard) => dashboard.l) && { links }),
   }
 }
 
@@ -191,29 +191,28 @@ function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
   const activeDashboardId = dashboards.some((dashboard) => dashboard.id === workspace.activeDashboardId)
     ? workspace.activeDashboardId
     : dashboards[0].id
-  const connections = workspace.connections && finalizeConnections(dashboards, workspace.connections)
+  const links = workspace.links && finalizeLinks(dashboards, workspace.links)
   return {
     ok: true,
     workspace: {
       version: WORKSPACE_LAYOUT_VERSION,
       dashboards,
       activeDashboardId,
-      ...(connections && { connections }),
+      ...(links && { links }),
     },
   }
 }
 
 /** Keeps links between surviving widgets that go from a declared output to
  * a declared input, then applies the usual one-per-input and no-loop rules. */
-function finalizeConnections(dashboards: Dashboard[], connections: Connection[]): Connection[] {
+function finalizeLinks(dashboards: Dashboard[], links: Link[]): Link[] {
   const widgetIds = new Map(
     dashboards.flatMap((dashboard) => dashboard.widgets.map((widget) => [widget.instanceId, widget.widgetId])),
   )
-  const connectorsOf = (instanceId: string) => getWidgetDefinition(widgetIds.get(instanceId) ?? '')?.connectors
-  return sanitizeConnections(
-    connections.filter(
-      (link) =>
-        connectorsOf(link.from)?.output && connectorsOf(link.to)?.inputs?.some((input) => input.field === link.input),
+  const flowOf = (instanceId: string) => getWidgetDefinition(widgetIds.get(instanceId) ?? '')?.flow
+  return sanitizeLinks(
+    links.filter(
+      (link) => flowOf(link.from)?.output && flowOf(link.to)?.inputs?.some((input) => input.field === link.input),
     ),
   )
 }

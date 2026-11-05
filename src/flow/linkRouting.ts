@@ -19,7 +19,7 @@ export interface Point {
   y: number
 }
 
-/** Distance from a widget's top edge to its header connectors. */
+/** Distance from a widget's top edge to its IN and OUT ports. */
 export const HEADER_ANCHOR_Y = 18
 
 const TURN_PENALTY = 40
@@ -43,7 +43,7 @@ export function inputAnchor(rect: GridRect, geo: GridGeometry): Point {
  * only runs along the gaps between widgets. A shortest path search over the
  * gutter lattice, with a penalty per turn to keep it readable. `lane`
  * shifts the route inside the gutters so parallel wires stay apart. */
-export function routeConnection(
+export function routeLink(
   from: GridRect,
   to: GridRect,
   rects: readonly GridRect[],

@@ -1,4 +1,4 @@
-import { roundedPath, routeLength, type Point } from './connectionRouting'
+import { roundedPath, routeLength, type Point } from './linkRouting'
 
 /** Conveyor band width, a bit under the 16px grid gap. */
 export const CONVEYOR_WIDTH = 12

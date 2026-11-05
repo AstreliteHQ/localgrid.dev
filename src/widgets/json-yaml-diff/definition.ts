@@ -12,7 +12,7 @@ export const jsonYamlDiffDefinition: WidgetDefinition = {
   minSize: { w: 4, h: 4 },
   component: lazy(() => import('./JsonYamlDiffWidget')),
   keywords: ['json', 'yaml', 'yml', 'diff', 'compare', 'difference', 'structural', 'kubernetes', 'manifest'],
-  connectors: {
+  flow: {
     inputs: [
       { field: 'original', label: 'Original' },
       { field: 'changed', label: 'Changed' },

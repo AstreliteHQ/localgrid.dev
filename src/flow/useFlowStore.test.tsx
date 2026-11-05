@@ -6,19 +6,19 @@ import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import Base64Widget from '@/widgets/base64/Base64Widget'
 import HashGeneratorWidget from '@/widgets/hash-generator/HashGeneratorWidget'
 import TextDiffWidget from '@/widgets/text-diff/TextDiffWidget'
-import { ConnectorInstanceContext } from './connectorsContext'
-import { BURST_LIMIT, useConnectionStore } from './useConnectionStore'
-import { useConnectorSettings } from './useConnectorSettings'
+import { FlowInstanceContext } from './flowContext'
+import { BURST_LIMIT, useFlowStore } from './useFlowStore'
+import { useFlowSettings } from './useFlowSettings'
 
 const valueOf = (instanceId: string, field = 'input') => useWidgetStateStore.getState().values[`${instanceId}:${field}`]
 
-describe('useConnectionStore', () => {
+describe('useFlowStore', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
   it('pushes the source output into the target input as soon as it connects', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.publish('a', 'hello')
 
     expect(store.connect('a', 'b', 'input')).toBe(true)
@@ -26,7 +26,7 @@ describe('useConnectionStore', () => {
   })
 
   it('forwards every new output to all connected targets', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'b', 'input')
     store.connect('a', 'c', 'input')
 
@@ -37,7 +37,7 @@ describe('useConnectionStore', () => {
   })
 
   it('feeds each declared input of one widget from its own source', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'diff', 'original')
     store.connect('b', 'diff', 'changed')
 
@@ -49,75 +49,75 @@ describe('useConnectionStore', () => {
   })
 
   it('refuses a loop and keeps a single link per input', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'b', 'input')
     store.connect('b', 'c', 'input')
 
     expect(store.connect('c', 'a', 'input')).toBe(false)
     store.connect('a', 'c', 'input')
 
-    expect(useConnectionStore.getState().connections).toEqual([
+    expect(useFlowStore.getState().links).toEqual([
       { from: 'a', to: 'b', input: 'input' },
       { from: 'a', to: 'c', input: 'input' },
     ])
   })
 
   it('disconnects one input and leaves the others', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'diff', 'original')
     store.connect('b', 'diff', 'changed')
 
     store.disconnect('diff', 'original')
 
-    expect(useConnectionStore.getState().connections).toEqual([{ from: 'b', to: 'diff', input: 'changed' }])
+    expect(useFlowStore.getState().links).toEqual([{ from: 'b', to: 'diff', input: 'changed' }])
   })
 
   it('sets and clears a link color, and a replacing link starts without one', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'b', 'input')
 
     store.setLinkColor('b', 'input', 4)
-    expect(useConnectionStore.getState().connections).toEqual([{ from: 'a', to: 'b', input: 'input', color: 4 }])
+    expect(useFlowStore.getState().links).toEqual([{ from: 'a', to: 'b', input: 'input', color: 4 }])
 
     store.setLinkColor('b', 'input', undefined)
-    expect(useConnectionStore.getState().connections).toEqual([{ from: 'a', to: 'b', input: 'input' }])
+    expect(useFlowStore.getState().links).toEqual([{ from: 'a', to: 'b', input: 'input' }])
 
     store.setLinkColor('b', 'input', 1)
     store.connect('c', 'b', 'input')
-    expect(useConnectionStore.getState().connections).toEqual([{ from: 'c', to: 'b', input: 'input' }])
+    expect(useFlowStore.getState().links).toEqual([{ from: 'c', to: 'b', input: 'input' }])
   })
 
   it('cuts a link that writes faster than the burst limit', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'b', 'input')
 
     for (let i = 0; i <= BURST_LIMIT; i++) store.publish('a', `value-${i}`)
 
-    expect(useConnectionStore.getState().connections).toEqual([])
+    expect(useFlowStore.getState().links).toEqual([])
     expect(console.warn).toHaveBeenCalledOnce()
   })
 
-  it('pauses links while connectors are off and catches up when turned back on', () => {
-    const store = useConnectionStore.getState()
+  it('pauses links while flow is off and catches up when turned back on', () => {
+    const store = useFlowStore.getState()
     store.connect('a', 'b', 'input')
-    useConnectorSettings.getState().setEnabled(false)
+    useFlowSettings.getState().setEnabled(false)
 
     store.publish('a', 'while off')
     expect(valueOf('b')).toBeUndefined()
 
-    useConnectorSettings.getState().setEnabled(true)
+    useFlowSettings.getState().setEnabled(true)
     expect(valueOf('b')).toBe('while off')
   })
 
   it('drops links touching removed widgets', () => {
-    const store = useConnectionStore.getState()
+    const store = useFlowStore.getState()
     store.connect('a', 'b', 'input')
     store.connect('b', 'c', 'input')
 
     store.removeInstances(['b'])
 
-    expect(useConnectionStore.getState().connections).toEqual([])
+    expect(useFlowStore.getState().links).toEqual([])
   })
 })
 
@@ -141,15 +141,15 @@ describe('connected widgets', () => {
 
   it('chains Base64 encode into a hash generator and names the source on the input', async () => {
     const user = userEvent.setup()
-    useConnectionStore.getState().connect('source', 'target', 'input')
+    useFlowStore.getState().connect('source', 'target', 'input')
     render(
       <>
-        <ConnectorInstanceContext.Provider value="source">
+        <FlowInstanceContext.Provider value="source">
           <Base64Widget instanceId="source" mode="grid" />
-        </ConnectorInstanceContext.Provider>
-        <ConnectorInstanceContext.Provider value="target">
+        </FlowInstanceContext.Provider>
+        <FlowInstanceContext.Provider value="target">
           <HashGeneratorWidget instanceId="target" mode="grid" />
-        </ConnectorInstanceContext.Provider>
+        </FlowInstanceContext.Provider>
       </>,
     )
 
@@ -160,42 +160,42 @@ describe('connected widgets', () => {
   })
 
   it('shows the pushed value in the Text Diff line view', () => {
-    useConnectionStore.getState().connect('source', 'diff', 'changed')
+    useFlowStore.getState().connect('source', 'diff', 'changed')
     render(
-      <ConnectorInstanceContext.Provider value="diff">
+      <FlowInstanceContext.Provider value="diff">
         <TextDiffWidget instanceId="diff" mode="grid" />
-      </ConnectorInstanceContext.Provider>,
+      </FlowInstanceContext.Provider>,
     )
 
-    act(() => useConnectionStore.getState().publish('source', 'from the wire'))
+    act(() => useFlowStore.getState().publish('source', 'from the wire'))
 
     expect(screen.getByRole('textbox', { name: 'Changed text' })).toHaveTextContent('from the wire')
   })
 
   it('marks the input and output fields only inside the editable grid', () => {
     const { container, rerender } = render(<Base64Widget instanceId="source" mode="overlay" />)
-    expect(container.querySelector('[data-connector-slot]')).toBeNull()
+    expect(container.querySelector('[data-flow-slot]')).toBeNull()
 
     rerender(
-      <ConnectorInstanceContext.Provider value="source">
+      <FlowInstanceContext.Provider value="source">
         <Base64Widget instanceId="source" mode="grid" />
-      </ConnectorInstanceContext.Provider>,
+      </FlowInstanceContext.Provider>,
     )
-    expect(container.querySelector('[data-connector-slot="input"]')).toBeInTheDocument()
-    expect(container.querySelector('[data-connector-slot="output"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-flow-slot="input"]')).toBeInTheDocument()
+    expect(container.querySelector('[data-flow-slot="output"]')).toBeInTheDocument()
   })
 
   it('marks an output with a dot once it feeds a widget', () => {
     const { container } = render(
-      <ConnectorInstanceContext.Provider value="source">
+      <FlowInstanceContext.Provider value="source">
         <Base64Widget instanceId="source" mode="grid" />
-      </ConnectorInstanceContext.Provider>,
+      </FlowInstanceContext.Provider>,
     )
-    const outputDot = () => container.querySelector('[data-connector-slot="output"] > span[aria-hidden]')
+    const outputDot = () => container.querySelector('[data-flow-slot="output"] > span[aria-hidden]')
     expect(outputDot()).toBeNull()
 
     act(() => {
-      useConnectionStore.getState().connect('source', 'target', 'input')
+      useFlowStore.getState().connect('source', 'target', 'input')
     })
 
     expect(outputDot()).toBeInTheDocument()

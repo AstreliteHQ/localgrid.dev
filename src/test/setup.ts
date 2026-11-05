@@ -1,8 +1,8 @@
 import { afterEach } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
-import { useConnectionStore } from '@/connectors/useConnectionStore'
-import { DEFAULT_CONNECTOR_SETTINGS, useConnectorSettings } from '@/connectors/useConnectorSettings'
+import { useFlowStore } from '@/flow/useFlowStore'
+import { DEFAULT_FLOW_SETTINGS, useFlowSettings } from '@/flow/useFlowSettings'
 
 // Widget content now lives in a store keyed by instanceId rather than local
 // component state, so a fresh `render()` no longer guarantees a fresh
@@ -12,8 +12,8 @@ import { DEFAULT_CONNECTOR_SETTINGS, useConnectorSettings } from '@/connectors/u
 // widget test file to remember a unique id per test.
 afterEach(() => {
   useWidgetStateStore.setState({ values: {} })
-  useConnectionStore.setState({ connections: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null })
-  useConnectorSettings.setState(DEFAULT_CONNECTOR_SETTINGS)
+  useFlowStore.setState({ links: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null })
+  useFlowSettings.setState(DEFAULT_FLOW_SETTINGS)
 })
 
 // jsdom doesn't implement matchMedia — useMediaQuery (dark-mode detection,

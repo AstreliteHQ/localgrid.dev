@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { LinkMenu } from './LinkMenu'
-import { useConnectionStore } from './useConnectionStore'
+import { useFlowStore } from './useFlowStore'
 
 beforeEach(() => {
   useDashboardStore.setState({
@@ -19,18 +19,18 @@ beforeEach(() => {
     ],
     activeDashboardId: 'd',
   })
-  useConnectionStore.getState().connect('src', 'hash', 'input')
-  useConnectionStore.getState().openLinkMenu({ key: 'hash:input', x: 100, y: 100 })
+  useFlowStore.getState().connect('src', 'hash', 'input')
+  useFlowStore.getState().openLinkMenu({ key: 'hash:input', x: 100, y: 100 })
 })
 
-const linkNow = () => useConnectionStore.getState().connections[0]
+const linkNow = () => useFlowStore.getState().links[0]
 
 describe('LinkMenu', () => {
   it('names the link and changes its color, or back to the source color', async () => {
     const user = userEvent.setup()
     render(<LinkMenu />)
 
-    expect(screen.getByRole('dialog', { name: 'Connection' })).toHaveTextContent('Base64 → Hash Generator(Text)')
+    expect(screen.getByRole('dialog', { name: 'Link' })).toHaveTextContent('Base64 → Hash Generator(Text)')
     expect(screen.getByRole('radio', { name: 'Source color' })).toBeChecked()
 
     await user.click(screen.getByRole('radio', { name: 'Color 3' }))
@@ -45,10 +45,10 @@ describe('LinkMenu', () => {
     const user = userEvent.setup()
     render(<LinkMenu />)
 
-    await user.click(screen.getByRole('button', { name: /remove connection/i }))
+    await user.click(screen.getByRole('button', { name: /remove link/i }))
 
-    expect(useConnectionStore.getState().connections).toEqual([])
-    expect(useConnectionStore.getState().linkMenu).toBeNull()
+    expect(useFlowStore.getState().links).toEqual([])
+    expect(useFlowStore.getState().linkMenu).toBeNull()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 })

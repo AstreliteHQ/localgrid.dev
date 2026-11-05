@@ -2,18 +2,18 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { WidgetInput } from '@/widgets/types'
-import { canConnect, readableTextColor } from './connectionGraph'
-import { useConnectionStore } from './useConnectionStore'
-import { useLinkColor } from './useConnectorSettings'
+import { canConnect, readableTextColor } from './linkGraph'
+import { useFlowStore } from './useFlowStore'
+import { useLinkColor } from './useFlowSettings'
 import { useInstanceDefinition } from './useInstanceDefinition'
 
-/** Small list of a widget's inputs. Picks the input for a dropped connection
+/** Small list of a widget's inputs. Picks the input for a dropped link
  * when the drop alone was ambiguous, or shows what feeds each input with a
  * way to disconnect it. */
 export function InputMenu() {
-  const menu = useConnectionStore((state) => state.menu)
-  const closeMenu = useConnectionStore((state) => state.closeMenu)
-  const inputs = useInstanceDefinition(menu?.to)?.connectors?.inputs
+  const menu = useFlowStore((state) => state.menu)
+  const closeMenu = useFlowStore((state) => state.closeMenu)
+  const inputs = useInstanceDefinition(menu?.to)?.flow?.inputs
 
   useEffect(() => {
     if (!menu) return
@@ -28,9 +28,9 @@ export function InputMenu() {
 
   return (
     <>
-      <div data-connector-overlay className="fixed inset-0 z-40" onPointerDown={closeMenu} />
+      <div data-flow-overlay className="fixed inset-0 z-40" onPointerDown={closeMenu} />
       <div
-        data-connector-overlay
+        data-flow-overlay
         role="menu"
         aria-label={menu.from ? 'Connect to input' : 'Inputs'}
         style={{ left: menu.x, top: menu.y }}
@@ -48,13 +48,9 @@ export function InputMenu() {
 }
 
 function InputMenuRow({ to, from, input }: { to: string; from?: string; input: WidgetInput }) {
-  const link = useConnectionStore((state) =>
-    state.connections.find((connection) => connection.to === to && connection.input === input.field),
-  )
-  const allowed = useConnectionStore(
-    (state) => from !== undefined && canConnect(state.connections, from, to, input.field),
-  )
-  const { connect, disconnect, closeMenu } = useConnectionStore.getState()
+  const link = useFlowStore((state) => state.links.find((link) => link.to === to && link.input === input.field))
+  const allowed = useFlowStore((state) => from !== undefined && canConnect(state.links, from, to, input.field))
+  const { connect, disconnect, closeMenu } = useFlowStore.getState()
   const sourceName = useInstanceDefinition(link?.from)?.name
 
   const color = useLinkColor(link)

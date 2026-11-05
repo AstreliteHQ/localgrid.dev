@@ -2,9 +2,9 @@ import { useEffect } from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { connectionColor, connectionKey } from './connectionGraph'
-import { useConnectionStore } from './useConnectionStore'
-import { useConnectorSettings } from './useConnectorSettings'
+import { autoLinkColor, linkKey } from './linkGraph'
+import { useFlowStore } from './useFlowStore'
+import { useFlowSettings } from './useFlowSettings'
 import { useInstanceDefinition } from './useInstanceDefinition'
 
 const MENU_WIDTH = 224
@@ -13,16 +13,14 @@ const MENU_HEIGHT = 140
 /** Opened by clicking a wire: picks the link's color from the palette (or
  * back to its source's color) and removes the link. */
 export function LinkMenu() {
-  const menu = useConnectionStore((state) => state.linkMenu)
-  const link = useConnectionStore((state) =>
-    state.linkMenu
-      ? state.connections.find((connection) => connectionKey(connection) === state.linkMenu?.key)
-      : undefined,
+  const menu = useFlowStore((state) => state.linkMenu)
+  const link = useFlowStore((state) =>
+    state.linkMenu ? state.links.find((link) => linkKey(link) === state.linkMenu?.key) : undefined,
   )
-  const colors = useConnectorSettings((state) => state.colors)
+  const colors = useFlowSettings((state) => state.colors)
   const sourceName = useInstanceDefinition(link?.from)?.name
   const target = useInstanceDefinition(link?.to)
-  const { closeLinkMenu, setLinkColor, disconnect } = useConnectionStore.getState()
+  const { closeLinkMenu, setLinkColor, disconnect } = useFlowStore.getState()
 
   useEffect(() => {
     if (!menu) return
@@ -35,16 +33,16 @@ export function LinkMenu() {
 
   if (!menu || !link) return null
 
-  const inputLabel = target?.connectors?.inputs?.find((input) => input.field === link.input)?.label ?? link.input
-  const sourceColor = connectionColor(link.from, colors)
+  const inputLabel = target?.flow?.inputs?.find((input) => input.field === link.input)?.label ?? link.input
+  const sourceColor = autoLinkColor(link.from, colors)
 
   return (
     <>
-      <div data-connector-overlay className="fixed inset-0 z-40" onPointerDown={closeLinkMenu} />
+      <div data-flow-overlay className="fixed inset-0 z-40" onPointerDown={closeLinkMenu} />
       <div
-        data-connector-overlay
+        data-flow-overlay
         role="dialog"
-        aria-label="Connection"
+        aria-label="Link"
         // Kept inside the viewport when the click was near an edge.
         style={{
           left: Math.max(8, Math.min(menu.x, window.innerWidth - MENU_WIDTH - 8)),
@@ -59,7 +57,7 @@ export function LinkMenu() {
         </p>
         <div className="flex flex-col gap-1 px-1">
           <p className="text-[10px] tracking-wide text-muted-foreground uppercase">Color</p>
-          <div role="radiogroup" aria-label="Connection color" className="flex items-center gap-1.5">
+          <div role="radiogroup" aria-label="Link color" className="flex items-center gap-1.5">
             <button
               type="button"
               role="radio"
@@ -103,7 +101,7 @@ export function LinkMenu() {
           className="justify-start text-destructive hover:text-destructive"
         >
           <Trash2 className="size-3.5" />
-          Remove connection
+          Remove link
         </Button>
       </div>
     </>

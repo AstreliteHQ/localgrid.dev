@@ -2,12 +2,12 @@ import { useId } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { Button } from '@/components/ui/button'
-import { DEFAULT_CONNECTOR_COLORS } from '@/connectors/connectionGraph'
-import { useConnectionStore } from '@/connectors/useConnectionStore'
-import { useConnectorSettings, type ConveyorAnimation } from '@/connectors/useConnectorSettings'
+import { DEFAULT_FLOW_COLORS } from '@/flow/linkGraph'
+import { useFlowStore } from '@/flow/useFlowStore'
+import { useFlowSettings, type ConveyorAnimation } from '@/flow/useFlowSettings'
 import { cn } from '@/lib/utils'
 import { ConfirmButton } from './ConfirmButton'
-import { ConnectorsBanner } from './ConnectorsBanner'
+import { FlowBanner } from './FlowBanner'
 
 const ANIMATION_OPTIONS: { label: string; value: ConveyorAnimation }[] = [
   { label: 'On hover', value: 'hover' },
@@ -15,24 +15,24 @@ const ANIMATION_OPTIONS: { label: string; value: ConveyorAnimation }[] = [
   { label: 'Off', value: 'off' },
 ]
 
-/** Turns widget connectors on or off and tunes how wires look. */
-export function ConnectorsSection() {
-  const enabled = useConnectorSettings((state) => state.enabled)
-  const animation = useConnectorSettings((state) => state.animation)
-  const showSourceLabels = useConnectorSettings((state) => state.showSourceLabels)
-  const colors = useConnectorSettings((state) => state.colors)
-  const { setEnabled, setAnimation, setShowSourceLabels, setColor, resetColors } = useConnectorSettings.getState()
-  const connectionCount = useConnectionStore((state) => state.connections.length)
+/** Turns flow on or off and tunes how wires look. */
+export function FlowSection() {
+  const enabled = useFlowSettings((state) => state.enabled)
+  const animation = useFlowSettings((state) => state.animation)
+  const showSourceLabels = useFlowSettings((state) => state.showSourceLabels)
+  const colors = useFlowSettings((state) => state.colors)
+  const { setEnabled, setAnimation, setShowSourceLabels, setColor, resetColors } = useFlowSettings.getState()
+  const linkCount = useFlowStore((state) => state.links.length)
   const enabledId = useId()
   const labelsId = useId()
-  const isDefaultPalette = colors.every((color, index) => color === DEFAULT_CONNECTOR_COLORS[index])
+  const isDefaultPalette = colors.every((color, index) => color === DEFAULT_FLOW_COLORS[index])
 
   return (
     <div className="flex flex-col gap-6">
-      <ConnectorsBanner />
+      <FlowBanner />
 
       <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium text-foreground">Connectors</h3>
+        <h3 className="text-sm font-medium text-foreground">Flow</h3>
         <label htmlFor={enabledId} className="flex items-start gap-2 text-sm">
           <input
             id={enabledId}
@@ -42,9 +42,9 @@ export function ConnectorsSection() {
             className="mt-1 accent-primary"
           />
           <span>
-            Enable connectors
+            Enable flow
             <span className="block text-xs text-muted-foreground">
-              When off, IN / OUT tabs and wires are hidden. Connections are kept but paused.
+              When off, IN / OUT tabs and wires are hidden. Links are kept but paused.
             </span>
           </span>
         </label>
@@ -94,7 +94,7 @@ export function ConnectorsSection() {
                 <input
                   type="color"
                   value={color}
-                  aria-label={`Connector color ${index + 1}`}
+                  aria-label={`Link color ${index + 1}`}
                   onChange={(event) => setColor(index, event.target.value)}
                   className="absolute inset-0 size-full cursor-pointer opacity-0"
                 />
@@ -116,18 +116,18 @@ export function ConnectorsSection() {
       </fieldset>
 
       <section className="flex flex-col gap-2">
-        <h3 className="text-sm font-medium text-foreground">Connections</h3>
+        <h3 className="text-sm font-medium text-foreground">Links</h3>
         <p className="text-xs text-muted-foreground">
-          {connectionCount === 1 ? '1 connection' : `${connectionCount} connections`} saved in this browser.
+          {linkCount === 1 ? '1 link' : `${linkCount} links`} saved in this browser.
         </p>
         <div>
           <ConfirmButton
-            label="Remove all connections"
-            title="Remove all connections?"
+            label="Remove all links"
+            title="Remove all links?"
             description="Every wire between widgets is removed. Widget content stays as it is."
             confirmLabel="Remove"
-            disabled={connectionCount === 0}
-            onConfirm={() => useConnectionStore.getState().setConnections([])}
+            disabled={linkCount === 0}
+            onConfirm={() => useFlowStore.getState().setLinks([])}
           />
         </div>
       </section>

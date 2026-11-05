@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
-import { canConnect, connectionKey, sanitizeConnections, type Connection } from './connectionGraph'
-import { useConnectorSettings } from './useConnectorSettings'
+import { canConnect, linkKey, sanitizeLinks, type Link } from './linkGraph'
+import { useFlowSettings } from './useFlowSettings'
 
-export const CONNECTIONS_STORAGE_KEY = 'localgrid.connections'
+export const FLOW_STORAGE_KEY = 'localgrid.flow'
 
 /** Runtime guard on top of the no-loop rule: a link writing more than
  * `BURST_LIMIT` times within `BURST_WINDOW_MS` is cut. Typing through a chain
@@ -13,7 +13,7 @@ export const BURST_WINDOW_MS = 1000
 export const BURST_LIMIT = 50
 
 /** Input list opened on a widget, at a viewport position. With `from`, it
- * asks which input a dropped connection should feed; without, it lists the
+ * asks which input a dropped link should feed; without, it lists the
  * widget's inputs so one can be disconnected. */
 export interface InputMenu {
   to: string
@@ -24,19 +24,19 @@ export interface InputMenu {
 
 /** Menu opened by clicking a wire, at a viewport position. */
 export interface LinkMenu {
-  /** `connectionKey` of the clicked link. */
+  /** `linkKey` of the clicked link. */
   key: string
   x: number
   y: number
 }
 
-interface ConnectionState {
-  connections: Connection[]
+interface FlowState {
+  links: Link[]
   /** Last value each source published, pushed to a link as soon as it is made. */
   outputs: Record<string, string>
-  /** Source of the connection being dragged, if any. */
+  /** Source of the link being dragged, if any. */
   drag: { from: string } | null
-  /** `connectionKey` of the wire under the pointer, highlighted everywhere. */
+  /** `linkKey` of the wire under the pointer, highlighted everywhere. */
   hovered: string | null
   menu: InputMenu | null
   linkMenu: LinkMenu | null
@@ -49,7 +49,7 @@ interface ConnectionState {
   /** Drops every link touching these instances. Called when widgets are removed. */
   removeInstances: (instanceIds: string[]) => void
   /** Replaces every link, e.g. with the ones a share link carried. */
-  setConnections: (connections: readonly Connection[]) => void
+  setLinks: (links: readonly Link[]) => void
   publish: (from: string, value: string) => void
   startDrag: (from: string) => void
   endDrag: () => void
@@ -73,18 +73,18 @@ function withinBudget(key: string): boolean {
   return burst.count <= BURST_LIMIT
 }
 
-export const useConnectionStore = create<ConnectionState>()(
+export const useFlowStore = create<FlowState>()(
   persist(
     (set, get) => {
       /** Writes into the target's input field, unless it already holds this
-       * value or connectors are turned off. */
-      const push = (link: Connection, value: string) => {
-        if (!useConnectorSettings.getState().enabled) return
-        const key = connectionKey(link)
+       * value or flow is turned off. */
+      const push = (link: Link, value: string) => {
+        if (!useFlowSettings.getState().enabled) return
+        const key = linkKey(link)
         const widgetState = useWidgetStateStore.getState()
         if (widgetState.values[key] === value) return
         if (!withinBudget(key)) {
-          console.warn(`Connection into ${key} fired too often and was removed`)
+          console.warn(`Link into ${key} fired too often and was removed`)
           get().disconnect(link.to, link.input)
           return
         }
@@ -92,7 +92,7 @@ export const useConnectionStore = create<ConnectionState>()(
       }
 
       return {
-        connections: [],
+        links: [],
         outputs: {},
         drag: null,
         hovered: null,
@@ -100,19 +100,19 @@ export const useConnectionStore = create<ConnectionState>()(
         linkMenu: null,
 
         connect: (from, to, input) => {
-          const { connections, outputs } = get()
-          if (!canConnect(connections, from, to, input)) return false
+          const { links, outputs } = get()
+          if (!canConnect(links, from, to, input)) return false
           const link = { from, to, input }
-          const key = connectionKey(link)
+          const key = linkKey(link)
           bursts.delete(key)
-          set({ connections: [...connections.filter((other) => connectionKey(other) !== key), link] })
+          set({ links: [...links.filter((other) => linkKey(other) !== key), link] })
           if (from in outputs) push(link, outputs[from])
           return true
         },
 
         setLinkColor: (to, input, color) =>
           set((state) => ({
-            connections: state.connections.map((link) => {
+            links: state.links.map((link) => {
               if (link.to !== to || link.input !== input) return link
               const { color: _previous, ...rest } = link
               return color === undefined ? rest : { ...rest, color }
@@ -121,22 +121,20 @@ export const useConnectionStore = create<ConnectionState>()(
 
         disconnect: (to, input) =>
           set((state) => ({
-            connections: state.connections.filter((link) => link.to !== to || link.input !== input),
+            links: state.links.filter((link) => link.to !== to || link.input !== input),
           })),
 
         removeInstances: (instanceIds) =>
           set((state) => ({
-            connections: state.connections.filter(
-              (link) => !instanceIds.includes(link.from) && !instanceIds.includes(link.to),
-            ),
+            links: state.links.filter((link) => !instanceIds.includes(link.from) && !instanceIds.includes(link.to)),
             outputs: Object.fromEntries(Object.entries(state.outputs).filter(([id]) => !instanceIds.includes(id))),
           })),
 
-        setConnections: (connections) => set({ connections: sanitizeConnections(connections) }),
+        setLinks: (links) => set({ links: sanitizeLinks(links) }),
 
         publish: (from, value) => {
           if (get().outputs[from] !== value) set((state) => ({ outputs: { ...state.outputs, [from]: value } }))
-          for (const link of get().connections) if (link.from === from) push(link, value)
+          for (const link of get().links) if (link.from === from) push(link, value)
         },
 
         startDrag: (from) => set({ drag: { from } }),
@@ -149,23 +147,23 @@ export const useConnectionStore = create<ConnectionState>()(
       }
     },
     {
-      name: CONNECTIONS_STORAGE_KEY,
+      name: FLOW_STORAGE_KEY,
       version: 1,
-      partialize: (state) => ({ connections: state.connections }),
+      partialize: (state) => ({ links: state.links }),
       merge: (persisted, current) => ({
         ...current,
-        connections: sanitizeConnections((persisted as { connections?: unknown } | undefined)?.connections),
+        links: sanitizeLinks((persisted as { links?: unknown } | undefined)?.links),
       }),
     },
   ),
 )
 
-// Links pause while connectors are off; turning them back on catches every
+// Links pause while flow is off; turning them back on catches every
 // target up with its source's current output.
-useConnectorSettings.subscribe((settings, previous) => {
+useFlowSettings.subscribe((settings, previous) => {
   if (!settings.enabled || previous.enabled) return
-  const { connections, outputs, publish } = useConnectionStore.getState()
-  for (const from of new Set(connections.map((link) => link.from))) {
+  const { links, outputs, publish } = useFlowStore.getState()
+  for (const from of new Set(links.map((link) => link.from))) {
     if (from in outputs) publish(from, outputs[from])
   }
 })

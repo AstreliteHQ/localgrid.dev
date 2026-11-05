@@ -12,7 +12,7 @@ export const statisticsCalculatorDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./StatisticsCalculatorWidget')),
   keywords: ['statistics', 'mean', 'median', 'mode', 'variance', 'standard deviation', 'average'],
-  connectors: {
+  flow: {
     inputs: [{ field: 'input', label: 'Numbers' }],
   },
 }

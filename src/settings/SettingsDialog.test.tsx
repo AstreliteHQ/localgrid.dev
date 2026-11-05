@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useConnectionStore } from '@/connectors/useConnectionStore'
-import { useConnectorSettings } from '@/connectors/useConnectorSettings'
+import { useFlowStore } from '@/flow/useFlowStore'
+import { useFlowSettings } from '@/flow/useFlowSettings'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { useThemeStore } from '@/theme/useThemeStore'
 import { SettingsDialog } from './SettingsDialog'
@@ -89,22 +89,22 @@ describe('SettingsDialog', () => {
     expect(configToggle).toBeDisabled()
   })
 
-  it('turns connectors off and edits a conveyor color from the Connectors section', async () => {
+  it('turns flow off and edits a conveyor color from the Flow section', async () => {
     const user = userEvent.setup()
-    useSettingsStore.getState().openSettings('connectors')
+    useSettingsStore.getState().openSettings('flow')
     render(<SettingsDialog />)
     expect(screen.getByRole('img', { name: /output flowing into/i })).toBeInTheDocument()
 
-    await user.click(screen.getByRole('checkbox', { name: /enable connectors/i }))
-    expect(useConnectorSettings.getState().enabled).toBe(false)
+    await user.click(screen.getByRole('checkbox', { name: /enable flow/i }))
+    expect(useFlowSettings.getState().enabled).toBe(false)
     expect(screen.getByRole('button', { name: 'Always' })).toBeDisabled()
 
-    await user.click(screen.getByRole('checkbox', { name: /enable connectors/i }))
+    await user.click(screen.getByRole('checkbox', { name: /enable flow/i }))
     await user.click(screen.getByRole('button', { name: 'Always' }))
-    expect(useConnectorSettings.getState().animation).toBe('always')
+    expect(useFlowSettings.getState().animation).toBe('always')
   })
 
-  it('shares connectors when there are some, listed in the preview', async () => {
+  it('shares links when there are some, listed in the preview', async () => {
     const user = userEvent.setup()
     useDashboardStore.setState({
       dashboards: [
@@ -119,16 +119,16 @@ describe('SettingsDialog', () => {
       ],
       activeDashboardId: 'dash',
     })
-    useConnectionStore.getState().connect('src', 'hash', 'input')
+    useFlowStore.getState().connect('src', 'hash', 'input')
     useSettingsStore.getState().openSettings('share')
     render(<SettingsDialog />)
 
-    const toggle = screen.getByRole('checkbox', { name: /include connectors/i })
+    const toggle = screen.getByRole('checkbox', { name: /include flow/i })
     expect(toggle).toBeChecked()
-    expect(screen.getByRole('list', { name: /shared connections/i })).toHaveTextContent('Base64 → Hash Generator')
+    expect(screen.getByRole('list', { name: /shared links/i })).toHaveTextContent('Base64 → Hash Generator')
 
     await user.click(toggle)
 
-    expect(screen.queryByRole('list', { name: /shared connections/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: /shared links/i })).not.toBeInTheDocument()
   })
 })

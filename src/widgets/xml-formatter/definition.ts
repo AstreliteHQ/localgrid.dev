@@ -12,7 +12,7 @@ export const xmlFormatterDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./XmlFormatterWidget')),
   keywords: ['xml', 'format', 'pretty', 'minify', 'viewer'],
-  connectors: {
+  flow: {
     inputs: [{ field: 'input', label: 'XML' }],
     output: { label: 'Formatted XML' },
   },

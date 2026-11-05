@@ -1,8 +1,8 @@
 import { useId } from 'react'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
-import { readableTextColor } from '@/connectors/connectionGraph'
-import { Conveyor } from '@/connectors/Conveyor'
-import { useConnectorSettings } from '@/connectors/useConnectorSettings'
+import { readableTextColor } from '@/flow/linkGraph'
+import { Conveyor } from '@/flow/Conveyor'
+import { useFlowSettings } from '@/flow/useFlowSettings'
 
 // Two mini widgets in a 264 × 84 drawing: a source on the left whose header
 // OUT tab feeds the IN tab of a target lower on the right.
@@ -11,11 +11,11 @@ const TARGET = { x: 172, y: 22, w: 84, h: 56 }
 const HEADER_MID = 10
 const SAMPLE = 'aGVsbG8='
 
-/** Introduces connectors at the top of their settings section: two mini
+/** Introduces flow at the top of their settings section: two mini
  * widgets joined by a live conveyor, in the user's first conveyor color. */
-export function ConnectorsBanner() {
+export function FlowBanner() {
   const id = useId()
-  const color = useConnectorSettings((state) => state.colors[0])
+  const color = useFlowSettings((state) => state.colors[0])
   // A demo, so it always moves, unless the system asks for reduced motion.
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const outY = SOURCE.y + HEADER_MID
@@ -85,7 +85,7 @@ function MiniWidget({ x, y, w, h, title }: { x: number; y: number; w: number; h:
   )
 }
 
-/** Header tab centered on the widget's border, like `ConnectorPort`. */
+/** Header tab centered on the widget's border, like `FlowPort`. */
 function Tab({ x, y, label, color }: { x: number; y: number; label: string; color: string }) {
   const width = label.length * 4.5 + 6
   return (

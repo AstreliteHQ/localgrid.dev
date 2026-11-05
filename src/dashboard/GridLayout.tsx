@@ -5,8 +5,8 @@ import 'react-resizable/css/styles.css'
 import './grid-placeholder.css'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useWidgetDragStore } from '@/sidebar/useWidgetDragStore'
-import { ConnectionLayer } from '@/connectors/ConnectionLayer'
-import { useConnectorSettings } from '@/connectors/useConnectorSettings'
+import { FlowLayer } from '@/flow/FlowLayer'
+import { useFlowSettings } from '@/flow/useFlowSettings'
 import { getWidgetDefinition } from '@/widgets/registry'
 import {
   EDITABLE_BREAKPOINT,
@@ -49,9 +49,9 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
   const applyLayoutUpdate = useDashboardStore((state) => state.applyLayoutUpdate)
   const addWidgetAt = useDashboardStore((state) => state.addWidgetAt)
   const isEditable = useMediaQuery(EDITABLE_BREAKPOINT)
-  const connectorsEnabled = useConnectorSettings((state) => state.enabled)
+  const flowEnabled = useFlowSettings((state) => state.enabled)
   const { width, containerRef, mounted } = useContainerWidth()
-  // What the grid actually shows, which connection wires are routed on. It
+  // What the grid actually shows, which link wires are routed on. It
   // differs from the stored layout mid drag or resize, and after the grid
   // compacts on its own (e.g. widgets moving up once one is removed), which
   // is never written back to the store (see onDragStop below). Only used to
@@ -104,8 +104,8 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
 
   return (
     <div ref={containerRef} className="relative flex-1">
-      {mounted && connectorsEnabled && (
-        <ConnectionLayer
+      {mounted && flowEnabled && (
+        <FlowLayer
           layout={renderedLayout ?? layout}
           width={width}
           cols={GRID_COLS}
@@ -126,7 +126,7 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
             // of truth for the outer gap is enough.
             containerPadding: [0, 0],
           }}
-          dragConfig={{ handle: '.widget-drag-handle', cancel: '[data-connector-port]' }}
+          dragConfig={{ handle: '.widget-drag-handle', cancel: '[data-flow-port]' }}
           dropConfig={{
             enabled: true,
             onDragOver: (event) => {

@@ -1,13 +1,13 @@
 import { useContext } from 'react'
 import { cn } from '@/lib/utils'
 import type { WidgetInput } from '@/widgets/types'
-import { canConnect, connectionKey, readableTextColor } from './connectionGraph'
-import { HEADER_ANCHOR_Y } from './connectionRouting'
-import { ConnectorInstanceContext } from './connectorsContext'
-import { useConnectionStore } from './useConnectionStore'
-import { useLinkColor } from './useConnectorSettings'
+import { canConnect, linkKey, readableTextColor } from './linkGraph'
+import { HEADER_ANCHOR_Y } from './linkRouting'
+import { FlowInstanceContext } from './flowContext'
+import { useFlowStore } from './useFlowStore'
+import { useLinkColor } from './useFlowSettings'
 
-type ConnectorPortProps =
+type FlowPortProps =
   | { instanceId: string; kind: 'input'; inputs: WidgetInput[] }
   | { instanceId: string; kind: 'output'; inputs?: undefined }
 
@@ -15,34 +15,31 @@ type ConnectorPortProps =
  * Drag from OUT onto another widget to connect. Clicking IN disconnects a
  * single input, or lists them when there are several. Rendered by the grid
  * item, outside the widget's own scroll. */
-export function ConnectorPort({ instanceId, kind, inputs }: ConnectorPortProps) {
-  const enabled = useContext(ConnectorInstanceContext) !== null
-  const end = (connection: { from: string; to: string }) => (kind === 'input' ? connection.to : connection.from)
-  const link = useConnectionStore((state) => state.connections.find((connection) => end(connection) === instanceId))
-  const isHovered = useConnectionStore((state) =>
-    state.connections.some(
-      (connection) => end(connection) === instanceId && connectionKey(connection) === state.hovered,
-    ),
+export function FlowPort({ instanceId, kind, inputs }: FlowPortProps) {
+  const enabled = useContext(FlowInstanceContext) !== null
+  const end = (link: { from: string; to: string }) => (kind === 'input' ? link.to : link.from)
+  const link = useFlowStore((state) => state.links.find((link) => end(link) === instanceId))
+  const isHovered = useFlowStore((state) =>
+    state.links.some((link) => end(link) === instanceId && linkKey(link) === state.hovered),
   )
-  const isDropTarget = useConnectionStore(
+  const isDropTarget = useFlowStore(
     (state) =>
       state.drag !== null &&
-      (inputs ?? []).some((input) => canConnect(state.connections, state.drag!.from, instanceId, input.field)),
+      (inputs ?? []).some((input) => canConnect(state.links, state.drag!.from, instanceId, input.field)),
   )
   const color = useLinkColor(link)
-  const { startDrag, disconnect, openMenu } = useConnectionStore.getState()
+  const { startDrag, disconnect, openMenu } = useFlowStore.getState()
 
   if (!enabled) return null
 
   const single = inputs?.length === 1 ? inputs[0] : undefined
-  const label =
-    kind === 'output' ? 'Output connector' : single ? (link ? 'Disconnect input' : 'Input connector') : 'Inputs'
+  const label = kind === 'output' ? 'Output port' : single ? (link ? 'Disconnect input' : 'Input port') : 'Inputs'
 
   return (
     <button
       type="button"
-      data-connector-port={kind}
-      data-connector-instance={instanceId}
+      data-flow-port={kind}
+      data-flow-instance={instanceId}
       aria-label={label}
       title={
         kind === 'output'
@@ -50,7 +47,7 @@ export function ConnectorPort({ instanceId, kind, inputs }: ConnectorPortProps) 
           : single
             ? link
               ? 'Connected, click to disconnect'
-              : 'Input: drop a connection here'
+              : 'Input: drop a link here'
             : `${inputs?.length ?? 0} inputs: click to see what feeds them`
       }
       onPointerDown={

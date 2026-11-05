@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
-import { InputSlot } from '@/connectors/ConnectorSlots'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 

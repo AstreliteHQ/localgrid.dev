@@ -12,7 +12,7 @@ export const qrCodeDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 4 },
   component: lazy(() => import('./QrCodeWidget')),
   keywords: ['qr', 'qr code', 'barcode', 'wifi', 'vcard', 'contact', 'sms', 'email', 'url', 'generator'],
-  connectors: {
+  flow: {
     inputs: [{ field: 'text', label: 'Text or URL' }],
   },
 }

@@ -10,9 +10,9 @@ describe('settingsStorage', () => {
 
   it('writes one section without touching the others', () => {
     writeSettingsSection('theme', 'dark')
-    writeSettingsSection('connectors', { enabled: false })
+    writeSettingsSection('flow', { enabled: false })
 
-    expect(stored()).toEqual({ theme: 'dark', connectors: { enabled: false } })
+    expect(stored()).toEqual({ theme: 'dark', flow: { enabled: false } })
   })
 
   it('moves a theme saved under the old key in, once', () => {

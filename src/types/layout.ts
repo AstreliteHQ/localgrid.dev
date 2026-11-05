@@ -1,4 +1,4 @@
-import type { Connection } from '@/connectors/connectionGraph'
+import type { Link } from '@/flow/linkGraph'
 
 /** A single widget placed on a dashboard: which widget it is, its
  * position/size in grid units, and its optional configuration. This is
@@ -33,8 +33,8 @@ export interface WorkspaceLayoutV2 {
   dashboards: Dashboard[]
   activeDashboardId: string
   /** Links between widgets, only when a share link carried them. Persisted
-   * separately (see useConnectionStore), never part of the stored layout. */
-  connections?: Connection[]
+   * separately (see useFlowStore), never part of the stored layout. */
+  links?: Link[]
 }
 
 /** Pre-tabs share-link shape. Kept only so `layoutCodec.ts` can still decode

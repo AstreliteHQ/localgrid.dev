@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
-import { InputSlot } from '@/connectors/ConnectorSlots'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { countTextStats, estimateTokens } from './tokenCounter'

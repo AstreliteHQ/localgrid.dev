@@ -3,7 +3,7 @@ import { Monitor, Moon, Sun } from 'lucide-react'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { MAX_DASHBOARDS, useDashboardStore } from '@/dashboard/useDashboardStore'
 import { DASHBOARD_STORAGE_KEY } from '@/dashboard/persistence'
-import { CONNECTIONS_STORAGE_KEY } from '@/connectors/useConnectionStore'
+import { FLOW_STORAGE_KEY } from '@/flow/useFlowStore'
 import { useThemeStore, type Theme } from '@/theme/useThemeStore'
 import { ConfirmButton } from './ConfirmButton'
 import { SETTINGS_STORAGE_KEY } from './settingsStorage'
@@ -39,7 +39,7 @@ const STORAGE_PREFIX = 'localgrid.'
 
 const STORAGE_LABELS: Record<string, string> = {
   [DASHBOARD_STORAGE_KEY]: 'Dashboards and widgets',
-  [CONNECTIONS_STORAGE_KEY]: 'Widget connections',
+  [FLOW_STORAGE_KEY]: 'Widget links',
   [SETTINGS_STORAGE_KEY]: 'Settings',
   'localgrid.sidebar-collapsed': 'Sidebar',
 }

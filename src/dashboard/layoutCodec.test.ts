@@ -196,7 +196,7 @@ describe('layoutCodec: widget configuration', () => {
   })
 })
 
-describe('layoutCodec — connections', () => {
+describe('layoutCodec — links', () => {
   const WIRED: Dashboard[] = [
     {
       id: 'wired',
@@ -209,38 +209,38 @@ describe('layoutCodec — connections', () => {
     },
   ]
 
-  function decodeWired(connections: EncodeOptions['connections']) {
-    const result = decodeWorkspace(encodeWorkspace(WIRED, 'wired', { connections }))
+  function decodeWired(links: EncodeOptions['links']) {
+    const result = decodeWorkspace(encodeWorkspace(WIRED, 'wired', { links }))
     if (!result.ok) throw new Error(result.error)
     const ids = result.workspace.dashboards[0].widgets.map((widget) => widget.instanceId)
-    return { connections: result.workspace.connections, ids }
+    return { links: result.workspace.links, ids }
   }
 
-  it('carries connections onto the freshly minted instance ids', () => {
-    const { connections, ids } = decodeWired([
+  it('carries links onto the freshly minted instance ids', () => {
+    const { links, ids } = decodeWired([
       { from: 'src', to: 'diff', input: 'changed' },
       { from: 'src', to: 'hash', input: 'input' },
     ])
 
-    expect(connections).toEqual([
+    expect(links).toEqual([
       { from: ids[0], to: ids[1], input: 'changed' },
       { from: ids[0], to: ids[2], input: 'input' },
     ])
   })
 
-  it('leaves connections out unless asked, so older links decode the same', () => {
-    expect(decodeWired(undefined).connections).toBeUndefined()
+  it('leaves links out unless asked, so older links decode the same', () => {
+    expect(decodeWired(undefined).links).toBeUndefined()
   })
 
   it('drops links into undeclared inputs, out of widgets without an output, and loops', () => {
-    const { connections, ids } = decodeWired([
+    const { links, ids } = decodeWired([
       { from: 'src', to: 'diff', input: 'secret' },
       { from: 'diff', to: 'hash', input: 'input' },
       { from: 'src', to: 'hash', input: 'input' },
       { from: 'hash', to: 'src', input: 'input' },
     ])
 
-    expect(connections).toEqual([{ from: ids[0], to: ids[2], input: 'input' }])
+    expect(links).toEqual([{ from: ids[0], to: ids[2], input: 'input' }])
   })
 
   it('ignores link indexes pointing past the widget list', () => {
@@ -251,6 +251,6 @@ describe('layoutCodec — connections', () => {
     }
     const result = decodeWorkspace(LZString.compressToEncodedURIComponent(JSON.stringify(wire)))
 
-    expect(result.ok && result.workspace.connections).toEqual([])
+    expect(result.ok && result.workspace.links).toEqual([])
   })
 })
