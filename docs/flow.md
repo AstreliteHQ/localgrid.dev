@@ -155,7 +155,7 @@ header height. Changing any of them needs a matching change here.
 Settings > Flow, stored as the `flow` section of `localgrid.settings`
 (`useFlowSettings`):
 
-- **Enable flow** (default on). Off hides every tab, slot and wire, and **pauses**
+- **Enable flow** (default off while the feature is experimental). Off hides every tab, slot and wire, and **pauses**
   delivery so nothing changes invisibly. Links are kept, and turning it back on pushes every
   source's current output through again.
 - **Conveyor animation**: on hover, always, or off. Always off under reduced motion.

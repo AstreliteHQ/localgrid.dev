@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SETTINGS_STORAGE_KEY, readSettings, writeSettingsSection } from './settingsStorage'
 
 const stored = () => JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY) ?? 'null')
@@ -6,6 +6,10 @@ const stored = () => JSON.parse(window.localStorage.getItem(SETTINGS_STORAGE_KEY
 describe('settingsStorage', () => {
   beforeEach(() => {
     window.localStorage.clear()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('writes one section without touching the others', () => {
@@ -21,6 +25,16 @@ describe('settingsStorage', () => {
     expect(readSettings()).toEqual({ theme: 'light' })
     expect(stored()).toEqual({ theme: 'light' })
     expect(window.localStorage.getItem('localgrid.theme')).toBeNull()
+  })
+
+  it('keeps the legacy theme when the migration cannot write', () => {
+    window.localStorage.setItem('localgrid.theme', 'dark')
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError')
+    })
+
+    expect(readSettings()).toEqual({ theme: 'dark' })
+    expect(window.localStorage.getItem('localgrid.theme')).toBe('dark')
   })
 
   it('reads corrupted or unexpected content as no settings', () => {

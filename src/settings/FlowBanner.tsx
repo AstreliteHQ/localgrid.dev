@@ -17,7 +17,9 @@ const SAMPLE = 'aGVsbG8='
 export function FlowBanner() {
   const id = useId()
   const color = useFlowSettings((state) => state.colors[0])
-  // A demo, so it always moves, unless the system asks for reduced motion.
+  // A demo, so it moves unless the user turned conveyor animation off or the
+  // system asks for reduced motion.
+  const animationOff = useFlowSettings((state) => state.animation === 'off')
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const outY = SOURCE.y + HEADER_MID
   const inY = TARGET.y + HEADER_MID
@@ -47,7 +49,7 @@ export function FlowBanner() {
           aria-label="A Base64 widget's output flowing into a Hash Generator's input"
           className="h-[84px] w-[264px] shrink-0"
         >
-          <Conveyor id={`${id}-banner`} points={points} color={color} highlighted moving={!reduceMotion} />
+          <Conveyor id={`${id}-banner`} points={points} color={color} highlighted moving={!reduceMotion && !animationOff} />
           <MiniWidget {...SOURCE} title="Base64" />
           <MiniWidget {...TARGET} title="Hash Generator" />
           <Tab x={SOURCE.x + SOURCE.w} y={outY} label="OUT" color={color} />

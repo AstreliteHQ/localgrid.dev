@@ -37,7 +37,11 @@ function migrateLegacySettings(): StoredSettings {
   const theme = window.localStorage.getItem(LEGACY_THEME_KEY)
   if (theme === null) return {}
   const settings: StoredSettings = { theme }
-  window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
-  window.localStorage.removeItem(LEGACY_THEME_KEY)
+  try {
+    window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+    window.localStorage.removeItem(LEGACY_THEME_KEY)
+  } catch {
+    // Storage full or blocked: keep the old key and still use its theme.
+  }
   return settings
 }
