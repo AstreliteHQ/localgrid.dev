@@ -5,6 +5,7 @@ import { CopyButton } from '@/components/CopyButton'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { parseKubeconfig, redactKubeconfig, type KubeconfigSummary } from './parseKubeconfig'
@@ -20,14 +21,16 @@ export default function KubeconfigViewerWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <CodeEditor
-        value={input}
-        onChange={setInput}
-        language="plaintext"
-        placeholder="Paste a kubeconfig (YAML) or drop the file…"
-        aria-label="Kubeconfig input"
-        className="min-h-20 flex-1"
-      />
+      <InputSlot input="input" className="flex min-h-20 flex-1 flex-col">
+        <CodeEditor
+          value={input}
+          onChange={setInput}
+          language="plaintext"
+          placeholder="Paste a kubeconfig (YAML) or drop the file…"
+          aria-label="Kubeconfig input"
+          className="min-h-20 flex-1"
+        />
+      </InputSlot>
       <div className="min-h-0 flex-[2] overflow-auto">
         {!input.trim() ? (
           <p className="flex h-full items-center justify-center gap-1.5 text-center text-muted-foreground">

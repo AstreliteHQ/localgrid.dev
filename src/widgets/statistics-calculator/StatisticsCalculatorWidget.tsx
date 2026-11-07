@@ -3,6 +3,7 @@ import { CopyButton } from '@/components/CopyButton'
 import { Textarea } from '@/components/ui/textarea'
 import { formatNumber } from '@/lib/formatNumber'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { computeStatistics, parseNumberList, type Statistics } from './computeStatistics'
@@ -34,14 +35,16 @@ export default function StatisticsCalculatorWidget({ instanceId }: WidgetProps) 
 
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
-      <Textarea
-        value={input}
-        onChange={(event) => setInput(event.target.value)}
-        placeholder="Numbers separated by commas, spaces, or new lines…"
-        spellCheck={false}
-        aria-label="Number list"
-        className="min-h-16 flex-1 resize-none font-mono"
-      />
+      <InputSlot input="input" className="flex min-h-16 flex-1 flex-col">
+        <Textarea
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Numbers separated by commas, spaces, or new lines…"
+          spellCheck={false}
+          aria-label="Number list"
+          className="min-h-16 flex-1 resize-none font-mono"
+        />
+      </InputSlot>
 
       {!stats ? (
         <p className="text-muted-foreground">Enter at least one number.</p>
