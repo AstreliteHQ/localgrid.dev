@@ -44,7 +44,7 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
   const setWidgetPosition = useDashboardStore((state) => state.setWidgetPosition)
   const duplicateWidget = useDashboardStore((state) => state.duplicateWidget)
   const resetNonce = useWidgetResetNonce(instance.instanceId)
-  const showFlow = useFlowSettings((state) => state.enabled) && editable
+  const showFlow = useFlowSettings((state) => state.enabled)
 
   const isExpanded = overlayTarget?.kind === 'pinned' && overlayTarget.instanceId === instance.instanceId
 
@@ -107,7 +107,7 @@ export function WidgetGridItem({ dashboardId, instance, onRemove, editable }: Wi
         )}
       </WidgetShell>
       {inputs && <FlowPort instanceId={instance.instanceId} kind="input" inputs={inputs} />}
-      {flow?.output && <FlowPort instanceId={instance.instanceId} kind="output" />}
+      {flow?.output && <FlowPort instanceId={instance.instanceId} kind="output" draggable={editable} />}
       {showMoveControl && positionDialogOpen && (
         <GridPositionDialog
           onClose={() => setPositionDialogOpen(false)}

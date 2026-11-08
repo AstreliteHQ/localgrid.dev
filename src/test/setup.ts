@@ -12,7 +12,7 @@ import { DEFAULT_FLOW_SETTINGS, useFlowSettings } from '@/flow/useFlowSettings'
 // widget test file to remember a unique id per test.
 afterEach(() => {
   useWidgetStateStore.setState({ values: {} })
-  useFlowStore.setState({ links: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null })
+  useFlowStore.setState({ links: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null, connectMenu: null })
 })
 
 // Flow is off by default while experimental, but most tests that touch it

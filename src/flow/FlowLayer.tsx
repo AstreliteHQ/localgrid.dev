@@ -4,7 +4,6 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { canConnect, linkKey, linkColor } from './linkGraph'
 import { distanceToRoute, outputAnchor, routeLink, type GridGeometry, type Point } from './linkRouting'
 import { CONVEYOR_WIDTH, Conveyor } from './Conveyor'
-import { InputMenu } from './InputMenu'
 import { LinkMenu } from './LinkMenu'
 import { useFlowStore } from './useFlowStore'
 import { useFlowSettings } from './useFlowSettings'
@@ -189,7 +188,6 @@ export function FlowLayer({ layout, width, cols, rowHeight, margin }: FlowLayerP
           />
         </svg>
       )}
-      <InputMenu />
       <LinkMenu />
     </>
   )

@@ -22,6 +22,13 @@ export interface InputMenu {
   from?: string
 }
 
+/** Menu opened by clicking a widget's OUT tab, listing what it can feed. */
+export interface ConnectMenu {
+  from: string
+  x: number
+  y: number
+}
+
 /** Menu opened by clicking a wire, at a viewport position. */
 export interface LinkMenu {
   /** `linkKey` of the clicked link. */
@@ -40,6 +47,7 @@ interface FlowState {
   hovered: string | null
   menu: InputMenu | null
   linkMenu: LinkMenu | null
+  connectMenu: ConnectMenu | null
   /** Returns false when the link breaks a rule (see `canConnect`). Replaces
    * whatever was feeding that input before. */
   connect: (from: string, to: string, input: string) => boolean
@@ -58,6 +66,8 @@ interface FlowState {
   closeMenu: () => void
   openLinkMenu: (menu: LinkMenu) => void
   closeLinkMenu: () => void
+  openConnectMenu: (menu: ConnectMenu) => void
+  closeConnectMenu: () => void
 }
 
 const bursts = new Map<string, { start: number; count: number }>()
@@ -98,6 +108,7 @@ export const useFlowStore = create<FlowState>()(
         hovered: null,
         menu: null,
         linkMenu: null,
+        connectMenu: null,
 
         connect: (from, to, input) => {
           const { links, outputs } = get()
@@ -144,6 +155,8 @@ export const useFlowStore = create<FlowState>()(
         closeMenu: () => set({ menu: null }),
         openLinkMenu: (linkMenu) => set({ linkMenu }),
         closeLinkMenu: () => set({ linkMenu: null }),
+        openConnectMenu: (connectMenu) => set({ connectMenu }),
+        closeConnectMenu: () => set({ connectMenu: null }),
       }
     },
     {

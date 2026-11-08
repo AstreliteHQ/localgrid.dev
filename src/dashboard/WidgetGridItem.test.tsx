@@ -150,9 +150,23 @@ describe('WidgetGridItem flow ports', () => {
     expect(useFlowStore.getState().menu).toMatchObject({ to: 'test-diff' })
   })
 
-  it('shows no tabs on the read-only stack', () => {
+  it('shows the tabs on the read-only stack too, where OUT opens the connect menu instead of dragging', async () => {
+    const user = userEvent.setup()
     render(<WidgetGridItem dashboardId={DASHBOARD_ID} instance={INSTANCE} onRemove={() => {}} editable={false} />)
 
-    expect(screen.queryByRole('button', { name: /port/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Input port' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Output port' }))
+
+    expect(useFlowStore.getState().drag).toBeNull()
+    expect(useFlowStore.getState().connectMenu).toMatchObject({ from: 'test-base64' })
+  })
+
+  it('opens the connect menu on a click in the editable grid as well', async () => {
+    const user = userEvent.setup()
+    render(<WidgetGridItem dashboardId={DASHBOARD_ID} instance={INSTANCE} onRemove={() => {}} editable />)
+
+    await user.click(screen.getByRole('button', { name: 'Output port' }))
+
+    expect(useFlowStore.getState().connectMenu).toMatchObject({ from: 'test-base64' })
   })
 })

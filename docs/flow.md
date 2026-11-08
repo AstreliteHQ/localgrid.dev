@@ -100,7 +100,7 @@ refused even though the two fields differ.
 
 | Element                          | Component                                | Behavior                                                                                                                                                                                                                                  |
 | -------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| IN / OUT tabs on the header edge | `FlowPort`, rendered by `WidgetGridItem` | Drag from OUT to connect. On a widget with one input, clicking a connected IN disconnects it. With several inputs, it opens the input list. Always visible, outside the widget's own scroll                                               |
+| IN / OUT tabs on the header edge | `FlowPort`, rendered by `WidgetGridItem` | Drag from OUT to connect, or click OUT to pick a target. On a widget with one input, clicking a connected IN disconnects it. With several inputs, it opens the input list. Always visible, outside the widget's own scroll                |
 | Field markers                    | `InputSlot`, `OutputSlot`                | Purely visual, and nothing on an unwired field. A connected input shows its source ("← Base64") or a colored dot; a connected output a colored dot. A labeled drop zone while a wire is dragged, and an outline while the wire is hovered |
 | Wires                            | `FlowLayer`                              | A conveyor band with `>` chevrons pointing from output to input. Drawn below the widgets so the tabs sit on top of the wire ends                                                                                                          |
 | Input menu                       | `InputMenu`                              | Picks the input when a drop is ambiguous, or lists inputs with a disconnect button each                                                                                                                                                   |
@@ -115,9 +115,11 @@ Where a drop lands decides the input (`resolveDrop`):
 Slots without children mark a region over part of another element. Text Diff uses two of them,
 one over each half of its single merge editor.
 
-`FlowInstanceContext` carries the instance id, and is set only inside the editable grid
-while flow is enabled. Every flow component renders nothing outside it, so the
-expanded overlay and the mobile stack show no tabs, slots or wires.
+`FlowInstanceContext` carries the instance id, and is set on the dashboard (editable grid
+and mobile stack) while flow is enabled. Every flow component renders nothing outside it,
+so the expanded overlay shows no tabs or slots. Wires are only drawn in the editable grid.
+Clicking or tapping OUT opens `ConnectMenu`, a list of every input on the same dashboard,
+so links can be made and removed without dragging; on the mobile stack it is the only way.
 
 Hover is computed, not taken from pointer events. The wires sit below the widgets, so
 `FlowLayer` measures the distance from the pointer to each route (`distanceToRoute`)
@@ -194,6 +196,7 @@ Settings > Flow, stored as the `flow` section of `localgrid.settings`
 | `FlowPort.tsx`             | Header IN / OUT tabs                                                     |
 | `FlowLayer.tsx`            | Wires, drag preview, drop resolution, hover                              |
 | `InputMenu.tsx`            | Input chooser and list                                                   |
+| `ConnectMenu.tsx`          | Targets an OUT tab can feed, to connect without dragging                 |
 | `LinkMenu.tsx`             | Color and remove menu of a clicked wire                                  |
 | `Conveyor.tsx`             | Conveyor drawing shared by wires and the settings banner                 |
 | `linkRouting.ts`           | Gap routing, anchors, rounded paths, hover distance                      |

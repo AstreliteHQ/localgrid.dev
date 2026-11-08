@@ -5,7 +5,9 @@ import 'react-resizable/css/styles.css'
 import './grid-placeholder.css'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useWidgetDragStore } from '@/sidebar/useWidgetDragStore'
+import { ConnectMenu } from '@/flow/ConnectMenu'
 import { FlowLayer } from '@/flow/FlowLayer'
+import { InputMenu } from '@/flow/InputMenu'
 import { useFlowSettings } from '@/flow/useFlowSettings'
 import { getWidgetDefinition } from '@/widgets/registry'
 import {
@@ -30,6 +32,16 @@ function sameGrid(a: Layout | null, b: Layout): boolean {
       const other = b[index]
       return item.i === other.i && item.x === other.x && item.y === other.y && item.w === other.w && item.h === other.h
     })
+  )
+}
+
+/** Menus opened from the IN and OUT tabs, in both the grid and the stack. */
+function FlowMenus() {
+  return (
+    <>
+      <InputMenu />
+      <ConnectMenu />
+    </>
   )
 }
 
@@ -89,7 +101,7 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
         {[...widgets]
           .sort((a, b) => a.y - b.y || a.x - b.x)
           .map((instance) => (
-            <div key={instance.instanceId} className="h-64">
+            <div key={instance.instanceId} className="relative h-64">
               <WidgetGridItem
                 dashboardId={dashboardId}
                 instance={instance}
@@ -98,6 +110,7 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
               />
             </div>
           ))}
+        {flowEnabled && <FlowMenus />}
       </div>
     )
   }
@@ -113,6 +126,7 @@ export function GridLayout({ dashboardId }: GridLayoutProps) {
           margin={GRID_MARGIN[0]}
         />
       )}
+      {flowEnabled && <FlowMenus />}
       {mounted && (
         <ReactGridLayout
           layout={layout}
