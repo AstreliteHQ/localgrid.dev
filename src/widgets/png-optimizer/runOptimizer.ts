@@ -26,8 +26,15 @@ export async function runOptimizer(
     const { optimizePng } = await import('./optimizePng')
     return optimizePng(bytes, options)
   }
+  // Inlined (built into a blob: URL) rather than loaded from its own file: a
+  // worker loaded from a URL gets its Content-Security-Policy from that
+  // file's response headers, which static hosting can't set, while a blob:
+  // worker inherits the page's policy and its connect-src allowlist.
+  const { default: OptimizeWorker } = await import('./optimizePng.worker.ts?worker&inline')
+  // The signal may have fired while the worker chunk was loading.
+  if (signal.aborted) throw new DOMException('Optimization cancelled.', 'AbortError')
   return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('./optimizePng.worker.ts', import.meta.url), { type: 'module' })
+    const worker = new OptimizeWorker()
     const finish = () => {
       worker.terminate()
       signal.removeEventListener('abort', onAbort)
