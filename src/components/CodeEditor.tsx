@@ -1,7 +1,8 @@
 import { forwardRef, useMemo, useRef, useState, type DragEvent } from 'react'
 import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror'
 import { EditorView } from '@codemirror/view'
-import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/language'
+import { toml } from '@codemirror/legacy-modes/mode/toml'
 import { openSearchPanel } from '@codemirror/search'
 import { tags } from '@lezer/highlight'
 import { json } from '@codemirror/lang-json'
@@ -14,7 +15,12 @@ import { useIsDarkTheme } from '@/theme/useThemeStore'
 import { cn } from '@/lib/utils'
 import { isFileDrag, readDroppedFile } from '@/components/codeEditorFileDrop'
 
-export type CodeEditorLanguage = 'json' | 'xml' | 'javascript' | 'plaintext'
+export type CodeEditorLanguage = 'json' | 'xml' | 'javascript' | 'toml' | 'plaintext'
+
+/** The legacy TOML mode tags table headers, booleans and dates all as
+ * `atom`, which the app highlight style below leaves uncolored. Mapping it
+ * to `bool` gives them the same accent as JSON booleans. */
+const tomlLanguage = StreamLanguage.define({ ...toml, tokenTable: { atom: tags.bool } })
 
 const LANGUAGE_EXTENSIONS: Record<CodeEditorLanguage, () => Extension[]> = {
   json: () => [json()],
@@ -22,6 +28,7 @@ const LANGUAGE_EXTENSIONS: Record<CodeEditorLanguage, () => Extension[]> = {
   // TypeScript rather than plain JS: the grammar is a superset, so a .ts
   // snippet keeps its highlighting and a .js one loses nothing.
   javascript: () => [javascript({ typescript: true })],
+  toml: () => [tomlLanguage],
   // No language grammar to highlight — just wrap long lines instead of
   // scrolling horizontally, which matters far more for prose than for the
   // structured/single-line inputs the other widgets edit.
@@ -82,6 +89,7 @@ export function useAppEditorTheme(isDark: boolean): Extension {
       { tag: tags.bool, color: isDark ? 'var(--color-purple-400)' : 'var(--color-purple-600)' },
       { tag: tags.null, color: 'var(--color-muted-foreground)' },
       { tag: tags.punctuation, color: 'var(--color-muted-foreground)' },
+      { tag: tags.comment, color: 'var(--color-muted-foreground)', fontStyle: 'italic' },
     ])
     const theme = EditorView.theme(
       {
