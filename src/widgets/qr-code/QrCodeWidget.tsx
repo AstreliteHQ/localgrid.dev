@@ -13,6 +13,7 @@ import { NumberField } from '@/components/NumberField'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { buildQrValue, type QrFields, type QrType, type WifiEncryption } from './qrPayload'
@@ -255,14 +256,16 @@ export default function QrCodeWidget({ instanceId }: WidgetProps) {
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-0.5">
         <div className="flex flex-col gap-2">
           {qrType === 'text' && (
-            <Textarea
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-              placeholder="Text or URL…"
-              spellCheck={false}
-              aria-label="Text or URL"
-              className="min-h-16 font-mono text-xs"
-            />
+            <InputSlot input="text">
+              <Textarea
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+                placeholder="Text or URL…"
+                spellCheck={false}
+                aria-label="Text or URL"
+                className="min-h-16 font-mono text-xs"
+              />
+            </InputSlot>
           )}
 
           {qrType === 'wifi' && (

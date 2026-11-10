@@ -12,4 +12,8 @@ export const notesDefinition: WidgetDefinition = {
   minSize: { w: 2, h: 3 },
   component: lazy(() => import('./NotesWidget')),
   keywords: ['notes', 'text', 'writing', 'word count', 'character count', 'reading time'],
+  flow: {
+    inputs: [{ field: 'content', label: 'Note' }],
+    output: { label: 'Note' },
+  },
 }

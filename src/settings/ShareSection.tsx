@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { toWire, type WireWorkspace } from '@/dashboard/layoutCodec'
 import { buildShareUrl } from '@/dashboard/shareUrl'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
+import { useFlowStore } from '@/flow/useFlowStore'
 import { getWidgetDefinition } from '@/widgets/registry'
 
 type CopyStatus = 'idle' | 'copied' | 'failed'
@@ -25,20 +26,31 @@ export function ShareSection() {
   const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
   const [includeLayout, setIncludeLayout] = useState(true)
   const [includeConfig, setIncludeConfig] = useState(false)
+  const [includeFlow, setIncludeFlow] = useState(true)
+  const links = useFlowStore((state) => state.links)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const qrContainerRef = useRef<HTMLDivElement>(null)
   const layoutId = useId()
   const configId = useId()
+  const flowId = useId()
 
   const shareConfig = includeLayout && includeConfig
+  const hasLinks = links.length > 0
+  const shareLinks = includeLayout && includeFlow && hasLinks ? links : undefined
   const shareUrl = useMemo(
-    () => buildShareUrl(dashboards, activeDashboardId, { includeLayout, includeConfig: shareConfig }),
-    [dashboards, activeDashboardId, includeLayout, shareConfig],
+    () =>
+      buildShareUrl(dashboards, activeDashboardId, {
+        includeLayout,
+        includeConfig: shareConfig,
+        links: shareLinks,
+      }),
+    [dashboards, activeDashboardId, includeLayout, shareConfig, shareLinks],
   )
   // Same function the encoder uses, so the preview is exactly what's sent.
   const wire = useMemo(
-    () => (includeLayout ? toWire(dashboards, activeDashboardId, { includeConfig: shareConfig }) : null),
-    [dashboards, activeDashboardId, includeLayout, shareConfig],
+    () =>
+      includeLayout ? toWire(dashboards, activeDashboardId, { includeConfig: shareConfig, links: shareLinks }) : null,
+    [dashboards, activeDashboardId, includeLayout, shareConfig, shareLinks],
   )
   const qrEligible = shareUrl.length <= QR_LENGTH_LIMIT
 
@@ -92,6 +104,29 @@ export function ShareSection() {
             Include widget configuration
             <span className="block text-xs text-muted-foreground">
               {includeLayout ? 'Saved widget settings. May contain text you entered.' : 'Requires layout.'}
+            </span>
+          </span>
+        </label>
+        <label
+          htmlFor={flowId}
+          className={cn('flex items-start gap-2 text-sm', (!includeLayout || !hasLinks) && 'opacity-50')}
+        >
+          <input
+            id={flowId}
+            type="checkbox"
+            checked={shareLinks !== undefined}
+            disabled={!includeLayout || !hasLinks}
+            onChange={(event) => setIncludeFlow(event.target.checked)}
+            className="mt-1 accent-primary"
+          />
+          <span>
+            Include flow
+            <span className="block text-xs text-muted-foreground">
+              {!includeLayout
+                ? 'Requires layout.'
+                : hasLinks
+                  ? 'Links between widget outputs and inputs.'
+                  : 'No links to share.'}
             </span>
           </span>
         </label>
@@ -182,8 +217,26 @@ function SharePreview({ wire }: { wire: WireWorkspace | null }) {
               </li>
             ))}
           </ul>
+          {dashboard.l && <LinksPreview widgetIds={dashboard.ws.map((widget) => widget.wid)} links={dashboard.l} />}
         </div>
       ))}
     </div>
+  )
+}
+
+function LinksPreview({ widgetIds, links }: { widgetIds: string[]; links: [number, number, string][] }) {
+  const nameOf = (index: number) => getWidgetDefinition(widgetIds[index])?.name ?? widgetIds[index]
+  const inputLabel = (index: number, field: string) =>
+    getWidgetDefinition(widgetIds[index])?.flow?.inputs?.find((input) => input.field === field)?.label ?? field
+  return (
+    <ul aria-label="Shared links" className="flex flex-col gap-0.5 pl-3 text-muted-foreground">
+      {links.map(([from, to, input], index) => (
+        <li key={index}>
+          <span className="text-foreground">{nameOf(from)}</span> →{' '}
+          <span className="text-foreground">{nameOf(to)}</span>
+          <span className="ml-1">({inputLabel(to, input)})</span>
+        </li>
+      ))}
+    </ul>
   )
 }

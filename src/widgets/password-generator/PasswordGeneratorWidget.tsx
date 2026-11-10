@@ -7,6 +7,8 @@ import { NumberField } from '@/components/NumberField'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { OutputSlot } from '@/flow/FlowSlots'
+import { useWidgetOutput } from '@/flow/useWidgetOutput'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { buildCharset, estimatePasswordStrength, generatePassword, type StrengthLabel } from './passwordGenerator'
@@ -41,6 +43,7 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
   const [symbols, setSymbols] = useWidgetState(instanceId, 'symbols', false)
   const [excludeAmbiguous, setExcludeAmbiguous] = useWidgetState(instanceId, 'excludeAmbiguous', false)
   const [password, setPassword] = useWidgetState(instanceId, 'password', '')
+  useWidgetOutput(instanceId, password)
   // Deliberately plain component state rather than useWidgetState: the
   // password is masked like a password field so it can't leak over a
   // shoulder or a screen share, and every reload starts masked again.
@@ -69,7 +72,7 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
   return (
     <div className="flex h-full flex-col gap-2 text-xs">
       <div className="flex items-center gap-1.5">
-        <div className="relative min-w-0 flex-1">
+        <OutputSlot className="min-w-0 flex-1">
           <Input
             readOnly
             type={revealed ? 'text' : 'password'}
@@ -92,7 +95,7 @@ export default function PasswordGeneratorWidget({ instanceId }: WidgetProps) {
             </Button>
             <CopyButton value={password} />
           </div>
-        </div>
+        </OutputSlot>
         <Button type="button" size="sm" onClick={handleGenerate} disabled={!canGenerate} className="shrink-0">
           <RefreshCw className="size-3.5" />
           Generate

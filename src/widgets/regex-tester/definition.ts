@@ -12,4 +12,7 @@ export const regexTesterDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./RegexTesterWidget')),
   keywords: ['regex', 'regexp', 'pattern', 'match'],
+  flow: {
+    inputs: [{ field: 'text', label: 'Test string' }],
+  },
 }

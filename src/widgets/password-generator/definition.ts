@@ -12,4 +12,7 @@ export const passwordGeneratorDefinition: WidgetDefinition = {
   minSize: { w: 2, h: 3 },
   component: lazy(() => import('./PasswordGeneratorWidget')),
   keywords: ['password', 'generator', 'random', 'passphrase', 'strength', 'security', 'secret'],
+  flow: {
+    output: { label: 'Password' },
+  },
 }

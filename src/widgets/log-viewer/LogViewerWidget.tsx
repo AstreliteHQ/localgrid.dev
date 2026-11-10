@@ -7,6 +7,7 @@ import { NumberField } from '@/components/NumberField'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { computeFoldRanges, foldDisplayExtension } from './foldNonMatching'
@@ -215,16 +216,18 @@ export default function LogViewerWidget({ instanceId }: WidgetProps) {
         </div>
       )}
 
-      <CodeEditor
-        ref={editorRef}
-        value={logText}
-        onChange={setLogText}
-        language="plaintext"
-        extraExtensions={extraExtensions}
-        placeholder="Paste application logs…"
-        aria-label="Log input"
-        className="min-h-0 flex-1"
-      />
+      <InputSlot input="logText" className="flex min-h-0 flex-1 flex-col">
+        <CodeEditor
+          ref={editorRef}
+          value={logText}
+          onChange={setLogText}
+          language="plaintext"
+          extraExtensions={extraExtensions}
+          placeholder="Paste application logs…"
+          aria-label="Log input"
+          className="min-h-0 flex-1"
+        />
+      </InputSlot>
 
       <div className="flex flex-wrap items-end gap-2">
         <Button

@@ -1,17 +1,17 @@
 import { create } from 'zustand'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { readSettings, writeSettingsSection } from '@/settings/settingsStorage'
 
 export type Theme = 'light' | 'dark' | 'system'
 
-/** Must match the key the anti-flash bootstrap script in index.html reads. */
-const STORAGE_KEY = 'localgrid.theme'
-
-function isTheme(value: string | null): value is Theme {
+function isTheme(value: unknown): value is Theme {
   return value === 'light' || value === 'dark' || value === 'system'
 }
 
+/** Stored as the `theme` section of the grouped settings, which the
+ * anti-flash scripts in index.html and about.html also read. */
 function readStoredTheme(): Theme {
-  const stored = window.localStorage.getItem(STORAGE_KEY)
+  const stored = readSettings().theme
   return isTheme(stored) ? stored : 'system'
 }
 
@@ -41,7 +41,7 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>((set) => ({
   theme: readStoredTheme(),
   setTheme: (theme) => {
-    window.localStorage.setItem(STORAGE_KEY, theme)
+    writeSettingsSection('theme', theme)
     applyTheme(theme)
     set({ theme })
   },

@@ -34,15 +34,13 @@ interface MergeDiffViewProps {
  * React wrapper of its own and no controlled/`onChange` API, so this wires
  * `EditorView.updateListener` by hand instead.
  *
- * `original`/`changed` are read only as the *initial* doc content — never
- * reapplied after mount. That's deliberate, not an oversight: it's what
- * keeps this uncontrolled (one direction of data flow, doc → React state via
- * `onOriginalChange`/`onChangedChange`) and avoids a controlled-editor
- * feedback loop. The one place content gets written back into an already-
- * mounted pane is `swap()`, which dispatches a direct transaction on each
- * `EditorView` instead of going through props. A full remount (switching
- * away from Line mode and back, or "Clear state") is what picks up an
- * `original`/`changed` value that changed for some other reason. */
+ * `original`/`changed` seed the panes at construction. Edits flow doc →
+ * React state via `onOriginalChange`/`onChangedChange`, so while typing the
+ * props always match the docs. A prop that differs from its pane's doc was
+ * set from outside (a connected widget feeding this input) and is written
+ * into the pane; the echo back through the update listener carries the same
+ * value, so there is no feedback loop. `swap()` still dispatches directly
+ * on each `EditorView`. */
 export const MergeDiffView = forwardRef<MergeDiffViewHandle, MergeDiffViewProps>(function MergeDiffView(
   { original, changed, onOriginalChange, onChangedChange, isDark, onNavChange, className },
   ref,
@@ -155,6 +153,20 @@ export const MergeDiffView = forwardRef<MergeDiffViewHandle, MergeDiffViewProps>
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Writes values set from outside into the panes (see the doc comment).
+  useLayoutEffect(() => {
+    const merge = mergeViewRef.current
+    if (!merge) return
+    for (const [view, value] of [
+      [merge.a, original],
+      [merge.b, changed],
+    ] as const) {
+      if (view.state.doc.toString() !== value) {
+        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } })
+      }
+    }
+  }, [original, changed])
 
   // Reconfigures the already-mounted panes' theme in place on a light/dark
   // toggle, rather than tearing down and rebuilding the merge view.

@@ -4,6 +4,7 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { Button } from '@/components/ui/button'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
+import { InputSlot } from '@/flow/FlowSlots'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
 import { buildTableClipboardPayload } from './csvTableClipboard'
@@ -130,14 +131,16 @@ export default function CsvViewerWidget({ instanceId }: WidgetProps) {
         </label>
       </div>
 
-      <CodeEditor
-        value={csvText}
-        onChange={setCsvText}
-        language="plaintext"
-        placeholder="Paste CSV or drop a file…"
-        aria-label="CSV input"
-        className="min-h-16 flex-1"
-      />
+      <InputSlot input="csvText" className="flex min-h-16 flex-1 flex-col">
+        <CodeEditor
+          value={csvText}
+          onChange={setCsvText}
+          language="plaintext"
+          placeholder="Paste CSV or drop a file…"
+          aria-label="CSV input"
+          className="min-h-16 flex-1"
+        />
+      </InputSlot>
 
       <div className="flex min-h-0 flex-[2] flex-col gap-1">
         <div className="flex items-center justify-between gap-2">

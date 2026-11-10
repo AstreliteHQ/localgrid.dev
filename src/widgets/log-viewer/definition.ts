@@ -12,4 +12,7 @@ export const logViewerDefinition: WidgetDefinition = {
   minSize: { w: 4, h: 4 },
   component: lazy(() => import('./LogViewerWidget')),
   keywords: ['log', 'logs', 'error', 'exception', 'warning', 'critical', 'timeout', 'grep', 'trace'],
+  flow: {
+    inputs: [{ field: 'logText', label: 'Logs' }],
+  },
 }

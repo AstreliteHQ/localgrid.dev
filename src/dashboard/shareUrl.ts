@@ -1,3 +1,4 @@
+import type { Link } from '@/flow/linkGraph'
 import type { Dashboard } from '@/types/layout'
 import { encodeWorkspace, LAYOUT_HASH_PARAM } from './layoutCodec'
 
@@ -6,6 +7,8 @@ export interface ShareOptions {
   includeLayout: boolean
   /** Widget configuration too. Ignored unless `includeLayout` is on. */
   includeConfig: boolean
+  /** Links between widgets to carry. Ignored unless `includeLayout` is on. */
+  links?: readonly Link[]
 }
 
 const LAYOUT_ONLY: ShareOptions = { includeLayout: true, includeConfig: false }
@@ -27,7 +30,10 @@ export function buildShareUrl(
   const hashParams = new URLSearchParams()
   hashParams.set(
     LAYOUT_HASH_PARAM,
-    encodeWorkspace(dashboards, activeDashboardId, { includeConfig: options.includeConfig }),
+    encodeWorkspace(dashboards, activeDashboardId, {
+      includeConfig: options.includeConfig,
+      links: options.links,
+    }),
   )
   url.hash = hashParams.toString()
   return url.toString()
