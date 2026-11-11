@@ -162,6 +162,22 @@ describe('SplitPdfWidget', () => {
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
   })
 
+  it('lets Split run again when the ranges change while a split is in flight', async () => {
+    const user = userEvent.setup()
+    mockedSplitPdf.mockImplementationOnce(() => new Promise<splitPdfModule.SplitPart[]>(() => {}))
+    render(<SplitPdfWidget instanceId="test" mode="grid" />)
+
+    dropFile(await makePdf('a.pdf', 3))
+    await screen.findByText('3 pg')
+    await user.click(splitButton())
+    expect(splitButton()).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: 'Custom ranges' }))
+    await user.type(screen.getByPlaceholderText(/^e\.g\./i), '1-2')
+
+    expect(splitButton()).toBeEnabled()
+  })
+
   it('gives each split part a unique key even when ranges repeat a page', async () => {
     const user = userEvent.setup()
     render(<SplitPdfWidget instanceId="test" mode="grid" />)

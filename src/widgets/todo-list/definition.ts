@@ -22,7 +22,7 @@ export const todoListDefinition: WidgetDefinition = {
   minSize: { w: 2, h: 3 },
   component: lazy(() => import('./TodoListWidget')),
   // Opt-in through "Remember tasks"; items are session state otherwise.
-  configSchema: v.object({ remember: v.boolean(), savedItems: v.array(todoItemSchema) }),
+  dataSchema: v.object({ remember: v.boolean(), savedItems: v.array(todoItemSchema) }),
   keywords: [
     'todo',
     'to-do',

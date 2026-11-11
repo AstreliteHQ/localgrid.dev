@@ -14,7 +14,7 @@ export const watermarkDefinition: WidgetDefinition = {
   component: lazy(() => import('./WatermarkWidget')),
   // Position values mirror `WatermarkPosition`, inlined to keep pdf-lib
   // out of the registry bundle.
-  configSchema: v.object({
+  dataSchema: v.object({
     text: v.string(),
     opacity: v.pipe(v.number(), v.minValue(5), v.maxValue(100)),
     color: v.pipe(v.string(), v.hexColor()),

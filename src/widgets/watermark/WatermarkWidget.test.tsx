@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PDFDocument } from '@cantoo/pdf-lib'
+import { useDashboardStore } from '@/dashboard/useDashboardStore'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 import { watermarkImage } from './watermarkImage'
 import WatermarkWidget from './WatermarkWidget'
 
@@ -128,6 +130,46 @@ describe('WatermarkWidget', () => {
     await user.type(screen.getByLabelText('Watermark text'), '!')
 
     expect(screen.queryByRole('link', { name: /download/i })).not.toBeInTheDocument()
+  })
+
+  it('hides a result once widget data is turned off and the preset falls back to defaults', async () => {
+    const user = userEvent.setup()
+    useDashboardStore.setState({
+      dashboards: [
+        {
+          id: 'd',
+          name: 'D',
+          widgets: [{ instanceId: 'pinned', widgetId: 'watermark', x: 0, y: 0, w: 4, h: 4, data: { text: 'DRAFT' } }],
+        },
+      ],
+      activeDashboardId: 'd',
+    })
+    render(<WatermarkWidget instanceId="pinned" mode="grid" />)
+
+    dropFile(await makePdf())
+    await screen.findByText('PDF')
+    await user.click(applyButton())
+    await screen.findByRole('link', { name: /download/i })
+
+    act(() => useWidgetDataSettings.getState().setEnabled(false))
+
+    expect(screen.queryByRole('link', { name: /download/i })).not.toBeInTheDocument()
+  })
+
+  it('lets Apply run again when the text changes while a watermark is in flight', async () => {
+    const user = userEvent.setup()
+    mockedWatermarkImage.mockReset().mockImplementationOnce(() => new Promise(() => {}))
+    render(<WatermarkWidget instanceId="test" mode="grid" />)
+
+    dropFile(pngFile('photo.png'))
+    await screen.findByText('Image')
+    await user.type(screen.getByLabelText('Watermark text'), 'DRAFT')
+    await user.click(applyButton())
+    expect(applyButton()).toBeDisabled()
+
+    await user.type(screen.getByLabelText('Watermark text'), '!')
+
+    expect(applyButton()).toBeEnabled()
   })
 
   it('discards a watermark result that finishes after the file was removed', async () => {

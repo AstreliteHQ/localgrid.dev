@@ -163,8 +163,8 @@ read and write the same entry in a shared, instanceId-keyed store (`useWidgetSta
 switching between the two is just two mounts of the same state rather than a portal carrying
 one DOM tree between them. See `src/overlay/WidgetOverlay.tsx`.
 
-Widgets keep three kinds of data: layout (position and size), configuration (setup that
-persists and can be shared, via `useWidgetConfig`) and state (in-memory content, via
+Widgets keep three kinds of data: layout (position and size), widget data (what
+persists and can be shared, via `useWidgetData`) and state (in-memory content, via
 `useWidgetState`). How each one is stored, reset and shared is described in
 [docs/widget-architecture.md](docs/widget-architecture.md).
 

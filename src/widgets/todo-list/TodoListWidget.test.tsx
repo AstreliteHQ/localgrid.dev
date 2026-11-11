@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
-import { sanitizeConfig } from '@/widgets/widgetConfig'
+import { sanitizeWidgetData } from '@/widgets/widgetData'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 import { hasAnyDirtyWidget } from '@/widgets/useWidgetDirty'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import TodoListWidget from './TodoListWidget'
@@ -400,7 +401,7 @@ describe('TodoListWidget remember tasks', () => {
       activeDashboardId: 'd',
     })
   }
-  const savedConfig = () => useDashboardStore.getState().dashboards[0].widgets[0].config
+  const savedData = () => useDashboardStore.getState().dashboards[0].widgets[0].data
 
   function rememberBox() {
     return screen.getByRole('checkbox', { name: /remember tasks/i })
@@ -411,10 +412,18 @@ describe('TodoListWidget remember tasks', () => {
     render(<TodoListWidget instanceId="pinned" mode="grid" />)
 
     expect(rememberBox()).not.toBeChecked()
-    expect(savedConfig()).toBeUndefined()
+    expect(savedData()).toBeUndefined()
   })
 
-  it('moves the list into configuration, keeping it through Clear state and a remount', async () => {
+  it('cannot be turned on while widget data is off', () => {
+    pin()
+    useWidgetDataSettings.getState().setEnabled(false)
+    render(<TodoListWidget instanceId="pinned" mode="grid" />)
+
+    expect(rememberBox()).toBeDisabled()
+  })
+
+  it('moves the list into widget data, keeping it through Clear state and a remount', async () => {
     const user = userEvent.setup()
     pin()
     const { unmount } = render(<TodoListWidget instanceId="pinned" mode="grid" />)
@@ -423,8 +432,8 @@ describe('TodoListWidget remember tasks', () => {
     await user.click(rememberBox())
     await addItems(user, 'Review https://github.com/org/repo/pull/7')
 
-    expect(savedConfig()?.remember).toBe(true)
-    expect((savedConfig()?.savedItems as { text: string }[]).map((item) => item.text)).toEqual(['Buy milk', 'Review'])
+    expect(savedData()?.remember).toBe(true)
+    expect((savedData()?.savedItems as { text: string }[]).map((item) => item.text)).toEqual(['Buy milk', 'Review'])
     // Remembered items are saved, so they are not unsaved content.
     expect(hasAnyDirtyWidget()).toBe(false)
 
@@ -446,10 +455,10 @@ describe('TodoListWidget remember tasks', () => {
     await addItems(user, 'Buy milk')
     await user.click(screen.getByRole('checkbox', { name: /mark "buy milk" as done/i }))
 
-    expect(savedConfig()?.savedItems).toEqual([expect.objectContaining({ text: 'Buy milk', done: true })])
+    expect(savedData()?.savedItems).toEqual([expect.objectContaining({ text: 'Buy milk', done: true })])
   })
 
-  it('drops the configuration when turned off but keeps the list on screen', async () => {
+  it('drops the widget data when turned off but keeps the list on screen', async () => {
     const user = userEvent.setup()
     pin()
     render(<TodoListWidget instanceId="pinned" mode="grid" />)
@@ -458,7 +467,7 @@ describe('TodoListWidget remember tasks', () => {
     await addItems(user, 'Buy milk')
     await user.click(rememberBox())
 
-    expect(savedConfig()).toBeUndefined()
+    expect(savedData()).toBeUndefined()
     expect(itemTexts()).toEqual(['Buy milk'])
     expect(rememberBox()).not.toBeChecked()
     expect(hasAnyDirtyWidget()).toBe(true)
@@ -477,10 +486,10 @@ describe('TodoListWidget remember tasks', () => {
 
   it('keeps only valid saved items from a share link', () => {
     const item = { id: 'a', text: 'Buy milk', done: false, refs: ['PROJ-1'] }
-    expect(sanitizeConfig('todo-list', { remember: true, savedItems: [item] })).toEqual({
+    expect(sanitizeWidgetData('todo-list', { remember: true, savedItems: [item] })).toEqual({
       remember: true,
       savedItems: [item],
     })
-    expect(sanitizeConfig('todo-list', { remember: 'yes', savedItems: [{ id: 1 }] })).toBeUndefined()
+    expect(sanitizeWidgetData('todo-list', { remember: 'yes', savedItems: [{ id: 1 }] })).toBeUndefined()
   })
 })

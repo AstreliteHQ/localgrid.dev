@@ -24,8 +24,8 @@ export function ShareLoadPrompt({ workspace, onAccept, onDismiss }: ShareLoadPro
     (sum, dashboard) => sum + dashboard.widgets.length,
     0,
   )
-  const configuredWidgets = workspace.dashboards.reduce(
-    (sum, dashboard) => sum + dashboard.widgets.filter((widget) => widget.config).length,
+  const widgetsWithData = workspace.dashboards.reduce(
+    (sum, dashboard) => sum + dashboard.widgets.filter((widget) => widget.data).length,
     0,
   )
 
@@ -48,8 +48,8 @@ export function ShareLoadPrompt({ workspace, onAccept, onDismiss }: ShareLoadPro
               replace all of your current dashboards
             </strong>
             .{' '}
-            {configuredWidgets > 0
-              ? `It also sets up ${configuredWidgets} widget${configuredWidgets === 1 ? '' : 's'} (configuration only, not their content).`
+            {widgetsWithData > 0
+              ? `It also sets up ${widgetsWithData} widget${widgetsWithData === 1 ? '' : 's'} (with their saved widget data).`
               : 'Only widget placement is shared, not their content.'}
             {workspace.links && workspace.links.length > 0 &&
               ` ${workspace.links.length} link${workspace.links.length === 1 ? '' : 's'} between widgets ${workspace.links.length === 1 ? 'is' : 'are'} included.`}

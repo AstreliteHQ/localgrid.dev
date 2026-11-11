@@ -285,7 +285,7 @@ describe('WorldClockWidget', () => {
   })
 })
 
-describe('WorldClockWidget configuration', () => {
+describe('WorldClockWidget data', () => {
   it('saves the city list on the pinned instance and keeps it through Clear state', async () => {
     const user = userEvent.setup()
     useDashboardStore.setState({
@@ -298,7 +298,7 @@ describe('WorldClockWidget configuration', () => {
 
     const { name } = await pickFirstAvailableCity(user)
     await user.click(screen.getByRole('button', { name: /^add$/i }))
-    const saved = useDashboardStore.getState().dashboards[0].widgets[0].config?.selectedIds as string[]
+    const saved = useDashboardStore.getState().dashboards[0].widgets[0].data?.selectedIds as string[]
     expect(saved.length).toBeGreaterThan(0)
 
     unmount()

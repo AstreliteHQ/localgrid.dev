@@ -1,7 +1,7 @@
 import type { Link } from '@/flow/linkGraph'
 
 /** A single widget placed on a dashboard: which widget it is, its
- * position/size in grid units, and its optional configuration. This is
+ * position/size in grid units, and its optional widget data. This is
  * exactly what gets persisted and shared, never the widget's live state. */
 export interface DashboardWidgetInstance {
   instanceId: string
@@ -10,9 +10,9 @@ export interface DashboardWidgetInstance {
   y: number
   w: number
   h: number
-  /** Setup fields written by `useWidgetConfig`, validated against the
-   * widget's `configSchema`. See docs/widget-architecture.md. */
-  config?: Record<string, unknown>
+  /** Fields written by `useWidgetData`, validated against the
+   * widget's `dataSchema`. See docs/widget-architecture.md. */
+  data?: Record<string, unknown>
 }
 
 /** A named tab — its own independent grid of widgets. */

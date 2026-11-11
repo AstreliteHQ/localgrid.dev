@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-export type SettingsSection = 'general' | 'flow' | 'share' | 'about'
+export type SettingsSection = 'general' | 'widget-data' | 'flow' | 'share' | 'about'
 
 interface SettingsState {
   open: boolean

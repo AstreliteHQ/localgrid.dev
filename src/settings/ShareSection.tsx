@@ -11,6 +11,7 @@ import { buildShareUrl } from '@/dashboard/shareUrl'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { useFlowStore } from '@/flow/useFlowStore'
 import { getWidgetDefinition } from '@/widgets/registry'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 
 type CopyStatus = 'idle' | 'copied' | 'failed'
 
@@ -20,37 +21,38 @@ type CopyStatus = 'idle' | 'copied' | 'failed'
 const QR_LENGTH_LIMIT = 1500
 
 /** Lets the user pick what a share link carries (address only, plus layout,
- * plus widget configuration) and shows that data in full before copying. */
+ * plus widget data) and shows that data in full before copying. */
 export function ShareSection() {
   const dashboards = useDashboardStore((state) => state.dashboards)
   const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
   const [includeLayout, setIncludeLayout] = useState(true)
-  const [includeConfig, setIncludeConfig] = useState(false)
+  const [includeData, setIncludeData] = useState(false)
   const [includeFlow, setIncludeFlow] = useState(true)
   const links = useFlowStore((state) => state.links)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const qrContainerRef = useRef<HTMLDivElement>(null)
   const layoutId = useId()
-  const configId = useId()
+  const dataId = useId()
   const flowId = useId()
+  const dataEnabled = useWidgetDataSettings((state) => state.enabled)
 
-  const shareConfig = includeLayout && includeConfig
+  const canShareData = includeLayout && dataEnabled
+  const shareData = canShareData && includeData
   const hasLinks = links.length > 0
   const shareLinks = includeLayout && includeFlow && hasLinks ? links : undefined
   const shareUrl = useMemo(
     () =>
       buildShareUrl(dashboards, activeDashboardId, {
         includeLayout,
-        includeConfig: shareConfig,
+        includeData: shareData,
         links: shareLinks,
       }),
-    [dashboards, activeDashboardId, includeLayout, shareConfig, shareLinks],
+    [dashboards, activeDashboardId, includeLayout, shareData, shareLinks],
   )
   // Same function the encoder uses, so the preview is exactly what's sent.
   const wire = useMemo(
-    () =>
-      includeLayout ? toWire(dashboards, activeDashboardId, { includeConfig: shareConfig, links: shareLinks }) : null,
-    [dashboards, activeDashboardId, includeLayout, shareConfig, shareLinks],
+    () => (includeLayout ? toWire(dashboards, activeDashboardId, { includeData: shareData, links: shareLinks }) : null),
+    [dashboards, activeDashboardId, includeLayout, shareData, shareLinks],
   )
   const qrEligible = shareUrl.length <= QR_LENGTH_LIMIT
 
@@ -91,19 +93,23 @@ export function ShareSection() {
             <span className="block text-xs text-muted-foreground">Dashboards and widget positions.</span>
           </span>
         </label>
-        <label htmlFor={configId} className={cn('flex items-start gap-2 text-sm', !includeLayout && 'opacity-50')}>
+        <label htmlFor={dataId} className={cn('flex items-start gap-2 text-sm', !canShareData && 'opacity-50')}>
           <input
-            id={configId}
+            id={dataId}
             type="checkbox"
-            checked={shareConfig}
-            disabled={!includeLayout}
-            onChange={(event) => setIncludeConfig(event.target.checked)}
+            checked={shareData}
+            disabled={!canShareData}
+            onChange={(event) => setIncludeData(event.target.checked)}
             className="mt-1 accent-primary"
           />
           <span>
-            Include widget configuration
+            Include widget data
             <span className="block text-xs text-muted-foreground">
-              {includeLayout ? 'Saved widget settings. May contain text you entered.' : 'Requires layout.'}
+              {!includeLayout
+                ? 'Requires layout.'
+                : !dataEnabled
+                  ? 'Widget data is turned off in Settings.'
+                  : 'Saved widget settings. May contain text you entered.'}
             </span>
           </span>
         </label>
@@ -207,7 +213,7 @@ function SharePreview({ wire }: { wire: WireWorkspace | null }) {
                   <div className="mt-1 rounded bg-muted p-1">
                     <DataTree
                       root={buildJsonTree(widget.c)}
-                      label={`${getWidgetDefinition(widget.wid)?.name ?? widget.wid} configuration`}
+                      label={`${getWidgetDefinition(widget.wid)?.name ?? widget.wid} data`}
                       toolbar={false}
                       statusBar={false}
                       scroll={false}
