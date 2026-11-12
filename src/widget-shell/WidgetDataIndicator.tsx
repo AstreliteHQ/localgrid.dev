@@ -17,7 +17,8 @@ interface WidgetDataIndicatorProps {
 /** Shown in a pinned widget's title bar while it holds widget data.
  * Deliberately distinct from the dirty dot: widget data is never lost on reload.
  * Clicking it shows the stored data and offers to reset it. Hidden while
- * widget data is turned off, since the widget then ignores what is stored. */
+ * widget data is turned off, since the widget then ignores what is stored.
+ * The ring animates once each time the data changes, then stays still. */
 export function WidgetDataIndicator({ instanceId, title }: WidgetDataIndicatorProps) {
   const hasData = useHasWidgetData(instanceId)
   const enabled = useWidgetDataSettings((state) => state.enabled)
@@ -25,6 +26,15 @@ export function WidgetDataIndicator({ instanceId, title }: WidgetDataIndicatorPr
   const resetWidgetData = useDashboardStore((state) => state.resetWidgetData)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const closeRef = useRef<HTMLButtonElement>(null)
+  // The store only replaces this instance's `data` when it changes, so a new
+  // reference means new data. Counted during render, before the early return,
+  // so a first save plays too but a page load doesn't.
+  const [seenData, setSeenData] = useState(data)
+  const [plays, setPlays] = useState(0)
+  if (data !== seenData) {
+    setSeenData(data)
+    setPlays(plays + 1)
+  }
 
   if (!hasData || !enabled) return null
 
@@ -40,8 +50,10 @@ export function WidgetDataIndicator({ instanceId, title }: WidgetDataIndicatorPr
         className="relative text-muted-foreground"
       >
         {/* The ring reaches just past the button, behind the standard size icon. */}
+        {/* A new key restarts the animation. */}
         <WidgetDataRing
-          seed={instanceId}
+          key={plays}
+          motion={plays > 0 ? 'play' : undefined}
           className="pointer-events-none absolute -top-0.5 -left-0.5 size-[calc(100%+0.25rem)]"
         />
         <Database className="relative size-3.5" />

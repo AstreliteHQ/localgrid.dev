@@ -5,7 +5,7 @@ interface WidgetDataSettingsValues {
   /** Off pauses widget data: widgets start from their defaults and nothing
    * new is saved. Data already saved is kept for when it comes back on. */
   enabled: boolean
-  /** Off keeps the ring around the title bar icon still. */
+  /** Off keeps the ring around the title bar icon still, even on a change. */
   animation: boolean
 }
 

@@ -12,8 +12,8 @@ import { listWidgetData, type WidgetDataEntry } from '@/widgets/widgetData'
 import { ConfirmButton } from './ConfirmButton'
 import { WidgetDataBanner } from './WidgetDataBanner'
 
-const ANIMATION_OPTIONS: { label: string; value: 'always' | 'off' }[] = [
-  { label: 'Always', value: 'always' },
+const ANIMATION_OPTIONS: { label: string; value: 'change' | 'off' }[] = [
+  { label: 'On change', value: 'change' },
   { label: 'Off', value: 'off' },
 ]
 
@@ -55,13 +55,14 @@ export function WidgetDataSection() {
       <fieldset disabled={!enabled} className={cn('flex flex-col gap-2', !enabled && 'opacity-50')}>
         <h3 className="text-sm font-medium text-foreground">Icon animation</h3>
         <SegmentedControl
-          value={animation ? 'always' : 'off'}
-          onChange={(value) => setAnimation(value === 'always')}
+          value={animation ? 'change' : 'off'}
+          onChange={(value) => setAnimation(value === 'change')}
           options={ANIMATION_OPTIONS}
           className="self-start"
         />
         <p className="text-xs text-muted-foreground">
-          The ring around a widget's data icon. Always off when the system asks for reduced motion.
+          The ring around a widget's data icon turns briefly when its data changes, then stays lit. Always off when the
+          system asks for reduced motion.
         </p>
       </fieldset>
 

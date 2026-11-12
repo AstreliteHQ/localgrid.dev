@@ -55,7 +55,7 @@ export function WidgetDataBanner() {
             World Clock
           </text>
           <WidgetDataRing
-            seed="banner"
+            motion="loop"
             x={glyphX - 9}
             y={glyphY - 9}
             width={18}

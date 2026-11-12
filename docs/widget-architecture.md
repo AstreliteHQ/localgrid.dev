@@ -93,7 +93,8 @@ and the leave-page warning (`useUnsavedChangesGuard.ts`).
 
 Widget data is persisted, so it never counts as dirty: leave its fields out of the
 `isDirty` expression. A pinned widget with saved widget data shows a separate database icon
-over a ring of four emerald arcs that light up in turn in its title bar (`WidgetDataIndicator.tsx`), which also offers
+over a ring of four emerald arcs in its title bar (`WidgetDataIndicator.tsx`). The ring is still and lit, and each
+time the data changes it chases round twice, then lights up arc by arc. The icon also offers
 "Reset data".
 
 ### Turning widget data off
@@ -101,7 +102,7 @@ over a ring of four emerald arcs that light up in turn in its title bar (`Widget
 Settings > Widget data has a global switch (`useWidgetDataSettings`, on by default). When it
 is off, `useWidgetData` behaves like `useWidgetState` on every instance: widgets start from
 their defaults, edits stay in memory, and pinning an overlay saves nothing. Saved data is kept
-but paused, the title bar icon is hidden, and "Include widget data" can't be shared. A second option there stops the icon's ring animation. The same
+but paused, the title bar icon is hidden, and "Include widget data" can't be shared. A second option (On change / Off) turns the ring animation off. The same
 section lists every widget holding data, shows what each one holds and can reset it.
 
 ## 5. Persistence and sharing

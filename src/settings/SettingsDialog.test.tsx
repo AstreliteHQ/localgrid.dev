@@ -117,7 +117,7 @@ describe('SettingsDialog', () => {
 
     expect(useWidgetDataSettings.getState().animation).toBe(false)
 
-    await user.click(screen.getByRole('button', { name: 'Always' }))
+    await user.click(screen.getByRole('button', { name: 'On change' }))
 
     expect(useWidgetDataSettings.getState().animation).toBe(true)
   })
