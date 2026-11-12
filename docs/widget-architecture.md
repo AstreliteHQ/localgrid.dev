@@ -63,6 +63,9 @@ Reference examples:
 - **To-Do List** `remember`, `savedItems`: an opt-in exception for user input. Items are
   state until the user ticks "Remember tasks", which moves them into widget data (and
   unticking moves them back and drops the widget data).
+- **Scratchpad** `remember`, `savedDoc`: the same opt-in for the note, through "Remember
+  content". Pasted images are stored inline, so a remembered note can be large; if the
+  browser refuses to store it, the box stays unticked and the widget says so.
 
 Not widget data: anything quick to pick again (UUID version, hash algorithm, code-snippet
 language or theme, duplicate-remover options), user input and results (text, files, tokens),
