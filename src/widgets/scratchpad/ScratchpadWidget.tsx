@@ -122,6 +122,7 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
     if (next) {
       try {
         setSavedDoc(sessionDoc)
+        setRemember(true)
       } catch {
         // Nothing could be stored: stay on session state rather than show a
         // ticked box that won't survive a reload. Dropping the data shrinks
@@ -134,15 +135,19 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
         setSaveError('This note is too large to remember in the browser.')
         return
       }
-      setRemember(true)
       setSessionDoc(DEFAULT_DOC)
       return
     }
     setSessionDoc(savedDoc)
     // The setters clear an unpinned overlay's fallback; the reset drops a
     // pinned instance's data so nothing stays saved or shared.
-    setRemember(false)
-    setSavedDoc(DEFAULT_DOC)
+    // A failed write must not skip the reset that follows it.
+    try {
+      setRemember(false)
+      setSavedDoc(DEFAULT_DOC)
+    } catch {
+      // Memory is already updated; the reset below shrinks what is stored.
+    }
     useDashboardStore.getState().resetWidgetData(instanceId)
   }
 
