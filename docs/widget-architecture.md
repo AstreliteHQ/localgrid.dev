@@ -9,7 +9,7 @@ useDashboardStore  (persisted: localStorage "localgrid.dashboard")
   dashboards[]
     widgets[]: DashboardWidgetInstance
       instanceId, widgetId, x, y, w, h   <- layout
-      config?: { field: value }          <- configuration (useWidgetConfig)
+      data?: { field: value }            <- widget data (useWidgetData)
 
 useWidgetStateStore  (in memory only)
   values["<instanceId>:<field>"]         <- state (useWidgetState)
@@ -24,7 +24,7 @@ Each widget lives in `src/widgets/<widget-id>/`:
 
 - `definition.ts`: the registry entry (`WidgetDefinition` in `src/widgets/types.ts`): `id`,
   `name`, `description`, `category`, `icon`, sizes, `keywords`, the lazy `component`, and an
-  optional `configSchema`. Keep it light: it is loaded with the registry, so never import a
+  optional `dataSchema`. Keep it light: it is loaded with the registry, so never import a
   heavy library here (the component is the lazy part).
 - `<Name>Widget.tsx`: the component, always `({ instanceId, mode }: WidgetProps)`.
 - Pure logic in its own `.ts` files, each with a `.test.ts`.
@@ -34,16 +34,16 @@ command palette all read from it.
 
 ## 2. Three kinds of widget data
 
-| Kind          | Hook              | Stored in             | Survives reload | Cleared by "Clear state" | In a share link                           |
-| ------------- | ----------------- | --------------------- | --------------- | ------------------------ | ----------------------------------------- |
-| Layout        | none (grid)       | instance `x/y/w/h`    | yes             | no                       | when "Include layout" is on               |
-| Configuration | `useWidgetConfig` | instance `config`     | yes             | no                       | when "Include widget configuration" is on |
-| State         | `useWidgetState`  | `useWidgetStateStore` | no              | yes                      | never                                     |
+| Kind        | Hook             | Stored in             | Survives reload | Cleared by "Clear state" | In a share link                  |
+| ----------- | ---------------- | --------------------- | --------------- | ------------------------ | -------------------------------- |
+| Layout      | none (grid)      | instance `x/y/w/h`    | yes             | no                       | when "Include layout" is on      |
+| Widget data | `useWidgetData`  | instance `data`       | yes             | no                       | when "Include widget data" is on |
+| State       | `useWidgetState` | `useWidgetStateStore` | no              | yes                      | never                            |
 
 Both hooks have the same signature as `useState` plus `(instanceId, field)`, so moving a field
-from state to configuration is a one-word change.
+from state to widget data is a one-word change.
 
-### When is something configuration?
+### When is something widget data?
 
 Only when both are true:
 
@@ -61,27 +61,27 @@ Reference examples:
 - **Timer** `cdHours`, `cdMinutes`, `cdSeconds`: the countdown preset (standup, pomodoro).
   The running countdown and the stopwatch stay state.
 - **To-Do List** `remember`, `savedItems`: an opt-in exception for user input. Items are
-  state until the user ticks "Remember tasks", which moves them into configuration (and
-  unticking moves them back and drops the configuration).
+  state until the user ticks "Remember tasks", which moves them into widget data (and
+  unticking moves them back and drops the widget data).
 
-Not configuration: anything quick to pick again (UUID version, hash algorithm, code-snippet
+Not widget data: anything quick to pick again (UUID version, hash algorithm, code-snippet
 language or theme, duplicate-remover options), user input and results (text, files, tokens),
 and view toggles (tabs, split ratio, map or timeline, encode or decode direction). When in
 doubt, keep it state.
 
 ## 3. Instance lifecycle
 
-| Event                                      | Layout                | Configuration                               | State                       |
+| Event                                      | Layout                | Widget data                                 | State                       |
 | ------------------------------------------ | --------------------- | ------------------------------------------- | --------------------------- |
 | Add widget                                 | new instance          | empty, widget defaults                      | empty                       |
 | Reload                                     | kept                  | kept                                        | lost                        |
 | Expand to overlay                          | same instance         | same (shared by instanceId)                 | same (shared by instanceId) |
 | Ephemeral overlay (opened, not pinned)     | none                  | held in `useWidgetStateStore`               | in memory                   |
-| Pin an ephemeral overlay                   | new instance, same id | copied into `config` (`pinInstance`)        | kept                        |
+| Pin an ephemeral overlay                   | new instance, same id | copied into `data` (`pinInstance`)          | kept                        |
 | Duplicate                                  | new instance below    | copied                                      | copied                      |
 | "Clear state"                              | kept                  | kept                                        | cleared, widget remounts    |
-| Reset configuration (title bar icon)       | kept                  | removed, widget falls back to defaults      | kept                        |
-| Settings > Reset widget configuration      | kept                  | removed on every instance                   | kept                        |
+| Reset data (title bar icon)                | kept                  | removed, widget falls back to defaults      | kept                        |
+| Settings > Reset widget data               | kept                  | removed on every instance                   | kept                        |
 | Remove widget / dashboard, Clean dashboard | removed               | removed with the instance                   | cleared                     |
 | Accept a share link                        | replaced              | whatever the link carried, after validation | untouched                   |
 
@@ -91,18 +91,28 @@ doubt, keep it state.
 drives the border pulse and dot (`WidgetShell.tsx`), enables "Clear state" (`AppHeader.tsx`),
 and the leave-page warning (`useUnsavedChangesGuard.ts`).
 
-Configuration is persisted, so it never counts as dirty: leave config fields out of the
-`isDirty` expression. A pinned widget with saved configuration shows a separate bookmark icon
-in its title bar (`WidgetConfigIndicator.tsx`), which also offers "Reset configuration".
+Widget data is persisted, so it never counts as dirty: leave its fields out of the
+`isDirty` expression. A pinned widget with saved widget data shows a separate database icon
+over a ring of four emerald arcs in its title bar (`WidgetDataIndicator.tsx`). The ring is still and lit, and each
+time the data changes it chases round twice, then lights up arc by arc. The icon also offers
+"Reset data".
+
+### Turning widget data off
+
+Settings > Widget data has a global switch (`useWidgetDataSettings`, on by default). When it
+is off, `useWidgetData` behaves like `useWidgetState` on every instance: widgets start from
+their defaults, edits stay in memory, and pinning an overlay saves nothing. Saved data is kept
+but paused, the title bar icon is hidden, and "Include widget data" can't be shared. A second option (On change / Off) turns the ring animation off. The same
+section lists every widget holding data, shows what each one holds and can reset it.
 
 ## 5. Persistence and sharing
 
 localStorage keys, all prefixed `localgrid.`:
 
-- `localgrid.dashboard`: dashboards, layout and configuration (zustand `persist`, versioned
+- `localgrid.dashboard`: dashboards, layout and widget data (zustand `persist`, versioned
   by `DASHBOARD_STORAGE_VERSION`).
 - `localgrid.settings`: everything set in the Settings dialog, one section per feature
-  (`theme`, `flow`). Each owner validates its section on read
+  (`theme`, `flow`, `widgetData`). Each owner validates its section on read
   (`src/settings/settingsStorage.ts`). A theme saved under the old `localgrid.theme` key is
   moved in on first load.
 - `localgrid.flow`: links between widgets.
@@ -115,36 +125,36 @@ A share link puts a compact JSON payload, LZ-compressed, in the URL fragment
 
 ```text
 { v: 1, a: activeDashboardId,
-  d: [{ id, n: name, ws: [{ wid: widgetId, x, y, w, h, c?: config }],
+  d: [{ id, n: name, ws: [{ wid: widgetId, x, y, w, h, c?: data }],
         l?: [[fromIndex, toIndex, input]] }] }
 ```
 
-`c` is only written when the user turns on "Include widget configuration". `l` (links,
+`c` is only written when the user turns on "Include widget data". `l` (links,
 indexes into `ws` since instance ids don't travel) only with "Include flow". Settings > Share
 previews the exact `toWire` output before the user copies the link.
 
 Validation boundary: the decoder (`decodeWorkspace` then `finalizeWorkspace`) drops unknown
-widgets and runs `sanitizeConfig` on every config, which keeps only fields that match the
-widget's `configSchema`. `useWidgetConfig` also checks each field on read, so a stored value
+widgets and runs `sanitizeWidgetData` on every widget data object, which keeps only fields that match the
+widget's `dataSchema`. `useWidgetData` also checks each field on read, so a stored value
 from an older version that no longer matches falls back to the widget's default.
 
 Compatibility rules:
 
-- Never rename a widget `id` or a config field name: both are stored and shared.
+- Never rename a widget `id` or a widget data field name: both are stored and shared.
 - Changing a field's shape is allowed. Old values fail the schema and fall back to the default.
 - New wire keys must be optional so older links keep decoding.
 
-## 6. Adding configuration to a widget
+## 6. Adding widget data to a widget
 
-1. Check the rule in section 2. Most widgets should not have configuration.
-2. Add `configSchema: v.object({ ... })` to `definition.ts`, one entry per field. Match the
+1. Check the rule in section 2. Most widgets should not have widget data.
+2. Add `dataSchema: v.object({ ... })` to `definition.ts`, one entry per field. Match the
    constraints the UI actually enforces (a schema stricter than the UI silently resets user
    values).
-3. Swap `useWidgetState` for `useWidgetConfig` on those fields only.
+3. Swap `useWidgetState` for `useWidgetData` on those fields only.
 4. Remove those fields from the widget's `useWidgetDirty` expression.
 5. Test that the value lands on the pinned instance and survives a remount after
    `resetInstances` (see `WorldClockWidget.test.tsx`), and that bad values are stripped
-   (`widgetConfig.test.ts`).
+   (`widgetData.test.ts`).
 
 ## 7. Flow
 

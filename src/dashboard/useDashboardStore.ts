@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { nanoid } from 'nanoid'
 import { getWidgetDefinition } from '@/widgets/registry'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import { useFlowStore } from '@/flow/useFlowStore'
 import type { Link } from '@/flow/linkGraph'
@@ -60,13 +61,13 @@ interface DashboardState extends PersistedDashboardState {
   /** Keyboard-accessible alternative to dragging/resizing a grid item — used
    * by the move/resize dialog in the widget shell's "…" menu. */
   setWidgetPosition: (dashboardId: string, instanceId: string, position: GridPosition) => void
-  /** Writes one configuration field on a pinned instance, wherever it is.
-   * Called by `useWidgetConfig`. */
-  setWidgetConfig: (instanceId: string, field: string, value: unknown) => void
-  /** Drops one instance's configuration; its widget falls back to defaults. */
-  resetWidgetConfig: (instanceId: string) => void
-  /** Drops the configuration of every instance on every dashboard. */
-  resetAllWidgetConfig: () => void
+  /** Writes one widget data field on a pinned instance, wherever it is.
+   * Called by `useWidgetData`. */
+  setWidgetData: (instanceId: string, field: string, value: unknown) => void
+  /** Drops one instance's widget data; its widget falls back to defaults. */
+  resetWidgetData: (instanceId: string) => void
+  /** Drops the widget data of every instance on every dashboard. */
+  resetAllWidgetData: () => void
 
   addDashboard: (name: string) => void
   renameDashboard: (id: string, name: string) => void
@@ -154,21 +155,23 @@ function updateInstances(
   )
 }
 
-function withoutConfig({ config: _config, ...widget }: DashboardWidgetInstance): DashboardWidgetInstance {
+function withoutData({ data: _data, ...widget }: DashboardWidgetInstance): DashboardWidgetInstance {
   return widget
 }
 
-/** Config an ephemeral overlay instance kept in useWidgetState's store,
- * carried over when that instance gets pinned. */
-function ephemeralConfig(widgetId: string, instanceId: string): Record<string, unknown> | undefined {
-  const fields = Object.keys(getWidgetDefinition(widgetId)?.configSchema?.entries ?? {})
+/** Data an ephemeral overlay instance kept in useWidgetState's store,
+ * carried over when that instance gets pinned. Nothing while widget data is
+ * turned off, so pinning saves nothing new. */
+function ephemeralData(widgetId: string, instanceId: string): Record<string, unknown> | undefined {
+  if (!useWidgetDataSettings.getState().enabled) return undefined
+  const fields = Object.keys(getWidgetDefinition(widgetId)?.dataSchema?.entries ?? {})
   const { values } = useWidgetStateStore.getState()
-  const config = Object.fromEntries(
+  const data = Object.fromEntries(
     fields
       .filter((field) => `${instanceId}:${field}` in values)
       .map((field) => [field, values[`${instanceId}:${field}`]]),
   )
-  return Object.keys(config).length > 0 ? config : undefined
+  return Object.keys(data).length > 0 ? data : undefined
 }
 
 function nextAvailableY(widgets: DashboardWidgetInstance[]): number {
@@ -189,21 +192,37 @@ function updateDashboardWidgets(
   )
 }
 
-/** Upgrades a pre-tabs (version 1) stored value in place instead of
- * discarding it — real users may already have widgets pinned. Exported as a
- * standalone pure function so it can be unit-tested directly against a
- * hand-built legacy blob, without needing to simulate `persist`'s
- * localStorage hydration timing. */
+/** Version 3 renamed each instance's `config` to `data`. */
+function renameConfigToData(state: PersistedDashboardState): PersistedDashboardState {
+  if (!Array.isArray(state?.dashboards)) return state
+  return {
+    ...state,
+    dashboards: state.dashboards.map((dashboard) => ({
+      ...dashboard,
+      widgets: dashboard.widgets.map((widget) => {
+        const { config, ...rest } = widget as DashboardWidgetInstance & { config?: Record<string, unknown> }
+        return config && !rest.data ? { ...rest, data: config } : rest
+      }),
+    })),
+  }
+}
+
+/** Upgrades an older stored value in place instead of discarding it, since
+ * real users may already have widgets pinned. Exported as a pure function so
+ * it can be unit-tested against a hand-built legacy blob, without simulating
+ * `persist`'s localStorage hydration timing. */
 export function migrateDashboardState(persisted: unknown, version: number): PersistedDashboardState {
+  let state = persisted as PersistedDashboardState
   if (version < 2) {
     const legacy = persisted as { widgets?: DashboardWidgetInstance[] } | undefined
     const widgets = legacy?.widgets && Array.isArray(legacy.widgets) ? legacy.widgets : STARTER_DASHBOARDS[0].widgets
-    return {
+    state = {
       dashboards: [{ id: 'main', name: 'Main', widgets }],
       activeDashboardId: 'main',
     }
   }
-  return persisted as PersistedDashboardState
+  if (version < 3) state = renameConfigToData(state)
+  return state
 }
 
 export const useDashboardStore = create<DashboardState>()(
@@ -246,7 +265,7 @@ export const useDashboardStore = create<DashboardState>()(
         set((state) => ({
           dashboards: updateDashboardWidgets(state.dashboards, dashboardId, (widgets) => {
             if (widgets.some((widget) => widget.instanceId === instanceId)) return widgets
-            const config = ephemeralConfig(widgetId, instanceId)
+            const data = ephemeralData(widgetId, instanceId)
             return [
               ...widgets,
               {
@@ -256,7 +275,7 @@ export const useDashboardStore = create<DashboardState>()(
                 y: nextAvailableY(widgets),
                 w: definition.defaultSize.w,
                 h: definition.defaultSize.h,
-                ...(config && { config }),
+                ...(data && { data }),
               },
             ]
           }),
@@ -278,7 +297,7 @@ export const useDashboardStore = create<DashboardState>()(
               y: nextAvailableY(widgets),
               w: original.w,
               h: original.h,
-              ...(original.config && { config: original.config }),
+              ...(original.data && { data: original.data }),
             },
           ]),
         }))
@@ -340,29 +359,29 @@ export const useDashboardStore = create<DashboardState>()(
         }))
       },
 
-      setWidgetConfig: (instanceId, field, value) => {
+      setWidgetData: (instanceId, field, value) => {
         set((state) => ({
           dashboards: updateInstances(
             state.dashboards,
             (widget) => widget.instanceId === instanceId,
-            (widget) => ({ ...widget, config: { ...widget.config, [field]: value } }),
+            (widget) => ({ ...widget, data: { ...widget.data, [field]: value } }),
           ),
         }))
       },
 
-      resetWidgetConfig: (instanceId) => {
+      resetWidgetData: (instanceId) => {
         set((state) => ({
           dashboards: updateInstances(
             state.dashboards,
-            (widget) => widget.instanceId === instanceId && widget.config !== undefined,
-            withoutConfig,
+            (widget) => widget.instanceId === instanceId && widget.data !== undefined,
+            withoutData,
           ),
         }))
       },
 
-      resetAllWidgetConfig: () => {
+      resetAllWidgetData: () => {
         set((state) => ({
-          dashboards: updateInstances(state.dashboards, (widget) => widget.config !== undefined, withoutConfig),
+          dashboards: updateInstances(state.dashboards, (widget) => widget.data !== undefined, withoutData),
         }))
       },
 

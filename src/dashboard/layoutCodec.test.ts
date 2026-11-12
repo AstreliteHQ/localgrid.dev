@@ -131,12 +131,12 @@ describe('layoutCodec — backward compatibility with pre-tabs share links', () 
   })
 })
 
-describe('layoutCodec: widget configuration', () => {
+describe('layoutCodec: widget data', () => {
   function encodeRaw(payload: unknown): string {
     return LZString.compressToEncodedURIComponent(JSON.stringify(payload))
   }
 
-  it('strips config fields that do not match the widget schema', () => {
+  it('strips data fields that do not match the widget schema', () => {
     const encoded = encodeRaw({
       v: 1,
       a: 'd',
@@ -157,12 +157,12 @@ describe('layoutCodec: widget configuration', () => {
     expect(result.ok).toBe(true)
     if (result.ok) {
       const [watermark, uuid] = result.workspace.dashboards[0].widgets
-      expect(watermark.config).toEqual({ text: 'Draft' })
-      expect(uuid).not.toHaveProperty('config')
+      expect(watermark.data).toEqual({ text: 'Draft' })
+      expect(uuid).not.toHaveProperty('data')
     }
   })
 
-  it('ignores config fields named after inherited properties without throwing', () => {
+  it('ignores data fields named after inherited properties without throwing', () => {
     const encoded = encodeRaw({
       v: 1,
       a: 'd',
@@ -178,19 +178,19 @@ describe('layoutCodec: widget configuration', () => {
     let result: ReturnType<typeof decodeWorkspace> | undefined
     expect(() => (result = decodeWorkspace(encoded))).not.toThrow()
     expect(result?.ok).toBe(true)
-    if (result?.ok) expect(result.workspace.dashboards[0].widgets[0]).not.toHaveProperty('config')
+    if (result?.ok) expect(result.workspace.dashboards[0].widgets[0]).not.toHaveProperty('data')
   })
 
-  it('omits config from the encoded payload by default', () => {
-    const configured: Dashboard[] = [
+  it('omits data from the encoded payload by default', () => {
+    const withData: Dashboard[] = [
       {
         id: 'd',
         name: 'D',
-        widgets: [{ instanceId: 'a', widgetId: 'timer', x: 0, y: 0, w: 2, h: 3, config: { cdMinutes: 15 } }],
+        widgets: [{ instanceId: 'a', widgetId: 'timer', x: 0, y: 0, w: 2, h: 3, data: { cdMinutes: 15 } }],
       },
     ]
 
-    const json = LZString.decompressFromEncodedURIComponent(encodeWorkspace(configured, 'd'))
+    const json = LZString.decompressFromEncodedURIComponent(encodeWorkspace(withData, 'd'))
 
     expect(JSON.parse(json).d[0].ws[0]).not.toHaveProperty('c')
   })

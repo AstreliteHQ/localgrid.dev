@@ -18,7 +18,8 @@ import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/SegmentedControl'
 import { cn } from '@/lib/utils'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
-import { useWidgetConfig } from '@/widgets/widgetConfig'
+import { useWidgetData } from '@/widgets/widgetData'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -44,9 +45,10 @@ const DRAG_MIME = 'application/x-localgrid-todo-item'
 
 export default function TodoListWidget({ instanceId }: WidgetProps) {
   // Items are session state by default. "Remember tasks" moves them into
-  // configuration, so they survive a reload (and Clear state).
-  const [remember, setRemember] = useWidgetConfig(instanceId, 'remember', false)
-  const [savedItems, setSavedItems] = useWidgetConfig<TodoItem[]>(instanceId, 'savedItems', DEFAULT_ITEMS)
+  // widget data, so they survive a reload (and Clear state).
+  const [remember, setRemember] = useWidgetData(instanceId, 'remember', false)
+  const dataEnabled = useWidgetDataSettings((state) => state.enabled)
+  const [savedItems, setSavedItems] = useWidgetData<TodoItem[]>(instanceId, 'savedItems', DEFAULT_ITEMS)
   const [sessionItems, setSessionItems] = useWidgetState<TodoItem[]>(instanceId, 'items', DEFAULT_ITEMS)
   const items = remember ? savedItems : sessionItems
   const setItems = remember ? setSavedItems : setSessionItems
@@ -61,7 +63,7 @@ export default function TodoListWidget({ instanceId }: WidgetProps) {
   const listRef = useRef<HTMLUListElement>(null)
   // Set by a keyboard move: React may blur the input while reordering nodes.
   const refocusId = useRef<string | null>(null)
-  // Remembered items are config, so only session items count as dirty.
+  // Remembered items are widget data, so only session items count as dirty.
   useWidgetDirty(instanceId, sessionItems.length > 0 || draft.trim() !== '')
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export default function TodoListWidget({ instanceId }: WidgetProps) {
     if (filter === 'done') setFilter('all')
   }
 
-  // The list moves between state and config, so it never shows twice or
+  // The list moves between state and widget data, so it never shows twice or
   // vanishes when toggled.
   const toggleRemember = (next: boolean) => {
     if (next) {
@@ -100,10 +102,10 @@ export default function TodoListWidget({ instanceId }: WidgetProps) {
     }
     setSessionItems(savedItems)
     // The setters clear an unpinned overlay's fallback; the reset drops a
-    // pinned instance's config so nothing stays saved or shared.
+    // pinned instance's data so nothing stays saved or shared.
     setRemember(false)
     setSavedItems(DEFAULT_ITEMS)
-    useDashboardStore.getState().resetWidgetConfig(instanceId)
+    useDashboardStore.getState().resetWidgetData(instanceId)
   }
 
   const toggleItem = (id: string) => updateItem(id, (item) => ({ ...item, done: !item.done }))
@@ -407,12 +409,17 @@ export default function TodoListWidget({ instanceId }: WidgetProps) {
         )}
         {/* Always shown, so an empty remembered list can still be turned off. */}
         <label
-          title="Keep the list after a reload. Saved in this browser, and in share links that include widget configuration."
-          className="flex items-center gap-1.5 self-start"
+          title={
+            dataEnabled
+              ? 'Keep the list after a reload. Saved in this browser, and in share links that include widget data.'
+              : 'Widget data is turned off in Settings.'
+          }
+          className={cn('flex items-center gap-1.5 self-start', !dataEnabled && 'opacity-50')}
         >
           <input
             type="checkbox"
             checked={remember}
+            disabled={!dataEnabled}
             onChange={(event) => toggleRemember(event.target.checked)}
             className="accent-primary"
           />

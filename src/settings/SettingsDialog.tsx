@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Cable, Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
+import { Cable, Database, Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { AboutSection } from './AboutSection'
@@ -8,6 +8,7 @@ import { FlowSection } from './FlowSection'
 import { GeneralSection } from './GeneralSection'
 import { ShareSection } from './ShareSection'
 import { useSettingsStore, type SettingsSection } from './useSettingsStore'
+import { WidgetDataSection } from './WidgetDataSection'
 
 interface SectionEntry {
   id: SettingsSection
@@ -21,13 +22,15 @@ interface SectionEntry {
 /** Adding a section is one entry here plus its id in `SettingsSection`. */
 const SECTIONS: SectionEntry[] = [
   { id: 'general', label: 'General', icon: Settings2, component: GeneralSection },
+  { id: 'widget-data', label: 'Widget data', icon: Database, component: WidgetDataSection },
   { id: 'flow', label: 'Flow', icon: Cable, component: FlowSection, experimental: true },
   { id: 'share', label: 'Share', icon: Share2, component: ShareSection },
   { id: 'about', label: 'About', icon: Info, component: AboutSection },
 ]
 
 /** App settings: a left menu of sections and the active section's panel.
- * Below `sm` the menu becomes a horizontal strip above the panel. */
+ * Below `sm` the menu becomes a strip above the panel that wraps onto more
+ * lines, so every section stays inside a narrow dialog. */
 export function SettingsDialog() {
   const open = useSettingsStore((state) => state.open)
   const section = useSettingsStore((state) => state.section)
@@ -48,7 +51,7 @@ export function SettingsDialog() {
         <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
           <nav
             aria-label="Settings sections"
-            className="flex shrink-0 gap-1 border-b border-border p-2 sm:w-44 sm:flex-col sm:border-r sm:border-b-0"
+            className="flex shrink-0 flex-wrap gap-1 border-b border-border p-2 sm:w-44 sm:flex-col sm:flex-nowrap sm:border-r sm:border-b-0"
           >
             {SECTIONS.map((entry) => (
               <button

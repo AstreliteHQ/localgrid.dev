@@ -12,7 +12,7 @@ import { Slider } from '@/components/ui/slider'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
-import { useWidgetConfig } from '@/widgets/widgetConfig'
+import { useWidgetData } from '@/widgets/widgetData'
 import type { WidgetProps } from '@/widgets/types'
 import { detectFileKind, type FileKind } from './detectFileKind'
 import { watermarkImage } from './watermarkImage'
@@ -34,6 +34,11 @@ interface Result {
   fileName: string
   url: string
   previewUrl: string | null
+}
+
+/** Everything the output depends on besides the file, as one comparable key. */
+function presetKey(...preset: unknown[]): string {
+  return JSON.stringify(preset)
 }
 
 function formatFileSize(bytes: number): string {
@@ -58,26 +63,28 @@ function watermarkedFileName(sourceName: string, extension: string): string {
 
 export default function WatermarkWidget({ instanceId }: WidgetProps) {
   const [file, setFile] = useWidgetState<File | null>(instanceId, 'file', null)
-  // The stamp preset is configuration: kept across reloads and files, and
+  // The stamp preset is widget data: kept across reloads and files, and
   // outside the dirty check. Only the file is state.
-  const [text, setText] = useWidgetConfig(instanceId, 'text', DEFAULT_TEXT)
-  const [opacity, setOpacity] = useWidgetConfig(instanceId, 'opacity', DEFAULT_OPACITY)
-  const [color, setColor] = useWidgetConfig(instanceId, 'color', DEFAULT_COLOR)
-  const [fontSize, setFontSize] = useWidgetConfig(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
-  const [position, setPosition] = useWidgetConfig<WatermarkPosition>(instanceId, 'position', DEFAULT_POSITION)
+  const [text, setText] = useWidgetData(instanceId, 'text', DEFAULT_TEXT)
+  const [opacity, setOpacity] = useWidgetData(instanceId, 'opacity', DEFAULT_OPACITY)
+  const [color, setColor] = useWidgetData(instanceId, 'color', DEFAULT_COLOR)
+  const [fontSize, setFontSize] = useWidgetData(instanceId, 'fontSize', DEFAULT_FONT_SIZE)
+  const [position, setPosition] = useWidgetData<WatermarkPosition>(instanceId, 'position', DEFAULT_POSITION)
   const [detection, setDetection] = useState<Detection | null>(null)
   const [dragging, setDragging] = useState(false)
-  const [working, setWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<Result | null>(null)
+  // Each run, result and error remembers the preset it was made with, and only
+  // counts while that is still the effective preset. The preset can change
+  // from outside these fields (widget data turned off, a reset, a share link,
+  // the expanded copy), so comparing beats invalidating on every input.
+  const [running, setRunning] = useState<string | null>(null)
+  const [stored, setStored] = useState<{ preset: string; result: Result | null; error: string | null } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Both the result's own download URL and (for an image) its preview URL,
   // so they can be revoked together the moment a newer result replaces them.
   const urlsRef = useRef<string[]>([])
-  // Bumped whenever the input is invalidated (file/text/position/opacity/
-  // size/color change, or unmount), so a watermark that was already in
-  // flight can tell its own result is stale once it resolves and skip
-  // publishing an output that no longer matches the current settings.
+  // Bumped whenever the file changes (or on unmount), so a watermark that was
+  // already in flight can tell its own result is stale once it resolves and
+  // skip publishing it.
   const applyTokenRef = useRef(0)
 
   useWidgetDirty(instanceId, file !== null)
@@ -115,11 +122,18 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
   const currentDetection = detection && detection.file === file ? detection : null
   const kind = currentDetection?.kind ?? null
 
+  const preset = presetKey(text, opacity, color, fontSize, position)
+  const working = running === preset
+  const result = stored?.preset === preset ? stored.result : null
+  const error = stored?.preset === preset ? stored.error : null
+
+  // Also ends the run: a stale one skips its own cleanup, so Apply would
+  // otherwise stay disabled.
   const invalidateResult = () => {
     applyTokenRef.current += 1
     publishUrls([])
-    setResult(null)
-    setError(null)
+    setStored(null)
+    setRunning(null)
   }
 
   const accept = (next: File | null | undefined) => {
@@ -141,33 +155,45 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
   const handleApply = async () => {
     if (!file || kind === null) return
     const token = ++applyTokenRef.current
-    setWorking(true)
-    setError(null)
+    const runPreset = preset
+    setRunning(runPreset)
+    setStored(null)
     const options = { text, opacity: opacity / 100, color, fontSize, position }
     try {
       if (kind === 'pdf') {
         const bytes = await watermarkPdf(file, options)
-        // The file or any setting can change (or the widget can unmount)
-        // while the watermarking above is in flight — a result for a token
-        // that's no longer current belongs to settings the user can't even
-        // see anymore.
+        // The file can change (or the widget can unmount) while this is in
+        // flight. A preset change needs no check: the result keeps
+        // `runPreset` and is hidden while it differs.
         if (token !== applyTokenRef.current) return
         const url = URL.createObjectURL(new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }))
         publishUrls([url])
-        setResult({ fileName: watermarkedFileName(file.name, 'pdf'), url, previewUrl: null })
+        setStored({
+          preset: runPreset,
+          result: { fileName: watermarkedFileName(file.name, 'pdf'), url, previewUrl: null },
+          error: null,
+        })
       } else {
         const watermarked = await watermarkImage(file, options)
         if (token !== applyTokenRef.current) return
         const url = URL.createObjectURL(watermarked.blob)
         publishUrls([url])
-        setResult({ fileName: watermarkedFileName(file.name, 'png'), url, previewUrl: url })
+        setStored({
+          preset: runPreset,
+          result: { fileName: watermarkedFileName(file.name, 'png'), url, previewUrl: url },
+          error: null,
+        })
       }
     } catch (err) {
       if (token === applyTokenRef.current) {
-        setError(err instanceof Error ? err.message : 'Could not add a watermark to this file.')
+        setStored({
+          preset: runPreset,
+          result: null,
+          error: err instanceof Error ? err.message : 'Could not add a watermark to this file.',
+        })
       }
     } finally {
-      if (token === applyTokenRef.current) setWorking(false)
+      if (token === applyTokenRef.current) setRunning(null)
     }
   }
 
@@ -246,10 +272,7 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
               <Field label="Text">
                 <Input
                   value={text}
-                  onChange={(event) => {
-                    setText(event.target.value)
-                    invalidateResult()
-                  }}
+                  onChange={(event) => setText(event.target.value)}
                   placeholder="e.g. CONFIDENTIAL"
                   aria-label="Watermark text"
                   className="h-7 text-xs"
@@ -259,10 +282,7 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
               <Field label="Position">
                 <SegmentedControl
                   value={position}
-                  onChange={(next) => {
-                    setPosition(next)
-                    invalidateResult()
-                  }}
+                  onChange={(next) => setPosition(next)}
                   options={[
                     { label: 'Tiled', value: 'tiled' },
                     { label: 'Center', value: 'center' },
@@ -278,10 +298,7 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                   min={5}
                   max={100}
                   value={opacity}
-                  onValueChange={(value) => {
-                    setOpacity(value)
-                    invalidateResult()
-                  }}
+                  onValueChange={(value) => setOpacity(value)}
                   aria-label="Watermark opacity"
                   className="min-w-0"
                 />
@@ -292,10 +309,7 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                   min={12}
                   max={120}
                   value={fontSize}
-                  onValueChange={(value) => {
-                    setFontSize(value)
-                    invalidateResult()
-                  }}
+                  onValueChange={(value) => setFontSize(value)}
                   aria-label="Watermark text size"
                   className="min-w-0"
                 />
@@ -308,25 +322,12 @@ export default function WatermarkWidget({ instanceId }: WidgetProps) {
                     id={`${instanceId}-color`}
                     type="color"
                     value={color}
-                    onChange={(event) => {
-                      setColor(event.target.value)
-                      invalidateResult()
-                    }}
+                    onChange={(event) => setColor(event.target.value)}
                     aria-label="Watermark color"
                     className="h-8 w-14 cursor-pointer p-0"
                   />
-                  <PageColorPicker
-                    onPick={(hex) => {
-                      setColor(hex)
-                      invalidateResult()
-                    }}
-                  />
-                  <ScreenColorPicker
-                    onPick={(hex) => {
-                      setColor(hex)
-                      invalidateResult()
-                    }}
-                  />
+                  <PageColorPicker onPick={(hex) => setColor(hex)} />
+                  <ScreenColorPicker onPick={(hex) => setColor(hex)} />
                 </div>
               </Field>
 

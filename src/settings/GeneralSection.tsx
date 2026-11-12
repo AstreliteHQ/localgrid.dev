@@ -70,16 +70,15 @@ function formatBytes(bytes: number): string {
 export function GeneralSection() {
   const theme = useThemeStore((state) => state.theme)
   const setTheme = useThemeStore((state) => state.setTheme)
-  const configuredCount = useDashboardStore((state) =>
-    state.dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.filter((widget) => widget.config).length, 0),
+  const dataCount = useDashboardStore((state) =>
+    state.dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.filter((widget) => widget.data).length, 0),
   )
-  const resetAllWidgetConfig = useDashboardStore((state) => state.resetAllWidgetConfig)
   const dashboardCount = useDashboardStore((state) => state.dashboards.length)
   const widgetCount = useDashboardStore((state) =>
     state.dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.length, 0),
   )
   // Read on every render: cheap, and the persisted stores write
-  // synchronously, so sizes follow the theme and config changes that
+  // synchronously, so sizes follow the theme and widget data changes that
   // re-render this section.
   const storedItems = readStoredItems()
 
@@ -95,7 +94,7 @@ export function GeneralSection() {
         <dl className="grid grid-cols-3 gap-2 text-xs">
           <Stat label="Dashboards" value={`${dashboardCount} / ${MAX_DASHBOARDS}`} />
           <Stat label="Widgets" value={String(widgetCount)} />
-          <Stat label="Widget configuration"value={String(configuredCount)} />
+          <Stat label="Widget data" value={String(dataCount)} />
         </dl>
       </section>
 
@@ -115,14 +114,6 @@ export function GeneralSection() {
           ))}
         </ul>
         <div className="flex flex-wrap gap-2">
-          <ConfirmButton
-            label="Reset widget configuration"
-            title="Reset widget configuration?"
-            description="Configured widgets go back to their defaults."
-            confirmLabel="Reset"
-            disabled={configuredCount === 0}
-            onConfirm={resetAllWidgetConfig}
-          />
           <ConfirmButton
             label="Delete all data"
             title="Delete all data?"

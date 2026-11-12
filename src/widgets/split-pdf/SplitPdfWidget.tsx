@@ -95,11 +95,14 @@ export default function SplitPdfWidget({ instanceId }: WidgetProps) {
   const currentDetection = detection && detection.file === file ? detection : null
   const pageCount = currentDetection?.pageCount ?? null
 
+  // Also ends `splitting`: a stale split skips its own cleanup, so Split
+  // would otherwise stay disabled.
   const invalidateResult = () => {
     splitTokenRef.current += 1
     publishUrls([])
     setParts(null)
     setSplitError(null)
+    setSplitting(false)
   }
 
   const accept = (next: File | null | undefined) => {

@@ -17,7 +17,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
-import { useWidgetConfig } from '@/widgets/widgetConfig'
+import { useWidgetData } from '@/widgets/widgetData'
 import type { WidgetProps } from '@/widgets/types'
 import { WORLD_CITIES, defaultCityIds, getCity, type City } from './cities'
 import {
@@ -53,9 +53,9 @@ function toLocalDatetimeInputValue(date: Date): string {
 }
 
 export default function WorldClockWidget({ instanceId }: WidgetProps) {
-  // Configuration: survives reloads and "Clear state", so it stays out of
+  // Widget data: survives reloads and "Clear state", so it stays out of
   // the dirty check below.
-  const [selectedIds, setSelectedIds] = useWidgetConfig<string[]>(instanceId, 'selectedIds', () =>
+  const [selectedIds, setSelectedIds] = useWidgetData<string[]>(instanceId, 'selectedIds', () =>
     defaultCityIds(LOCAL_TIME_ZONE),
   )
   // A display preference rather than content, so it stays out of the

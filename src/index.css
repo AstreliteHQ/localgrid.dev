@@ -68,6 +68,25 @@
   --font-weight-medium: 400;
   --animate-dirty-pulse: dirty-pulse 2s ease-in-out infinite;
   --animate-indeterminate: indeterminate 1.2s ease-in-out infinite;
+  --animate-ring-chase: ring-chase 1s ease-in-out infinite;
+  --animate-ring-play: ring-chase 1s ease-in-out 3;
+}
+
+/* Widget data indicator (see src/widget-shell/WidgetDataRing.tsx): each of
+ * the ring's four fixed arcs leads for a quarter of the cycle. The next arc is
+ * fully on a few ms before the previous one starts to fade, and that fade is
+ * slow, so the light leaves a short trail and seems to glide round. Loops in
+ * the Settings demo; on a widget it plays once per data change (`ring-play`). */
+@keyframes ring-chase {
+  0%,
+  29%,
+  100% {
+    opacity: 0.65;
+  }
+  42%,
+  96% {
+    opacity: 0.15;
+  }
 }
 
 /* Indeterminate progress bar: a segment a third of the track wide sweeping

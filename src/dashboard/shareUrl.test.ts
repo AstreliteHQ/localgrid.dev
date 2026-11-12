@@ -46,13 +46,11 @@ describe('buildShareUrl', () => {
 })
 
 describe('buildShareUrl: share options', () => {
-  const CONFIGURED: Dashboard[] = [
+  const WITH_DATA: Dashboard[] = [
     {
       id: 'dash-a',
       name: 'Dash A',
-      widgets: [
-        { instanceId: 'a', widgetId: 'world-clock', x: 0, y: 0, w: 5, h: 4, config: { selectedIds: ['paris'] } },
-      ],
+      widgets: [{ instanceId: 'a', widgetId: 'world-clock', x: 0, y: 0, w: 5, h: 4, data: { selectedIds: ['paris'] } }],
     },
   ]
 
@@ -63,21 +61,21 @@ describe('buildShareUrl: share options', () => {
   }
 
   it('returns the bare app URL when layout is left out', () => {
-    const url = new URL(buildShareUrl(CONFIGURED, 'dash-a', { includeLayout: false, includeConfig: true }))
+    const url = new URL(buildShareUrl(WITH_DATA, 'dash-a', { includeLayout: false, includeData: true }))
 
     expect(url.hash).toBe('')
     expect(url.search).toBe('')
   })
 
-  it('leaves configuration out unless asked', () => {
-    const [widget] = decodedWidgets(buildShareUrl(CONFIGURED, 'dash-a', { includeLayout: true, includeConfig: false }))
+  it('leaves widget data out unless asked', () => {
+    const [widget] = decodedWidgets(buildShareUrl(WITH_DATA, 'dash-a', { includeLayout: true, includeData: false }))
 
-    expect(widget).not.toHaveProperty('config')
+    expect(widget).not.toHaveProperty('data')
   })
 
-  it('carries configuration when asked', () => {
-    const [widget] = decodedWidgets(buildShareUrl(CONFIGURED, 'dash-a', { includeLayout: true, includeConfig: true }))
+  it('carries widget data when asked', () => {
+    const [widget] = decodedWidgets(buildShareUrl(WITH_DATA, 'dash-a', { includeLayout: true, includeData: true }))
 
-    expect(widget.config).toEqual({ selectedIds: ['paris'] })
+    expect(widget.data).toEqual({ selectedIds: ['paris'] })
   })
 })

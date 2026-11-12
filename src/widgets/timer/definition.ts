@@ -12,7 +12,7 @@ export const timerDefinition: WidgetDefinition = {
   defaultSize: { w: 2, h: 3 },
   minSize: { w: 2, h: 3 },
   component: lazy(() => import('./TimerWidget')),
-  configSchema: v.object({
+  dataSchema: v.object({
     cdHours: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(99)),
     cdMinutes: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(59)),
     cdSeconds: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(59)),

@@ -42,11 +42,11 @@ export interface WidgetDefinition {
   component: LazyExoticComponent<ComponentType<WidgetProps>>
   /** Extra search terms surfaced in the tool browser / command palette. */
   keywords?: string[]
-  /** Fields this widget persists as configuration via `useWidgetConfig`.
+  /** Fields this widget persists as widget data via `useWidgetData`.
    * Only for setup that is tedious to redo and then used passively; see
    * docs/widget-architecture.md. Field names are a storage contract: never
    * rename them. */
-  configSchema?: WidgetConfigSchema
+  dataSchema?: WidgetDataSchema
   /** Inputs and output other widgets can be wired to. See the Flow
    * section of docs/widget-architecture.md. */
   flow?: WidgetFlow
@@ -65,4 +65,4 @@ export interface WidgetFlow {
   output?: { label: string }
 }
 
-export type WidgetConfigSchema = v.ObjectSchema<v.ObjectEntries, undefined>
+export type WidgetDataSchema = v.ObjectSchema<v.ObjectEntries, undefined>

@@ -2,7 +2,7 @@ import LZString from 'lz-string'
 import { nanoid } from 'nanoid'
 import * as v from 'valibot'
 import { getWidgetDefinition } from '@/widgets/registry'
-import { sanitizeConfig } from '@/widgets/widgetConfig'
+import { sanitizeWidgetData } from '@/widgets/widgetData'
 import { sanitizeLinks, type Link } from '@/flow/linkGraph'
 import { decompressLzString } from '@/lib/lzString'
 import {
@@ -42,7 +42,7 @@ const WireWidgetSchema = v.object({
   y: v.number(),
   w: v.number(),
   h: v.number(),
-  // Widget configuration, only present when the sender opted in. Optional
+  // Widget data, only present when the sender opted in. Optional
   // so links made before it existed still decode. Validated per widget in
   // `finalizeWorkspace`, not here.
   c: v.optional(v.record(v.string(), v.unknown())),
@@ -72,8 +72,8 @@ const WireWorkspaceSchema = v.object({
 export type WireWorkspace = v.InferOutput<typeof WireWorkspaceSchema>
 
 export interface EncodeOptions {
-  /** Adds each widget's `config` as `c`. Off unless the user opts in. */
-  includeConfig?: boolean
+  /** Adds each widget's `data` as `c`. Off unless the user opts in. */
+  includeData?: boolean
   /** Links to carry as each dashboard's `l`. Left out when undefined. */
   links?: readonly Link[]
 }
@@ -106,7 +106,7 @@ export function toWire(dashboards: Dashboard[], activeDashboardId: string, optio
           y: widget.y,
           w: widget.w,
           h: widget.h,
-          ...(options.includeConfig && widget.config && Object.keys(widget.config).length > 0 && { c: widget.config }),
+          ...(options.includeData && widget.data && Object.keys(widget.data).length > 0 && { c: widget.data }),
         })),
       }
     }),
@@ -125,7 +125,7 @@ function fromWire(wire: WireWorkspace): WorkspaceLayoutV2 {
       y: widget.y,
       w: widget.w,
       h: widget.h,
-      ...(widget.c && { config: widget.c }),
+      ...(widget.c && { data: widget.c }),
     }))
     for (const [from, to, input] of dashboard.l ?? []) {
       if (widgets[from] && widgets[to]) {
@@ -172,7 +172,7 @@ export function encodeWorkspace(
 export type DecodeResult = { ok: true; workspace: WorkspaceLayoutV2 } | { ok: false; error: string }
 
 /** Drops any widget instance whose id no longer exists in the registry
- * (e.g. a stale link after a widget was renamed or removed), strips config
+ * (e.g. a stale link after a widget was renamed or removed), strips data
  * fields that don't match the widget's schema, and repairs
  * `activeDashboardId` if it doesn't point at a surviving dashboard. */
 function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
@@ -180,9 +180,9 @@ function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
     ...dashboard,
     widgets: dashboard.widgets
       .filter((widget) => getWidgetDefinition(widget.widgetId))
-      .map(({ config, ...widget }) => {
-        const sanitized = sanitizeConfig(widget.widgetId, config)
-        return sanitized ? { ...widget, config: sanitized } : widget
+      .map(({ data, ...widget }) => {
+        const sanitized = sanitizeWidgetData(widget.widgetId, data)
+        return sanitized ? { ...widget, data: sanitized } : widget
       }),
   }))
   if (dashboards.length === 0) {

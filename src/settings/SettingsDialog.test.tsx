@@ -5,6 +5,7 @@ import { useFlowStore } from '@/flow/useFlowStore'
 import { useFlowSettings } from '@/flow/useFlowSettings'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import { useThemeStore } from '@/theme/useThemeStore'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 import { SettingsDialog } from './SettingsDialog'
 import { useSettingsStore } from './useSettingsStore'
 
@@ -24,7 +25,7 @@ beforeEach(() => {
             y: 0,
             w: 5,
             h: 4,
-            config: { selectedIds: ['paris', 'tokyo'] },
+            data: { selectedIds: ['paris', 'tokyo'] },
           },
         ],
       },
@@ -65,20 +66,20 @@ describe('SettingsDialog', () => {
     expect(screen.getByRole('link', { name: /about page/i }).getAttribute('href')).toMatch(/about\.html$/)
   })
 
-  it('shares the layout by default, configuration on demand, and the address alone without layout', async () => {
+  it('shares the layout by default, widget data on demand, and the address alone without layout', async () => {
     const user = userEvent.setup()
     useSettingsStore.getState().openSettings('share')
     render(<SettingsDialog />)
 
     const link = screen.getByRole('textbox', { name: /share link/i }) as HTMLInputElement
     const layoutToggle = screen.getByRole('checkbox', { name: /include layout/i })
-    const configToggle = screen.getByRole('checkbox', { name: /include widget configuration/i })
+    const dataToggle = screen.getByRole('checkbox', { name: /include widget data/i })
     expect(layoutToggle).toBeChecked()
     expect(new URL(link.value).hash).toMatch(/^#layout=/)
     expect(screen.getByText('World Clock')).toBeInTheDocument()
     expect(screen.queryByText(/"paris"/)).not.toBeInTheDocument()
 
-    await user.click(configToggle)
+    await user.click(dataToggle)
 
     expect(screen.getByText(/"paris"/)).toBeInTheDocument()
 
@@ -86,7 +87,54 @@ describe('SettingsDialog', () => {
 
     expect(new URL(link.value).hash).toBe('')
     expect(screen.getByText(/link to localgrid only/i)).toBeInTheDocument()
-    expect(configToggle).toBeDisabled()
+    expect(dataToggle).toBeDisabled()
+  })
+
+  it('lists widgets with data and shows what each one holds', async () => {
+    const user = userEvent.setup()
+    useSettingsStore.getState().openSettings('widget-data')
+    render(<SettingsDialog />)
+    expect(screen.getByRole('button', { name: 'Widget data' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('img', { name: /saved cities/i })).toBeInTheDocument()
+    expect(screen.queryByText(/"paris"/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /world clock/i }))
+
+    expect(screen.getByText(/"paris"/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /reset world clock data/i }))
+
+    expect(useDashboardStore.getState().dashboards[0].widgets[0]).not.toHaveProperty('data')
+    expect(screen.getByText(/0 widgets with data/i)).toBeInTheDocument()
+  })
+
+  it('turns the widget data icon animation off', async () => {
+    const user = userEvent.setup()
+    useSettingsStore.getState().openSettings('widget-data')
+    render(<SettingsDialog />)
+
+    await user.click(screen.getByRole('button', { name: 'Off' }))
+
+    expect(useWidgetDataSettings.getState().animation).toBe(false)
+
+    await user.click(screen.getByRole('button', { name: 'On change' }))
+
+    expect(useWidgetDataSettings.getState().animation).toBe(true)
+  })
+
+  it('turns widget data off, which also blocks sharing it', async () => {
+    const user = userEvent.setup()
+    useSettingsStore.getState().openSettings('widget-data')
+    render(<SettingsDialog />)
+
+    await user.click(screen.getByRole('checkbox', { name: /enable widget data/i }))
+
+    expect(useWidgetDataSettings.getState().enabled).toBe(false)
+    expect(screen.getByText(/paused until widget data is enabled again/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Share' }))
+
+    expect(screen.getByRole('checkbox', { name: /include widget data/i })).toBeDisabled()
   })
 
   it('turns flow off and edits a conveyor color from the Flow section', async () => {

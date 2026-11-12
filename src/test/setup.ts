@@ -3,6 +3,7 @@ import '@testing-library/jest-dom/vitest'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import { useFlowStore } from '@/flow/useFlowStore'
 import { DEFAULT_FLOW_SETTINGS, useFlowSettings } from '@/flow/useFlowSettings'
+import { DEFAULT_WIDGET_DATA_SETTINGS, useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 
 // Widget content now lives in a store keyed by instanceId rather than local
 // component state, so a fresh `render()` no longer guarantees a fresh
@@ -12,13 +13,22 @@ import { DEFAULT_FLOW_SETTINGS, useFlowSettings } from '@/flow/useFlowSettings'
 // widget test file to remember a unique id per test.
 afterEach(() => {
   useWidgetStateStore.setState({ values: {} })
-  useFlowStore.setState({ links: [], outputs: {}, drag: null, hovered: null, menu: null, linkMenu: null, connectMenu: null })
+  useFlowStore.setState({
+    links: [],
+    outputs: {},
+    drag: null,
+    hovered: null,
+    menu: null,
+    linkMenu: null,
+    connectMenu: null,
+  })
 })
 
 // Flow is off by default while experimental, but most tests that touch it
 // exercise the feature itself.
 beforeEach(() => {
   useFlowSettings.setState({ ...DEFAULT_FLOW_SETTINGS, enabled: true })
+  useWidgetDataSettings.setState(DEFAULT_WIDGET_DATA_SETTINGS)
 })
 
 // jsdom doesn't implement matchMedia — useMediaQuery (dark-mode detection,

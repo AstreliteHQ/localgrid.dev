@@ -5,19 +5,19 @@ import { encodeWorkspace, LAYOUT_HASH_PARAM } from './layoutCodec'
 export interface ShareOptions {
   /** Every dashboard and widget position. Off gives the bare app URL. */
   includeLayout: boolean
-  /** Widget configuration too. Ignored unless `includeLayout` is on. */
-  includeConfig: boolean
+  /** Widget data too. Ignored unless `includeLayout` is on. */
+  includeData: boolean
   /** Links between widgets to carry. Ignored unless `includeLayout` is on. */
   links?: readonly Link[]
 }
 
-const LAYOUT_ONLY: ShareOptions = { includeLayout: true, includeConfig: false }
+const LAYOUT_ONLY: ShareOptions = { includeLayout: true, includeData: false }
 
 /** Builds a URL that reproduces the workspace (every dashboard, not just
  * the active one) when opened, or just the app address when layout is left
  * out. Encoded into the fragment (`#layout=...`), not a query param, so it's
- * never sent to a server. Widget state never travels; configuration only
- * when `includeConfig` is set. */
+ * never sent to a server. Widget state never travels; widget data only
+ * when `includeData` is set. */
 export function buildShareUrl(
   dashboards: Dashboard[],
   activeDashboardId: string,
@@ -31,7 +31,7 @@ export function buildShareUrl(
   hashParams.set(
     LAYOUT_HASH_PARAM,
     encodeWorkspace(dashboards, activeDashboardId, {
-      includeConfig: options.includeConfig,
+      includeData: options.includeData,
       links: options.links,
     }),
   )
