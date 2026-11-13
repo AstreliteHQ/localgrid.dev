@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Editor, JSONContent } from '@tiptap/react'
+import { useDashboardStore } from '@/dashboard/useDashboardStore'
+import { sanitizeWidgetData } from '@/widgets/widgetData'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
+import { hasAnyDirtyWidget } from '@/widgets/useWidgetDirty'
 import { useWidgetStateStore } from '@/widgets/useWidgetState'
 import ScratchpadWidget from './ScratchpadWidget'
 
@@ -215,5 +219,169 @@ describe('ScratchpadWidget', () => {
     await user.click(bold)
 
     expect(bold).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('ScratchpadWidget remember content', () => {
+  function pin() {
+    useDashboardStore.setState({
+      dashboards: [
+        { id: 'd', name: 'D', widgets: [{ instanceId: 'pinned', widgetId: 'scratchpad', x: 0, y: 0, w: 4, h: 5 }] },
+      ],
+      activeDashboardId: 'd',
+    })
+  }
+  const savedData = () => useDashboardStore.getState().dashboards[0].widgets[0].data
+  const savedText = () => JSON.stringify(savedData()?.savedDoc ?? null)
+
+  function rememberBox() {
+    return screen.getByRole('checkbox', { name: /remember content/i })
+  }
+
+  /** jsdom can't place a caret from a click, so type through the editor. */
+  function typeIntoNote(text: string) {
+    const editor = (editorElement() as HTMLElement & { editor: Editor }).editor
+    act(() => {
+      editor.chain().focus('end').insertContent(text).run()
+    })
+  }
+
+  it('is off by default', () => {
+    pin()
+    render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    expect(rememberBox()).not.toBeChecked()
+    expect(savedData()).toBeUndefined()
+  })
+
+  it('cannot be turned on while widget data is off', () => {
+    pin()
+    useWidgetDataSettings.getState().setEnabled(false)
+    render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    expect(rememberBox()).toBeDisabled()
+  })
+
+  it('moves the note into widget data, keeping it through Clear state and a remount', async () => {
+    const user = userEvent.setup()
+    pin()
+    const { unmount } = render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    typeIntoNote('Login fails')
+    expect(hasAnyDirtyWidget()).toBe(true)
+    await user.click(rememberBox())
+    typeIntoNote(' on Safari')
+
+    expect(savedData()?.remember).toBe(true)
+    expect(savedText()).toContain('Login fails on Safari')
+    // A remembered note is saved, so it is not unsaved content.
+    expect(hasAnyDirtyWidget()).toBe(false)
+
+    unmount()
+    useWidgetStateStore.getState().resetInstances(['pinned'])
+    render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    expect(screen.getByText('Login fails on Safari')).toBeInTheDocument()
+    expect(rememberBox()).toBeChecked()
+  })
+
+  it('drops the widget data when turned off but keeps the note on screen', async () => {
+    const user = userEvent.setup()
+    pin()
+    render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    await user.click(rememberBox())
+    typeIntoNote('Login fails')
+    await user.click(rememberBox())
+
+    expect(savedData()).toBeUndefined()
+    expect(screen.getByText('Login fails')).toBeInTheDocument()
+    expect(rememberBox()).not.toBeChecked()
+    expect(hasAnyDirtyWidget()).toBe(true)
+  })
+
+  it('clears the editor when the widget data is reset from outside', async () => {
+    const user = userEvent.setup()
+    pin()
+    render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    await user.click(rememberBox())
+    typeIntoNote('Login fails')
+    act(() => useDashboardStore.getState().resetWidgetData('pinned'))
+
+    expect(rememberBox()).not.toBeChecked()
+    expect(screen.queryByText('Login fails')).not.toBeInTheDocument()
+  })
+
+  it('stays off and says so when the browser refuses to store the note', async () => {
+    const user = userEvent.setup()
+    pin()
+    seed({ type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Huge' }] }] })
+    render(<ScratchpadWidget instanceId="test" mode="grid" />)
+    useDashboardStore.setState({
+      dashboards: [
+        { id: 'd', name: 'D', widgets: [{ instanceId: 'test', widgetId: 'scratchpad', x: 0, y: 0, w: 4, h: 5 }] },
+      ],
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError')
+    })
+
+    await user.click(rememberBox())
+
+    expect(rememberBox()).not.toBeChecked()
+    expect(screen.getByText(/too large to remember/i)).toBeInTheDocument()
+    expect(screen.getByText('Huge')).toBeInTheDocument()
+    expect(storedDoc()).not.toBeNull()
+  })
+
+  it('remembers on an unpinned overlay instance until it is closed', async () => {
+    const user = userEvent.setup()
+    render(<ScratchpadWidget instanceId="test" mode="overlay" />)
+
+    typeIntoNote('Login fails')
+    await user.click(rememberBox())
+
+    expect(rememberBox()).toBeChecked()
+    expect(screen.getByText('Login fails')).toBeInTheDocument()
+  })
+
+  it('keeps only a well-formed saved note from a share link', () => {
+    const savedDoc = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hi' }] }] }
+    expect(sanitizeWidgetData('scratchpad', { remember: true, savedDoc })).toEqual({ remember: true, savedDoc })
+    expect(sanitizeWidgetData('scratchpad', { remember: true, savedDoc: null })).toEqual({
+      remember: true,
+      savedDoc: null,
+    })
+    expect(sanitizeWidgetData('scratchpad', { remember: 'yes', savedDoc: { type: 'image' } })).toBeUndefined()
+  })
+
+  it('starts empty rather than failing on a saved note it cannot load', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    useDashboardStore.setState({
+      dashboards: [
+        {
+          id: 'd',
+          name: 'D',
+          widgets: [
+            {
+              instanceId: 'pinned',
+              widgetId: 'scratchpad',
+              x: 0,
+              y: 0,
+              w: 4,
+              h: 5,
+              data: { remember: true, savedDoc: { type: 'doc', content: [{ type: 'nonsense' }] } },
+            },
+          ],
+        },
+      ],
+      activeDashboardId: 'd',
+    })
+    render(<ScratchpadWidget instanceId="pinned" mode="grid" />)
+
+    expect(editorElement()).toBeInTheDocument()
+    expect(rememberBox()).toBeChecked()
   })
 })

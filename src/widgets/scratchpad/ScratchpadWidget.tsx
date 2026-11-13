@@ -22,6 +22,9 @@ import {
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useDashboardStore } from '@/dashboard/useDashboardStore'
+import { useWidgetData } from '@/widgets/widgetData'
+import { useWidgetDataSettings } from '@/widgets/useWidgetDataSettings'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -38,7 +41,31 @@ type CopyStatus = 'idle' | 'copied' | 'failed'
  * document is kept as TipTap JSON with images as `data:` URLs, so a note is
  * self-contained: copying or downloading it never depends on anything else. */
 export default function ScratchpadWidget({ instanceId }: WidgetProps) {
-  const [doc, setDoc] = useWidgetState(instanceId, 'doc', DEFAULT_DOC)
+  // The note is session state by default. "Remember content" moves it into
+  // widget data, so it survives a reload (and Clear state).
+  const [remember, setRemember] = useWidgetData(instanceId, 'remember', false)
+  const dataEnabled = useWidgetDataSettings((state) => state.enabled)
+  const [savedDoc, setSavedDoc] = useWidgetData<JSONContent | null>(instanceId, 'savedDoc', DEFAULT_DOC)
+  const [sessionDoc, setSessionDoc] = useWidgetState<JSONContent | null>(instanceId, 'doc', DEFAULT_DOC)
+  const doc = remember ? savedDoc : sessionDoc
+  // Images make a note heavy; localStorage can refuse to store it.
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const setDoc = (next: JSONContent | null) => {
+    if (!remember) {
+      setSessionDoc(next)
+      return
+    }
+    try {
+      setSavedDoc(next)
+      setSaveError(null)
+    } catch {
+      setSaveError('This note is too large to remember in the browser. Edits are kept for this session only.')
+    }
+  }
+  // The editor is uncontrolled (it reads `doc` once on mount). Remember what
+  // it last wrote, so a change from outside (Reset data, widget data turned
+  // off in Settings) can be loaded into it.
+  const lastWrittenRef = useRef<JSONContent | null>(doc)
   const fileInputRef = useRef<HTMLInputElement>(null)
   // UI-only, like TodoListWidget's expandedId: a failed read is worth a
   // note under the toolbar, not persisted state.
@@ -75,8 +102,54 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
         return true
       },
     },
-    onUpdate: ({ editor }) => setDoc(editor.isEmpty ? null : editor.getJSON()),
+    onUpdate: ({ editor }) => {
+      const next = editor.isEmpty ? null : editor.getJSON()
+      lastWrittenRef.current = next
+      setDoc(next)
+    },
   })
+
+  useEffect(() => {
+    if (!editor || doc === lastWrittenRef.current) return
+    lastWrittenRef.current = doc
+    editor.commands.setContent(doc ?? '', { emitUpdate: false })
+  }, [editor, doc])
+
+  // The note moves between state and widget data, so it never shows twice or
+  // vanishes when toggled.
+  const toggleRemember = (next: boolean) => {
+    setSaveError(null)
+    if (next) {
+      try {
+        setSavedDoc(sessionDoc)
+        setRemember(true)
+      } catch {
+        // Nothing could be stored: stay on session state rather than show a
+        // ticked box that won't survive a reload. Dropping the data shrinks
+        // what is stored, but don't count on that write succeeding either.
+        try {
+          useDashboardStore.getState().resetWidgetData(instanceId)
+        } catch {
+          // The in-memory store is already reset; only the write failed.
+        }
+        setSaveError('This note is too large to remember in the browser.')
+        return
+      }
+      setSessionDoc(DEFAULT_DOC)
+      return
+    }
+    setSessionDoc(savedDoc)
+    // The setters clear an unpinned overlay's fallback; the reset drops a
+    // pinned instance's data so nothing stays saved or shared.
+    // A failed write must not skip the reset that follows it.
+    try {
+      setRemember(false)
+      setSavedDoc(DEFAULT_DOC)
+    } catch {
+      // Memory is already updated; the reset below shrinks what is stored.
+    }
+    useDashboardStore.getState().resetWidgetData(instanceId)
+  }
 
   // Declared after useEditor (whose handlers close over it) but only ever
   // called from events, by which point `editor` is set.
@@ -126,7 +199,8 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
   }
 
   const isEmpty = useEditorState({ editor, selector: ({ editor }) => editor?.isEmpty ?? true })
-  useWidgetDirty(instanceId, doc !== DEFAULT_DOC)
+  // A remembered note is widget data, so only a session note counts as dirty.
+  useWidgetDirty(instanceId, sessionDoc !== DEFAULT_DOC)
 
   const handlePickImages = async (fileList: FileList | null) => {
     const files = Array.from(fileList ?? []).filter((file) => file.type.startsWith('image/'))
@@ -184,6 +258,7 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
       </div>
 
       {imageError && <ErrorMessage>{imageError}</ErrorMessage>}
+      {saveError && <ErrorMessage>{saveError}</ErrorMessage>}
 
       <EditorContent
         editor={editor}
@@ -193,6 +268,25 @@ export default function ScratchpadWidget({ instanceId }: WidgetProps) {
           if (event.target === event.currentTarget) editor?.commands.focus('end')
         }}
       />
+
+      {/* Always shown, so an empty remembered note can still be turned off. */}
+      <label
+        title={
+          dataEnabled
+            ? 'Keep the note after a reload. Saved in this browser, and in share links that include widget data. Images make the note, and the link, much larger.'
+            : 'Widget data is turned off in Settings.'
+        }
+        className={cn('flex shrink-0 items-center gap-1.5 self-start', !dataEnabled && 'opacity-50')}
+      >
+        <input
+          type="checkbox"
+          checked={remember}
+          disabled={!dataEnabled}
+          onChange={(event) => toggleRemember(event.target.checked)}
+          className="accent-primary"
+        />
+        Remember content
+      </label>
     </div>
   )
 }
