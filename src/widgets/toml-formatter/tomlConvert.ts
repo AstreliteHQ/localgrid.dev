@@ -115,7 +115,8 @@ export function jsonToToml(input: string): ConversionResult {
       // instead of publishing a changed value.
       const isIntegerLiteral = context?.source !== undefined ? /^-?\d+$/.test(context.source) : Number.isInteger(value)
       if (unsafeInteger === null && typeof value === 'number' && isIntegerLiteral && !Number.isSafeInteger(value)) {
-        unsafeInteger = context?.source ?? String(value)
+        // Without `source` the value is already rounded, so don't echo it.
+        unsafeInteger = context?.source ?? ''
       }
       return value
     }) as unknown
@@ -123,7 +124,8 @@ export function jsonToToml(input: string): ConversionResult {
     return { output: '', error: errorMessage(err, 'Invalid JSON') }
   }
   if (unsafeInteger !== null) {
-    return { output: '', error: `Integer ${unsafeInteger} is too large to convert without losing precision` }
+    const which = unsafeInteger ? `Integer ${unsafeInteger}` : 'An integer'
+    return { output: '', error: `${which} is too large to convert without losing precision` }
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { output: '', error: 'A TOML document must be an object at the top level' }

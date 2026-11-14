@@ -77,12 +77,27 @@ describe('jsonToToml', () => {
     expect(jsonToToml('{"a":{"b":[1,null]}}').error).toBe('TOML has no null value (found at $.a.b[1])')
   })
 
-  it('rejects integers JSON.parse would round', () => {
-    expect(jsonToToml('{"id":9007199254740993}')).toEqual({
-      output: '',
-      error: 'Integer 9007199254740993 is too large to convert without losing precision',
+  // Older engines (Node 20 in CI) don't pass `context.source` to JSON.parse
+  // revivers, so only the fallback path is testable there.
+  const hasReviverSource = (() => {
+    let supported = false
+    JSON.parse('1', (_key, value: unknown, context?: { source?: string }) => {
+      supported = context?.source !== undefined
+      return value
     })
-    expect(jsonToToml('{"id":9007199254740991,"f":1e300}').error).toBeNull()
+    return supported
+  })()
+
+  it('rejects integers JSON.parse would round', () => {
+    const { output, error } = jsonToToml('{"id":9007199254740993}')
+    expect(output).toBe('')
+    expect(error).toMatch(/too large to convert without losing precision/)
+    if (hasReviverSource) expect(error).toContain('9007199254740993')
+    expect(jsonToToml('{"id":9007199254740991}').error).toBeNull()
+  })
+
+  it.runIf(hasReviverSource)('keeps integer-valued float literals when the engine exposes the source', () => {
+    expect(jsonToToml('{"f":1e300}').error).toBeNull()
   })
 
   it('reports invalid JSON', () => {
