@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.11.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.10.0...v0.11.0) (2026-11-14)
+
+
+### Features
+
+* **scratchpad:** add Remember content option to keep the note as widget data ([#144](https://github.com/AstreliteHQ/localgrid.dev/issues/144)) ([9211d7d](https://github.com/AstreliteHQ/localgrid.dev/commit/9211d7dfe70f72568c263a26ce55bda5a84c8f89))
+* widget data settings section ([#143](https://github.com/AstreliteHQ/localgrid.dev/issues/143)) ([aa30606](https://github.com/AstreliteHQ/localgrid.dev/commit/aa30606d542b3bf3b2de491631fa5748fe9e253e))
+* widget flows to connect widget inputs and outputs ([#137](https://github.com/AstreliteHQ/localgrid.dev/issues/137)) ([1c9efb0](https://github.com/AstreliteHQ/localgrid.dev/commit/1c9efb09e1bb6a39f108ba2c5522abbaa88bce53))
+* **widgets:** add TOML formatter widget ([#142](https://github.com/AstreliteHQ/localgrid.dev/issues/142)) ([553489a](https://github.com/AstreliteHQ/localgrid.dev/commit/553489a182f93de6b8896e797aa28570ccc04d53))
+
 ## [0.10.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.9.0...v0.10.0) (2026-11-04)
 
 
