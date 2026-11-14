@@ -44,6 +44,20 @@ describe('formatToml', () => {
     expect(output).toContain('when = 1979-05-27')
     expect(output).toContain('[b]\nc = "d"')
   })
+
+  it('keeps floats as floats and large integers exact', () => {
+    const { output, error } = formatToml('rate = 1.0\ncount = 3\nbig = 9223372036854775807')
+    expect(error).toBeNull()
+    expect(output).toContain('rate = 1.0')
+    expect(output).toContain('count = 3\n')
+    expect(output).toContain('big = 9223372036854775807')
+  })
+
+  it('reports serializer failures instead of throwing', () => {
+    const deep = 'a.'.repeat(1500) + 'value = 1'
+    expect(() => formatToml(deep)).not.toThrow()
+    expect(formatToml(deep).output).toBe('')
+  })
 })
 
 describe('jsonToToml', () => {
@@ -61,6 +75,14 @@ describe('jsonToToml', () => {
 
   it('names the path of a null instead of dropping it', () => {
     expect(jsonToToml('{"a":{"b":[1,null]}}').error).toBe('TOML has no null value (found at $.a.b[1])')
+  })
+
+  it('rejects integers JSON.parse would round', () => {
+    expect(jsonToToml('{"id":9007199254740993}')).toEqual({
+      output: '',
+      error: 'Integer 9007199254740993 is too large to convert without losing precision',
+    })
+    expect(jsonToToml('{"id":9007199254740991,"f":1e300}').error).toBeNull()
   })
 
   it('reports invalid JSON', () => {

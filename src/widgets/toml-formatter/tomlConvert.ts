@@ -57,10 +57,21 @@ export function tomlToJson(input: string): ConversionResult {
  * original key order inside inline tables are not preserved, since the
  * document goes through a parse and stringify round trip. */
 export function formatToml(input: string): ConversionResult {
-  const { raw, error } = parseTomlDocument(input)
-  if (error) return { output: '', error }
-  if (raw === undefined) return { output: '', error: null }
-  return { output: stringifyToml(raw), error: null }
+  if (!input.trim()) return { output: '', error: null }
+  let doc: Record<string, unknown>
+  try {
+    // Integers come back as BigInt here, so every plain number left is a TOML
+    // float and `numbersAsFloat` keeps `1.0` from being written as `1`. This
+    // also keeps integers beyond 2^53 exact, which the JSON paths cannot.
+    doc = parseToml(input, { integersAsBigInt: true }) as Record<string, unknown>
+  } catch (err) {
+    return { output: '', error: errorMessage(err, 'Invalid TOML') }
+  }
+  try {
+    return { output: stringifyToml(doc, { numbersAsFloat: true }), error: null }
+  } catch (err) {
+    return { output: '', error: errorMessage(err, 'Could not format TOML') }
+  }
 }
 
 function describePath(path: (string | number)[]): string {
@@ -96,15 +107,34 @@ export function findNull(value: unknown, path: (string | number)[] = []): string
 export function jsonToToml(input: string): ConversionResult {
   if (!input.trim()) return { output: '', error: null }
   let parsed: unknown
+  let unsafeInteger: string | null = null
   try {
-    parsed = JSON.parse(input)
+    parsed = JSON.parse(input, (_key, value: unknown, context?: { source?: string }) => {
+      // JSON.parse silently rounds integers beyond 2^53. The reviver's
+      // `source` (where supported) is the literal text, so flag those
+      // instead of publishing a changed value.
+      const isIntegerLiteral = context?.source !== undefined ? /^-?\d+$/.test(context.source) : Number.isInteger(value)
+      if (unsafeInteger === null && typeof value === 'number' && isIntegerLiteral && !Number.isSafeInteger(value)) {
+        unsafeInteger = context?.source ?? String(value)
+      }
+      return value
+    }) as unknown
   } catch (err) {
     return { output: '', error: errorMessage(err, 'Invalid JSON') }
+  }
+  if (unsafeInteger !== null) {
+    return { output: '', error: `Integer ${unsafeInteger} is too large to convert without losing precision` }
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
     return { output: '', error: 'A TOML document must be an object at the top level' }
   }
-  const nullPath = findNull(parsed)
+  let nullPath: string | null
+  try {
+    nullPath = findNull(parsed)
+  } catch (err) {
+    // Only reachable for absurdly deep documents (stack overflow).
+    return { output: '', error: errorMessage(err, 'Cannot convert to TOML') }
+  }
   if (nullPath) return { output: '', error: `TOML has no null value (found at ${nullPath})` }
   try {
     return { output: stringifyToml(parsed), error: null }
