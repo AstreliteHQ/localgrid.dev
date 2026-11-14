@@ -56,7 +56,7 @@ describe('formatToml', () => {
   it('reports serializer failures instead of throwing', () => {
     const deep = 'a.'.repeat(1500) + 'value = 1'
     expect(() => formatToml(deep)).not.toThrow()
-    expect(formatToml(deep).output).toBe('')
+    expect(formatToml(deep)).toEqual({ output: '', error: expect.stringMatching(/maximum object depth/) })
   })
 })
 
