@@ -63,7 +63,7 @@ shared link always asks before it touches your local dashboard.
 | Category   | Widgets                                                                                                                                       |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | Generators | Chart Generator, QR Code Generator, UUID Generator                                                                                            |
-| Formatting | Cron Expression, Jinja Template Renderer, JSON Formatter, Merge PDFs, Split PDF, Timestamp Converter, XML Formatter, YAML ↔ JSON Converter    |
+| Formatting | Cron Expression, Jinja Template Renderer, JSON Formatter, Merge PDFs, Split PDF, Timestamp Converter, TOML Formatter, XML Formatter, YAML ↔ JSON Converter |
 | Encoding   | Base64, JWT Encoder, LZ-String, URL Encoder                                                                                                   |
 | Security   | Certificate Viewer, Hash Generator, JWK Viewer, Password Generator, Unix Permissions                                                          |
 | Text       | Code Snippet, Content Type Detector, Duplicate Remover, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff         |
