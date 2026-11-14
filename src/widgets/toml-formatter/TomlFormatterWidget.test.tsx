@@ -55,4 +55,14 @@ describe('TomlFormatterWidget', () => {
 
     expect(screen.getByRole('textbox', { name: /toml output/i })).toHaveValue('[a]\nb = 1\n')
   })
+
+  it('formats integers beyond 2^53 exactly in Formatted view', async () => {
+    const user = userEvent.setup()
+    render(<TomlFormatterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('button', { name: 'Formatted' }))
+    setCodeMirrorValue(screen.getByRole('textbox', { name: /toml input/i }), 'big = 9223372036854775807\nrate = 1.0')
+
+    expect(screen.getByRole('textbox', { name: /toml output/i })).toHaveValue('big = 9223372036854775807\nrate = 1.0\n')
+  })
 })

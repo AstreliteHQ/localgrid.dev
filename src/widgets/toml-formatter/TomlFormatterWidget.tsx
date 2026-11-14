@@ -55,15 +55,17 @@ export default function TomlFormatterWidget({ instanceId }: WidgetProps) {
   useWidgetDirty(instanceId, input !== SAMPLE)
 
   const inputFormat = inputFormatOf(mode)
-  const parsed = useMemo(() => (inputFormat === 'toml' ? parseTomlDocument(input) : null), [input, inputFormat])
+  const parsed = useMemo(() => (mode === 'tree' || mode === 'json' ? parseTomlDocument(input) : null), [input, mode])
 
   const { output, error } = useMemo(() => {
     if (mode === 'from-json') return jsonToToml(input)
+    // Formatted mode parses on its own (BigInt integers), so it must not be
+    // gated on the JSON-oriented parse, which rejects integers beyond 2^53.
+    if (mode === 'toml') return formatToml(input)
     if (!parsed || parsed.error) return { output: '', error: parsed?.error ?? null }
     if (!parsed.data) return { output: '', error: null }
     // Tree mode still publishes JSON so a connected widget gets something
     // useful downstream.
-    if (mode === 'toml') return formatToml(input)
     return { output: JSON.stringify(parsed.data, null, 2), error: null }
   }, [mode, input, parsed])
   useWidgetOutput(instanceId, output)
