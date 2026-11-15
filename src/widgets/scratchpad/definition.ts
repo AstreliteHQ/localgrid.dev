@@ -7,7 +7,7 @@ export const scratchpadDefinition: WidgetDefinition = {
   id: 'scratchpad',
   name: 'Scratchpad',
   description: 'Rich text notes with pasted screenshots, copied or downloaded as HTML with the images embedded',
-  category: 'text',
+  category: 'productivity',
   icon: NotebookPen,
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 2, h: 3 },

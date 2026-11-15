@@ -7,7 +7,7 @@ export const k8sResourceCalculatorDefinition: WidgetDefinition = {
   name: 'K8s Resource Calculator',
   description:
     'Paste a Kubernetes manifest and total the CPU/memory requests and limits across every container, init container, and ephemeral container',
-  category: 'math',
+  category: 'devops',
   icon: Cpu,
   defaultSize: { w: 7, h: 7 },
   minSize: { w: 5, h: 5 },

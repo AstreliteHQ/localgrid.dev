@@ -6,7 +6,7 @@ export const tokenCounterDefinition: WidgetDefinition = {
   id: 'token-counter',
   name: 'Token Counter',
   description: 'Estimate ChatGPT and Claude token counts for a prompt from word/character counts, no API key needed',
-  category: 'ai',
+  category: 'text',
   icon: Calculator,
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },

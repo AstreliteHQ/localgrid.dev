@@ -16,7 +16,7 @@ export const todoListDefinition: WidgetDefinition = {
   name: 'To-Do List',
   description:
     'A checklist with links: attach PRs, issues, tickets or any URL, then reorder, filter and check items off',
-  category: 'text',
+  category: 'productivity',
   icon: ListTodo,
   defaultSize: { w: 3, h: 4 },
   minSize: { w: 2, h: 3 },

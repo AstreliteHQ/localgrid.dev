@@ -6,7 +6,7 @@ export const codeSnippetDefinition: WidgetDefinition = {
   id: 'code-snippet',
   name: 'Code Snippet',
   description: 'Syntax-highlight a code snippet in 15 languages and export it as an image for docs or slides.',
-  category: 'text',
+  category: 'generators',
   icon: Code2,
   defaultSize: { w: 5, h: 6 },
   minSize: { w: 3, h: 4 },

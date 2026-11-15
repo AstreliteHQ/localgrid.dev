@@ -6,7 +6,7 @@ export const timestampConverterDefinition: WidgetDefinition = {
   id: 'timestamp-converter',
   name: 'Timestamp Converter',
   description: 'Convert between Unix epoch and human-readable date/time',
-  category: 'formatting',
+  category: 'time',
   icon: Clock,
   defaultSize: { w: 3, h: 3 },
   minSize: { w: 2, h: 3 },

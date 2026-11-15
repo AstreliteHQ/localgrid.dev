@@ -7,7 +7,7 @@ export const kubeconfigViewerDefinition: WidgetDefinition = {
   name: 'Kubeconfig Viewer',
   description:
     'Paste a kubeconfig and see its contexts, clusters, and users at a glance, with a sanitized copy for sharing',
-  category: 'security',
+  category: 'devops',
   icon: Server,
   defaultSize: { w: 7, h: 7 },
   minSize: { w: 5, h: 5 },

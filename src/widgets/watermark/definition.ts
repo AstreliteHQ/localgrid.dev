@@ -7,7 +7,7 @@ export const watermarkDefinition: WidgetDefinition = {
   id: 'watermark',
   name: 'Watermark',
   description: 'Stamp diagonal watermark text across an image or every page of a PDF.',
-  category: 'image',
+  category: 'files',
   icon: Stamp,
   defaultSize: { w: 4, h: 6 },
   minSize: { w: 3, h: 4 },

@@ -3,16 +3,16 @@ import { WIDGET_LIST } from './registry'
 
 export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
   generators: 'Generators',
-  encoding: 'Encoding',
   formatting: 'Formatting',
-  math: 'Math',
+  encoding: 'Encoding',
   security: 'Security',
-  color: 'Color',
-  image: 'Image',
   text: 'Text',
-  network: 'Network',
+  devops: 'DevOps',
+  math: 'Math',
+  productivity: 'Productivity',
   time: 'Time',
-  ai: 'AI / LLM',
+  files: 'Files',
+  color: 'Color',
 }
 
 /** Display order for category sections — not alphabetical, roughly
@@ -23,12 +23,12 @@ export const CATEGORY_ORDER: WidgetCategory[] = [
   'encoding',
   'security',
   'text',
+  'devops',
   'math',
-  'ai',
-  'color',
-  'image',
-  'network',
+  'productivity',
   'time',
+  'files',
+  'color',
 ]
 
 export interface WidgetCategoryGroup {
