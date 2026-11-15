@@ -6,7 +6,7 @@ export const imageConverterDefinition: WidgetDefinition = {
   id: 'image-converter',
   name: 'Image Converter',
   description: 'Drop an image, get it back as PNG, JPEG, WebP or AVIF. Source format detected from its bytes.',
-  category: 'image',
+  category: 'files',
   icon: Images,
   defaultSize: { w: 3, h: 4 },
   minSize: { w: 2, h: 3 },

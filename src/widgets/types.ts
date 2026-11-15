@@ -3,17 +3,17 @@ import type { LucideIcon } from 'lucide-react'
 import type * as v from 'valibot'
 
 export type WidgetCategory =
-  | 'encoding'
-  | 'formatting'
   | 'generators'
+  | 'formatting'
+  | 'encoding'
   | 'security'
-  | 'color'
-  | 'image'
   | 'text'
+  | 'devops'
   | 'math'
-  | 'network'
+  | 'productivity'
   | 'time'
-  | 'ai'
+  | 'files'
+  | 'color'
 
 export interface WidgetSize {
   w: number

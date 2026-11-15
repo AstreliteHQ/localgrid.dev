@@ -6,7 +6,7 @@ export const logViewerDefinition: WidgetDefinition = {
   id: 'log-viewer',
   name: 'Log Viewer',
   description: 'Paste application logs, highlight timestamps and common failure patterns, and jump between them',
-  category: 'text',
+  category: 'devops',
   icon: ScrollText,
   defaultSize: { w: 6, h: 5 },
   minSize: { w: 4, h: 4 },

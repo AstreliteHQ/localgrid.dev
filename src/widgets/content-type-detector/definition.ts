@@ -6,7 +6,7 @@ export const contentTypeDetectorDefinition: WidgetDefinition = {
   id: 'content-type-detector',
   name: 'Content Type Detector',
   description: 'Guess what a blob of text is — Base64, hex, JWT, JSON, UUID… even nested',
-  category: 'text',
+  category: 'encoding',
   icon: ScanSearch,
   defaultSize: { w: 3, h: 3 },
   minSize: { w: 2, h: 2 },

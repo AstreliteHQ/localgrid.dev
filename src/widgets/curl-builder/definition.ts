@@ -6,7 +6,7 @@ export const curlBuilderDefinition: WidgetDefinition = {
   id: 'curl-builder',
   name: 'cURL Builder',
   description: 'Build a curl command from headers, query params, body, auth, and flags, then copy it',
-  category: 'network',
+  category: 'generators',
   icon: Terminal,
   defaultSize: { w: 4, h: 7 },
   minSize: { w: 3, h: 6 },

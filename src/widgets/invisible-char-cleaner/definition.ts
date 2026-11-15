@@ -7,7 +7,7 @@ export const invisibleCharCleanerDefinition: WidgetDefinition = {
   name: 'Invisible Character Cleaner',
   description:
     'Detect, highlight, and strip zero-width, bidi, and hidden Unicode tag characters from AI-generated text',
-  category: 'ai',
+  category: 'text',
   icon: EyeOff,
   defaultSize: { w: 5, h: 4 },
   minSize: { w: 3, h: 3 },

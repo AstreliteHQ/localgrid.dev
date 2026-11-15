@@ -6,7 +6,7 @@ export const pngOptimizerDefinition: WidgetDefinition = {
   id: 'png-optimizer',
   name: 'PNG Optimizer',
   description: 'Shrink a PNG without changing a single pixel: strips metadata, reduces colors and recompresses.',
-  category: 'image',
+  category: 'files',
   icon: FileArchive,
   defaultSize: { w: 3, h: 4 },
   minSize: { w: 2, h: 3 },

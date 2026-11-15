@@ -6,7 +6,7 @@ export const mergePdfsDefinition: WidgetDefinition = {
   id: 'merge-pdfs',
   name: 'Merge PDFs',
   description: 'Combine two or more PDFs into one, in whatever order you drag them into.',
-  category: 'formatting',
+  category: 'files',
   icon: FileStack,
   defaultSize: { w: 4, h: 5 },
   minSize: { w: 3, h: 3 },
