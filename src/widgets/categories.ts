@@ -18,12 +18,12 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
 /** Display order for category sections — not alphabetical, roughly
  * most-reached-for first. */
 export const CATEGORY_ORDER: WidgetCategory[] = [
+  'productivity',
+  'text',
   'formatting',
   'encoding',
   'generators',
-  'text',
   'security',
-  'productivity',
   'devops',
   'math',
   'time',

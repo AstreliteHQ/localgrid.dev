@@ -6,7 +6,7 @@ export const jwtDecoderDefinition: WidgetDefinition = {
   id: 'jwt-decoder',
   name: 'JWT Encoder',
   description: 'Encode or decode a JWT — sign with HS256, or inspect a token’s header and payload',
-  category: 'encoding',
+  category: 'security',
   icon: KeyRound,
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },
