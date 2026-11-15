@@ -20,6 +20,7 @@ export const CATEGORY_LABELS: Record<WidgetCategory, string> = {
 export const CATEGORY_ORDER: WidgetCategory[] = [
   'formatting',
   'encoding',
+  'generators',
   'text',
   'security',
   'productivity',
@@ -28,7 +29,6 @@ export const CATEGORY_ORDER: WidgetCategory[] = [
   'time',
   'files',
   'color',
-  'generators',
 ]
 
 export interface WidgetCategoryGroup {
