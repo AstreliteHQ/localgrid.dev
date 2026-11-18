@@ -110,6 +110,27 @@ describe('useDashboardStore — widget actions are scoped per dashboard', () => 
     expect(duplicate.h).toBe(5)
   })
 
+  it('duplicateWidget places the copy right beside the original when there is room', () => {
+    useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'base64', { x: 0, y: 0, w: 4, h: 3 })
+    useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'base64', { x: 0, y: 3, w: 12, h: 2 })
+    const original = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_A, original.instanceId)
+
+    const widgets = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets
+    expect(widgets[2]).toMatchObject({ x: 4, y: 0, w: 4, h: 3 })
+  })
+
+  it('duplicateWidget falls back to a new row below everything when the grid has no gap', () => {
+    useDashboardStore.getState().addWidgetAt(DASHBOARD_A, 'base64', { x: 0, y: 0, w: 12, h: 3 })
+    const original = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]
+
+    useDashboardStore.getState().duplicateWidget(DASHBOARD_A, original.instanceId)
+
+    const widgets = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets
+    expect(widgets[1]).toMatchObject({ x: 0, y: 3, w: 12, h: 3 })
+  })
+
   it('duplicateWidget is scoped to the given dashboard, leaving others untouched', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_A, 'base64')
     const original = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_A)!.widgets[0]

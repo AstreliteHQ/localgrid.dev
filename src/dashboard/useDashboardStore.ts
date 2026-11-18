@@ -8,6 +8,7 @@ import { useFlowStore } from '@/flow/useFlowStore'
 import type { Link } from '@/flow/linkGraph'
 import type { Dashboard, DashboardWidgetInstance } from '@/types/layout'
 import { DASHBOARD_STORAGE_KEY, DASHBOARD_STORAGE_VERSION } from './persistence'
+import { findFreeSlot, nextAvailableY } from './placement'
 
 interface LayoutUpdate {
   i: string
@@ -47,7 +48,8 @@ interface DashboardState extends PersistedDashboardState {
    * so a doubled click can't add it twice. */
   pinInstance: (dashboardId: string, widgetId: string, instanceId: string) => void
   /** Adds a second copy of an existing instance to the same dashboard, right
-   * below it (or wherever `nextAvailableY` lands it), carrying over its
+   * beside it when there's room (otherwise in the first free slot that fits,
+   * see `findFreeSlot`), carrying over its
    * current size and — via useWidgetState's own store — its current
    * content too, so the copy starts out identical rather than blank. A
    * no-op if the instance isn't actually on this dashboard. */
@@ -174,10 +176,6 @@ function ephemeralData(widgetId: string, instanceId: string): Record<string, unk
   return Object.keys(data).length > 0 ? data : undefined
 }
 
-function nextAvailableY(widgets: DashboardWidgetInstance[]): number {
-  return widgets.reduce((max, widget) => Math.max(max, widget.y + widget.h), 0)
-}
-
 /** Updates one dashboard's widgets by id. Every *other* dashboard keeps the
  * exact same object reference it had before — not just a shallow copy with
  * equal values — so a change on one tab can never be mistaken for a change
@@ -293,10 +291,7 @@ export const useDashboardStore = create<DashboardState>()(
             {
               instanceId: newInstanceId,
               widgetId: original.widgetId,
-              x: 0,
-              y: nextAvailableY(widgets),
-              w: original.w,
-              h: original.h,
+              ...findFreeSlot(widgets, original, original),
               ...(original.data && { data: original.data }),
             },
           ]),
