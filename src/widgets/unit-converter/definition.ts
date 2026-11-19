@@ -8,7 +8,7 @@ export const unitConverterDefinition: WidgetDefinition = {
   description: 'Convert length, mass, volume, data size, time, and temperature units, plus rates like MB/s or km/h',
   category: 'math',
   icon: Ruler,
-  defaultSize: { w: 3, h: 3 },
+  defaultSize: { w: 3, h: 4 },
   minSize: { w: 3, h: 3 },
   component: lazy(() => import('./UnitConverterWidget')),
   keywords: [

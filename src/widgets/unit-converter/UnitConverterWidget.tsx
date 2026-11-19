@@ -6,6 +6,7 @@ import { Field } from '@/components/Field'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { formatNumber } from '@/lib/formatNumber'
+import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
 import type { WidgetProps } from '@/widgets/types'
@@ -32,7 +33,7 @@ const CATEGORY_OPTIONS: { label: string; value: CategoryId }[] = [
   { label: 'Temp', value: 'temperature' },
 ]
 
-function unitsFor(category: CategoryId): { id: string; label: string }[] {
+function unitsFor(category: CategoryId): { id: string; label: string; symbol: string }[] {
   return category === 'temperature' ? TEMPERATURE_UNITS : LINEAR_CATEGORIES[category].units
 }
 
@@ -105,9 +106,15 @@ export default function UnitConverterWidget({ instanceId }: WidgetProps) {
     return convertLinear(parsedValue, from.toBase, to.toBase)
   })()
   const resultText = result !== null ? formatNumber(result) : null
+  const resultUnit = (() => {
+    const symbol = unitsFor(category).find((u) => u.id === toUnit)?.symbol ?? ''
+    if (!isRate) return symbol
+    return `${symbol}/${TIME_UNITS.find((u) => u.id === toPer)?.symbol ?? ''}`
+  })()
+  const resultWithUnit = resultText !== null ? `${resultText} ${resultUnit}` : null
 
   return (
-    <div className="flex h-full flex-col gap-2 text-xs">
+    <div className="flex h-full flex-col gap-1.5 overflow-y-auto text-xs">
       <SegmentedControl
         value={category}
         onChange={handleCategoryChange}
@@ -159,14 +166,37 @@ export default function UnitConverterWidget({ instanceId }: WidgetProps) {
         </Field>
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2 rounded-md bg-background p-2 font-mono text-base dark:bg-muted/40">
+      <div className="flex shrink-0 flex-col rounded-md bg-background px-2 py-1 font-mono dark:bg-muted/40">
         {resultText !== null ? (
-          <span className="truncate">{resultText}</span>
+          <>
+            <ResultRow value={resultText} copyLabel="Copy result" className="text-base leading-6" />
+            <ResultRow
+              value={resultWithUnit ?? ''}
+              copyLabel="Copy result with unit"
+              className="text-xs leading-5 text-muted-foreground"
+            />
+          </>
         ) : (
-          <span className="text-sm text-muted-foreground">Enter a value</span>
+          <span className="py-1 text-sm text-muted-foreground">Enter a value</span>
         )}
-        <CopyButton value={resultText ?? ''} label="" />
       </div>
+    </div>
+  )
+}
+
+function ResultRow({
+  value,
+  copyLabel,
+  className,
+}: {
+  value: string
+  copyLabel: string
+  className?: string
+}): ReactNode {
+  return (
+    <div className={cn('flex min-w-0 items-center justify-between gap-2', className)}>
+      <span className="truncate">{value}</span>
+      <CopyButton value={value} label="" ariaLabel={copyLabel} className="py-0.5" />
     </div>
   )
 }

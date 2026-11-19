@@ -7,6 +7,7 @@ describe('UnitConverterWidget', () => {
   it('starts converting 1 meter to feet', () => {
     render(<UnitConverterWidget instanceId="test" mode="grid" />)
     expect(screen.getByText('3.28084')).toBeInTheDocument()
+    expect(screen.getByText('3.28084 ft')).toBeInTheDocument()
   })
 
   it('recomputes as the value changes', async () => {
@@ -39,6 +40,7 @@ describe('UnitConverterWidget', () => {
     await user.type(screen.getByLabelText(/value/i), '100')
 
     expect(screen.getByText('212')).toBeInTheDocument()
+    expect(screen.getByText('212 °F')).toBeInTheDocument()
   })
 
   it('switches to the Time category and converts days to hours', async () => {
@@ -88,6 +90,7 @@ describe('UnitConverterWidget', () => {
     await user.type(screen.getByLabelText(/value/i), '36')
 
     expect(screen.getByText('10')).toBeInTheDocument()
+    expect(screen.getByText('10 m/s')).toBeInTheDocument()
   })
 
   it('swaps the time units along with the amount units', async () => {
