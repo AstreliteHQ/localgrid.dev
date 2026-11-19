@@ -6,7 +6,9 @@ import {
   TIME_UNITS,
   VOLUME_UNITS,
   convertLinear,
+  convertRate,
   convertTemperature,
+  supportsRate,
 } from './unitConversions'
 
 function unit(units: typeof LENGTH_UNITS, id: string) {
@@ -85,5 +87,38 @@ describe('convertTemperature', () => {
 
   it('is a no-op when converting a unit to itself', () => {
     expect(convertTemperature(37, 'c', 'c')).toBe(37)
+  })
+})
+
+describe('convertRate', () => {
+  function rate(units: typeof LENGTH_UNITS, id: string, perId: string) {
+    return { toBase: unit(units, id).toBase, perToBase: unit(TIME_UNITS, perId).toBase }
+  }
+
+  it('converts km/h to m/s', () => {
+    expect(convertRate(36, rate(LENGTH_UNITS, 'km', 'h'), rate(LENGTH_UNITS, 'm', 's'))).toBeCloseTo(10)
+  })
+
+  it('converts MB/s to GB/day', () => {
+    expect(convertRate(1, rate(DATA_UNITS, 'MB', 's'), rate(DATA_UNITS, 'GB', 'd'))).toBeCloseTo(86.4)
+  })
+
+  it('converts L/min to gal/h', () => {
+    expect(convertRate(1, rate(VOLUME_UNITS, 'l', 'min'), rate(VOLUME_UNITS, 'gal', 'h'))).toBeCloseTo(15.850323, 5)
+  })
+
+  it('matches a plain conversion when both sides share the same time unit', () => {
+    const from = rate(MASS_UNITS, 'kg', 'h')
+    const to = rate(MASS_UNITS, 'lb', 'h')
+    expect(convertRate(1, from, to)).toBeCloseTo(convertLinear(1, from.toBase, to.toBase), 10)
+  })
+})
+
+describe('supportsRate', () => {
+  it('allows amount categories and leaves out time and temperature', () => {
+    expect(supportsRate('length')).toBe(true)
+    expect(supportsRate('data')).toBe(true)
+    expect(supportsRate('time')).toBe(false)
+    expect(supportsRate('temperature')).toBe(false)
   })
 })

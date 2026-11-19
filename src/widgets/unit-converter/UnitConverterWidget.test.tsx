@@ -68,4 +68,50 @@ describe('UnitConverterWidget', () => {
     expect(screen.getByText('9.313226e-10')).toBeInTheDocument()
     expect(screen.queryByText('0')).not.toBeInTheDocument()
   })
+
+  it('keeps plain conversions unchanged until per time is turned on', () => {
+    render(<UnitConverterWidget instanceId="test" mode="grid" />)
+    expect(screen.getByRole('checkbox', { name: /per time/i })).not.toBeChecked()
+    expect(screen.queryByLabelText(/from per/i)).not.toBeInTheDocument()
+  })
+
+  it('converts a rate when per time is on (km/h to m/s)', async () => {
+    const user = userEvent.setup()
+    render(<UnitConverterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('checkbox', { name: /per time/i }))
+    await user.selectOptions(screen.getByLabelText(/^from$/i), 'km')
+    await user.selectOptions(screen.getByLabelText(/from per/i), 'h')
+    await user.selectOptions(screen.getByLabelText(/^to$/i), 'm')
+    await user.selectOptions(screen.getByLabelText(/to per/i), 's')
+    await user.clear(screen.getByLabelText(/value/i))
+    await user.type(screen.getByLabelText(/value/i), '36')
+
+    expect(screen.getByText('10')).toBeInTheDocument()
+  })
+
+  it('swaps the time units along with the amount units', async () => {
+    const user = userEvent.setup()
+    render(<UnitConverterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('checkbox', { name: /per time/i }))
+    await user.selectOptions(screen.getByLabelText(/to per/i), 'h')
+    await user.click(screen.getByRole('button', { name: /swap units/i }))
+
+    expect(screen.getByLabelText(/from per/i)).toHaveValue('h')
+    expect(screen.getByLabelText(/to per/i)).toHaveValue('s')
+  })
+
+  it('hides the per time option for Time and Temp', async () => {
+    const user = userEvent.setup()
+    render(<UnitConverterWidget instanceId="test" mode="grid" />)
+
+    await user.click(screen.getByRole('checkbox', { name: /per time/i }))
+    await user.click(screen.getByRole('button', { name: 'Time' }))
+    expect(screen.queryByRole('checkbox', { name: /per time/i })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/from per/i)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Temp' }))
+    expect(screen.queryByRole('checkbox', { name: /per time/i })).not.toBeInTheDocument()
+  })
 })

@@ -73,6 +73,23 @@ export function convertLinear(value: number, fromToBase: number, toToBase: numbe
   return (value * fromToBase) / toToBase
 }
 
+/** Converts a rate (an amount per unit of time, e.g. MB/s or km/h) by
+ * converting the amount and the time denominator separately. */
+export function convertRate(
+  value: number,
+  from: { toBase: number; perToBase: number },
+  to: { toBase: number; perToBase: number },
+): number {
+  const perBaseTime = (value * from.toBase) / from.perToBase
+  return (perBaseTime * to.perToBase) / to.toBase
+}
+
+/** Categories where an optional "per time" denominator makes sense. Time
+ * per time is unitless, so the Time category itself is left out. */
+export function supportsRate(category: string): category is Exclude<LinearCategoryId, 'time'> {
+  return category === 'length' || category === 'mass' || category === 'volume' || category === 'data'
+}
+
 export type TemperatureUnitId = 'c' | 'f' | 'k'
 
 export const TEMPERATURE_UNITS: { id: TemperatureUnitId; label: string }[] = [
