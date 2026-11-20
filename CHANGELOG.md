@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.12.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.11.0...v0.12.0) (2026-11-20)
+
+
+### Features
+
+* **unit-converter:** add optional per-time denominator for rate conversion ([#149](https://github.com/AstreliteHQ/localgrid.dev/issues/149)) ([9e6556a](https://github.com/AstreliteHQ/localgrid.dev/commit/9e6556a8c30ed53d8a2ab4dd7b8f796b5c64a040))
+
+
+### Bug Fixes
+
+* **dashboard:** place duplicated widgets in the first free slot beside the original ([#148](https://github.com/AstreliteHQ/localgrid.dev/issues/148)) ([70dc10b](https://github.com/AstreliteHQ/localgrid.dev/commit/70dc10bef5b31e5862419d85cc78e9e14e292ecf))
+
+
+### Refactoring
+
+* **widgets:** reorganize widget categories ([#146](https://github.com/AstreliteHQ/localgrid.dev/issues/146)) ([0687e9e](https://github.com/AstreliteHQ/localgrid.dev/commit/0687e9e3aa033b631fb6029a8eabefd17bf592d3))
+
 ## [0.11.0](https://github.com/AstreliteHQ/localgrid.dev/compare/v0.10.0...v0.11.0) (2026-11-14)
 
 
