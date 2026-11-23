@@ -80,15 +80,12 @@ export function AboutPage() {
             Any pinned widget can fill the screen for focused work, and switching back leaves
             everything you typed exactly where it was.
           </Feature>
-          <Feature icon={Database} title="Widgets that remember their setup">
-            Setup that is tedious to redo stays with the widget: World Clock cities, a Watermark
-            stamp, a Timer preset, and To-Do or Scratchpad content once you tick Remember. It
-            survives reloads, and a title bar icon shows what is stored and resets it in one click.
+          <Feature icon={Database} title="Persistent widget data">
+            Widgets keep the setup you'd rather not redo, like World Clock cities or a Timer preset,
+            across reloads and in share links.
           </Feature>
-          <Feature icon={Workflow} title="Flow: wire widgets together">
-            Link one widget's output to another widget's input and results move on their own as
-            you type. Wires route between widgets on the grid, and links that would loop are
-            refused. Experimental, turn it on in Settings &gt; Flow.
+          <Feature icon={Workflow} title="Flow">
+            Wire one widget's output into another's input and results update as you type.
           </Feature>
           <Feature icon={Share2} title="Save and share">
             Layouts, widget data and flow links persist to{' '}
@@ -131,18 +128,11 @@ export function AboutPage() {
         <div className="flex flex-col gap-4">
           <h2 className="text-sm font-medium tracking-tight text-foreground">Automate</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Repeating the same two steps by hand? Chain the widgets instead. Below, the Base64
-            widget's output feeds the Hash Generator's input: whatever gets encoded on the left is
-            hashed on the right, live. Click into the left widget and type your own text.
+            Chain widgets instead of copying results by hand. Here, Base64 feeds the Hash
+            Generator: type on the left and the hash follows.
           </p>
         </div>
         <FlowDemo />
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          On the dashboard, turn on Settings &gt; Flow, then drag a widget's OUT tab onto another
-          widget, or click OUT to pick a target from a list. One output can feed several inputs,
-          the receiving field stays editable, and links travel in a share link when you include
-          flow.
-        </p>
       </section>
 
       <footer className="mt-auto flex items-center justify-center gap-6 border-t border-border pt-8 text-xs text-muted-foreground">
