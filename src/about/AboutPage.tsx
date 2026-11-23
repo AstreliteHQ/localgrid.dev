@@ -85,7 +85,9 @@ export function AboutPage() {
             across reloads and in share links.
           </Feature>
           <Feature icon={Workflow} title="Flow">
-            Wire one widget's output into another's input and results update as you type.
+            Wire one widget's output into another's input and results update as you type. One
+            output can feed several widgets, the receiving field stays editable, and links are
+            saved with your dashboard.
           </Feature>
           <Feature icon={Share2} title="Save and share">
             Layouts, widget data and flow links persist to{' '}
@@ -128,8 +130,9 @@ export function AboutPage() {
         <div className="flex flex-col gap-4">
           <h2 className="text-sm font-medium tracking-tight text-foreground">Automate</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Chain widgets instead of copying results by hand. Here, Base64 feeds the Hash
-            Generator: type on the left and the hash follows.
+            Chain widgets instead of copying results by hand. Decode a token and format its
+            payload, encode text and hash it, or compare two converted values side by side. Here,
+            Base64 feeds the Hash Generator: type on the left and the hash follows.
           </p>
         </div>
         <FlowDemo />
