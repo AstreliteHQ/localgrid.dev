@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowRight, LayoutGrid, Maximize2, Share2, WifiOff, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Database, LayoutGrid, Maximize2, Share2, Workflow, WifiOff, type LucideIcon } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
 import { GithubIcon } from '@/components/icons/GithubIcon'
@@ -7,6 +7,7 @@ import { LogoIcon } from '@/components/icons/LogoIcon'
 import { cn } from '@/lib/utils'
 import CronWidget from '@/widgets/cron/CronWidget'
 import WcagCheckerWidget from '@/widgets/wcag-checker/WcagCheckerWidget'
+import { FlowDemo } from './FlowDemo'
 
 /** A few illustrative fg/bg pairs, deliberately a mix of clear passes and
  * clear fails, not random RGB noise, so the live preview below visibly
@@ -25,9 +26,10 @@ const DEMO_EXPRESSIONS = ['*/5 * * * *', '0 9 * * 1-5', '0 0 * * *']
 /** The marketing/About page, linked from the dashboard's logo (see
  * Dashboard.tsx). Mostly imports nothing from @/dashboard, @/widgets,
  * @/overlay, or @/command-palette to keep this its own small bundle via a
- * separate Vite entry (about.html). The two deliberate exceptions are
+ * separate Vite entry (about.html). The deliberate exceptions are
  * CronWidget and WcagCheckerWidget below, each embedded live as a "see it in
- * action" preview for the developers/designers pitch. Copy mirrors
+ * action" preview for the developers/designers pitch, and the Base64 and
+ * Hash Generator pair in FlowDemo for the Automate section. Copy mirrors
  * README.md's "Why localgrid" / "Features" sections. */
 export function AboutPage() {
   return (
@@ -78,8 +80,18 @@ export function AboutPage() {
             Any pinned widget can fill the screen for focused work, and switching back leaves
             everything you typed exactly where it was.
           </Feature>
+          <Feature icon={Database} title="Widgets that remember their setup">
+            Setup that is tedious to redo stays with the widget: World Clock cities, a Watermark
+            stamp, a Timer preset, and To-Do or Scratchpad content once you tick Remember. It
+            survives reloads, and a title bar icon shows what is stored and resets it in one click.
+          </Feature>
+          <Feature icon={Workflow} title="Flow: wire widgets together">
+            Link one widget's output to another widget's input and results move on their own as
+            you type. Wires route between widgets on the grid, and links that would loop are
+            refused. Experimental, turn it on in Settings &gt; Flow.
+          </Feature>
           <Feature icon={Share2} title="Save and share">
-            Layouts and widget setup, like your World Clock cities, persist to{' '}
+            Layouts, widget data and flow links persist to{' '}
             <code className="font-mono">localStorage</code> automatically. Share them with a teammate
             through a URL or QR code, choosing exactly what goes in the link.
           </Feature>
@@ -113,6 +125,24 @@ export function AboutPage() {
           </div>
           <WcagCheckerPreview />
         </div>
+      </section>
+
+      <section className="flex flex-col gap-6 border-t border-border pt-10">
+        <div className="flex flex-col gap-4">
+          <h2 className="text-sm font-medium tracking-tight text-foreground">Automate</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Repeating the same two steps by hand? Chain the widgets instead. Below, the Base64
+            widget's output feeds the Hash Generator's input: whatever gets encoded on the left is
+            hashed on the right, live. Click into the left widget and type your own text.
+          </p>
+        </div>
+        <FlowDemo />
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          On the dashboard, turn on Settings &gt; Flow, then drag a widget's OUT tab onto another
+          widget, or click OUT to pick a target from a list. One output can feed several inputs,
+          the receiving field stays editable, and links travel in a share link when you include
+          flow.
+        </p>
       </section>
 
       <footer className="mt-auto flex items-center justify-center gap-6 border-t border-border pt-8 text-xs text-muted-foreground">
