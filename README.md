@@ -48,11 +48,24 @@ Any pinned widget can fill the screen for focused work, and switching back leave
 you typed exactly where it was. Need a tool that isn't on your dashboard at all? Launch it
 from the tool browser or the command palette (`Cmd/Ctrl+K`) without pinning it.
 
+### Widgets that remember their setup
+
+Setup that is tedious to redo stays with the widget: World Clock cities, a Watermark stamp, a
+Timer preset, and To-Do or Scratchpad content once you tick Remember. It survives reloads, and a
+title bar icon shows what is stored and resets it in one click.
+
+### Flow: wire widgets together
+
+Link one widget's output to another widget's input, for example Base64 into Hash Generator, and
+results move on their own as you type. Drag a widget's OUT tab onto another widget (or click OUT
+to pick a target), wires route between widgets on the grid, and links that would loop are
+refused. Flow is experimental and off by default: turn it on in **Settings > Flow**.
+
 ### Save and share
 
 Layouts persist to `localStorage` automatically, and so does the setup of widgets that are
 tedious to redo, like World Clock cities or a watermark preset. From **Settings > Share** you
-choose what a link carries: just the address, the layout, or the layout plus widget setup, with
+choose what a link carries: just the address, the layout, the layout plus widget setup, and flow links, with
 a full preview of the data before you copy it. Live widget content never travels, and opening a
 shared link always asks before it touches your local dashboard.
 

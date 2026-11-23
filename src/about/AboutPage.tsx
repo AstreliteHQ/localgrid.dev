@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { ArrowRight, LayoutGrid, Maximize2, Share2, WifiOff, type LucideIcon } from 'lucide-react'
+import { ArrowRight, Database, LayoutGrid, Maximize2, Share2, Workflow, WifiOff, type LucideIcon } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { AstreliteIcon } from '@/components/icons/AstreliteIcon'
 import { GithubIcon } from '@/components/icons/GithubIcon'
@@ -7,6 +7,7 @@ import { LogoIcon } from '@/components/icons/LogoIcon'
 import { cn } from '@/lib/utils'
 import CronWidget from '@/widgets/cron/CronWidget'
 import WcagCheckerWidget from '@/widgets/wcag-checker/WcagCheckerWidget'
+import { FlowDemo } from './FlowDemo'
 
 /** A few illustrative fg/bg pairs, deliberately a mix of clear passes and
  * clear fails, not random RGB noise, so the live preview below visibly
@@ -25,9 +26,10 @@ const DEMO_EXPRESSIONS = ['*/5 * * * *', '0 9 * * 1-5', '0 0 * * *']
 /** The marketing/About page, linked from the dashboard's logo (see
  * Dashboard.tsx). Mostly imports nothing from @/dashboard, @/widgets,
  * @/overlay, or @/command-palette to keep this its own small bundle via a
- * separate Vite entry (about.html). The two deliberate exceptions are
+ * separate Vite entry (about.html). The deliberate exceptions are
  * CronWidget and WcagCheckerWidget below, each embedded live as a "see it in
- * action" preview for the developers/designers pitch. Copy mirrors
+ * action" preview for the developers/designers pitch, and the Base64 and
+ * Hash Generator pair in FlowDemo for the Automate section. Copy mirrors
  * README.md's "Why localgrid" / "Features" sections. */
 export function AboutPage() {
   return (
@@ -78,8 +80,16 @@ export function AboutPage() {
             Any pinned widget can fill the screen for focused work, and switching back leaves
             everything you typed exactly where it was.
           </Feature>
+          <Feature icon={Database} title="Persistent widget data">
+            Widgets keep the setup you'd rather not redo, like World Clock cities or a Timer preset,
+            across reloads and in share links.
+          </Feature>
+          <Feature icon={Workflow} title="Flow">
+            Wire one widget's output into another's input and results update as you type. One
+            output can feed several widgets, and the receiving field stays editable.
+          </Feature>
           <Feature icon={Share2} title="Save and share">
-            Layouts and widget setup, like your World Clock cities, persist to{' '}
+            Layouts, widget data and flow links persist to{' '}
             <code className="font-mono">localStorage</code> automatically. Share them with a teammate
             through a URL or QR code, choosing exactly what goes in the link.
           </Feature>
@@ -113,6 +123,18 @@ export function AboutPage() {
           </div>
           <WcagCheckerPreview />
         </div>
+      </section>
+
+      <section className="flex flex-col gap-6 border-t border-border pt-10">
+        <div className="flex flex-col gap-4">
+          <h2 className="text-sm font-medium tracking-tight text-foreground">Automate</h2>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Chain widgets instead of copying results by hand. Decode a token and format its
+            payload, encode text and hash it, or compare two converted values side by side. Here,
+            Base64 feeds the Hash Generator: type on the left and the hash follows.
+          </p>
+        </div>
+        <FlowDemo />
       </section>
 
       <footer className="mt-auto flex items-center justify-center gap-6 border-t border-border pt-8 text-xs text-muted-foreground">
