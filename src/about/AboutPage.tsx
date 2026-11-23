@@ -86,8 +86,7 @@ export function AboutPage() {
           </Feature>
           <Feature icon={Workflow} title="Flow">
             Wire one widget's output into another's input and results update as you type. One
-            output can feed several widgets, the receiving field stays editable, and links are
-            saved with your dashboard.
+            output can feed several widgets, and the receiving field stays editable.
           </Feature>
           <Feature icon={Share2} title="Save and share">
             Layouts, widget data and flow links persist to{' '}
