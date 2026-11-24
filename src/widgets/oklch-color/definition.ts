@@ -8,7 +8,7 @@ export const oklchColorDefinition: WidgetDefinition = {
   description: 'Edit a color in OKLCH with sliders, convert it to hex, RGB and HSL, and see when it leaves sRGB',
   category: 'color',
   icon: Blend,
-  defaultSize: { w: 4, h: 5 },
+  defaultSize: { w: 5, h: 5 },
   minSize: { w: 3, h: 4 },
   component: lazy(() => import('./OklchColorWidget')),
   keywords: ['oklch', 'oklab', 'color', 'colour', 'hex', 'rgb', 'hsl', 'gamut', 'p3', 'srgb', 'css', 'picker'],
