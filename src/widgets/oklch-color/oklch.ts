@@ -90,7 +90,11 @@ export function parseColor(input: string): Oklch | null {
       readChannel(lab[3], MAX_CHROMA),
       readChannel(lab[4], 1, 1),
     ]
-    return [l, a, b, alpha].every(Number.isFinite) ? fromOklab(l, a, b, alpha) : null
+    if (![l, a, b, alpha].every(Number.isFinite)) return null
+    const color = fromOklab(l, a, b, alpha)
+    // Huge but finite a and b can still overflow to an infinite chroma,
+    // which would never settle in the gamut mapping search.
+    return Number.isFinite(color.c) ? color : null
   }
 
   const parsed = colord(value)

@@ -38,6 +38,11 @@ describe('parseColor', () => {
     expect(parseColor('oklch(50%)')).toBeNull()
     expect(parseColor('not-a-color')).toBeNull()
   })
+
+  it('rejects oklab() channels whose chroma overflows to Infinity', () => {
+    expect(parseColor('oklab(50% 1.7e308 1.7e308)')).toBeNull()
+    expect(parseColor('oklab(50% 1e300 0)')?.c).toBe(1e300)
+  })
 })
 
 describe('formatting', () => {
