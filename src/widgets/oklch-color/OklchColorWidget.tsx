@@ -1,4 +1,4 @@
-import { useEffect, useId, type CSSProperties } from 'react'
+import { useEffect, useId, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import { CopyButton } from '@/components/CopyButton'
 import { Field } from '@/components/Field'
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
 import { InputSlot, OutputSlot } from '@/flow/FlowSlots'
 import { useWidgetOutput } from '@/flow/useWidgetOutput'
+import { useThrottledValue } from '@/hooks/useThrottledValue'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -24,6 +25,7 @@ import {
   toSrgbGamut,
   type Oklch,
 } from './oklch'
+import { OklchCharts } from './OklchCharts'
 
 export const DEFAULT_INPUT = 'oklch(70% 0.15 250)'
 const DEFAULT_COLOR = parseColor(DEFAULT_INPUT)!
@@ -31,6 +33,14 @@ const DEFAULT_COLOR = parseColor(DEFAULT_INPUT)!
 /** Checkerboard behind the swatch and the alpha track, so transparency
  * reads as transparency in both themes. */
 const CHECKERBOARD = 'repeating-conic-gradient(var(--muted) 0 25%, transparent 0 50%) 0 0 / 10px 10px'
+
+const OUTPUT_INTERVAL_MS = 100
+
+/** The charts open beside the controls once the widget has room for both:
+ * the controls column is 320px, the charts want about as much again, and
+ * three stacked charts need some height each. */
+const CHARTS_MIN_WIDTH = 600
+const CHARTS_MIN_HEIGHT = 400
 
 const HUE_STOPS = Array.from({ length: 13 }, (_, i) => i * 30)
 const LIGHTNESS_STOPS = Array.from({ length: 11 }, (_, i) => i / 10)
@@ -124,13 +134,21 @@ export default function OklchColorWidget({ instanceId }: WidgetProps) {
   }, [parsedKey])
 
   const oklchString = formatOklch(color)
-  useWidgetOutput(instanceId, oklchString)
+  // Dragging a slider or a chart changes the color on every pointer move,
+  // faster than flow lets a link write (BURST_LIMIT), so the output follows
+  // at a steady pace instead and still ends on the final color.
+  useWidgetOutput(instanceId, useThrottledValue(oklchString, OUTPUT_INTERVAL_MS))
+
+  const rootRef = useRef<HTMLDivElement>(null)
+  const size = useElementSize(rootRef)
+  const showCharts = size.width >= CHARTS_MIN_WIDTH && size.height >= CHARTS_MIN_HEIGHT
 
   const inSrgb = isInSrgb(color)
   const inP3 = isInP3(color)
   const srgb = toSrgbColord(color)
   const mapped = toSrgbGamut(color)
 
+  const setColor = (next: Oklch) => setInput(formatOklch(next))
   const setChannel = (key: keyof Oklch, value: number) => {
     setInput(formatOklch({ ...color, [key]: value }))
   }
@@ -150,76 +168,101 @@ export default function OklchColorWidget({ instanceId }: WidgetProps) {
   ]
 
   return (
-    <div className="@container flex h-full flex-col gap-2 overflow-auto text-xs">
-      <InputSlot input="input">
-        <Field
-          label="Color"
-          htmlFor={inputId}
-          error={parsed ? null : 'Not a color. Try oklch(), hex, rgb(), hsl() or a name.'}
-        >
-          <div className="flex items-center gap-1.5">
-            <Input
-              id={inputId}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="oklch(70% 0.15 250), #65a1fe, rgb(…)"
-              spellCheck={false}
-              aria-invalid={!parsed}
-              className="min-w-0 flex-1 font-mono"
-            />
-            <div className="flex shrink-0 items-center gap-1.5">
-              <PageColorPicker onPick={handlePick} />
-              <ScreenColorPicker onPick={handlePick} />
+    <div ref={rootRef} className="flex h-full min-h-0 gap-3 text-xs">
+      <div
+        className={cn(
+          '@container flex min-h-0 min-w-0 flex-col gap-2 overflow-auto',
+          showCharts ? 'w-80 shrink-0' : 'flex-1',
+        )}
+      >
+        <InputSlot input="input">
+          <Field
+            label="Color"
+            htmlFor={inputId}
+            error={parsed ? null : 'Not a color. Try oklch(), hex, rgb(), hsl() or a name.'}
+          >
+            <div className="flex items-center gap-1.5">
+              <Input
+                id={inputId}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder="oklch(70% 0.15 250), #65a1fe, rgb(…)"
+                spellCheck={false}
+                aria-invalid={!parsed}
+                className="min-w-0 flex-1 font-mono"
+              />
+              <div className="flex shrink-0 items-center gap-1.5">
+                <PageColorPicker onPick={handlePick} />
+                <ScreenColorPicker onPick={handlePick} />
+              </div>
             </div>
+          </Field>
+        </InputSlot>
+
+        <div className="flex shrink-0 items-stretch gap-2">
+          <Swatch color={color} srgbFallback={inSrgb ? null : srgb.toRgbString()} />
+          <div className="flex shrink-0 flex-col justify-center gap-1">
+            <GamutBadge label="sRGB" inside={inSrgb} />
+            <GamutBadge label="P3" inside={inP3} />
           </div>
-        </Field>
-      </InputSlot>
-
-      <div className="flex shrink-0 items-stretch gap-2">
-        <Swatch color={color} srgbFallback={inSrgb ? null : srgb.toRgbString()} />
-        <div className="flex shrink-0 flex-col justify-center gap-1">
-          <GamutBadge label="sRGB" inside={inSrgb} />
-          <GamutBadge label="P3" inside={inP3} />
         </div>
-      </div>
 
-      <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1">
-        {CHANNELS.map((channel) => (
-          <ChannelRow key={channel.key} channel={channel} color={color} onChange={setChannel} />
-        ))}
-      </div>
-
-      {!inSrgb && (
-        <div
-          role="status"
-          className="flex shrink-0 items-start gap-1.5 rounded bg-tree-warn/10 px-2 py-1.5 text-tree-warn"
-        >
-          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
-          <span>
-            Outside sRGB{inP3 ? ' (fits Display P3)' : ''}. HEX, RGB and HSL use the closest sRGB color, chroma{' '}
-            {Number(color.c.toFixed(4))} lowered to {Number(mapped.c.toFixed(4))}.
-          </span>
+        <div className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1">
+          {CHANNELS.map((channel) => (
+            <ChannelRow key={channel.key} channel={channel} color={color} onChange={setChannel} />
+          ))}
         </div>
-      )}
 
-      <OutputSlot className="flex shrink-0 flex-col">
-        {conversions.map(({ label, value, srgbOnly }) => (
-          <div key={label} className="flex min-w-0 items-center gap-1">
-            <span
-              className={cn('w-11 shrink-0 text-muted-foreground', srgbOnly && !inSrgb && 'text-tree-warn')}
-              title={srgbOnly && !inSrgb ? 'Mapped into sRGB' : undefined}
-            >
-              {label}
+        {!inSrgb && (
+          <div
+            role="status"
+            className="flex shrink-0 items-start gap-1.5 rounded bg-tree-warn/10 px-2 py-1.5 text-tree-warn"
+          >
+            <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+            <span>
+              Outside sRGB{inP3 ? ' (fits Display P3)' : ''}. HEX, RGB and HSL use the closest sRGB color, chroma{' '}
+              {Number(color.c.toFixed(4))} lowered to {Number(mapped.c.toFixed(4))}.
             </span>
-            <span className="min-w-0 flex-1 truncate font-mono" title={value}>
-              {value}
-            </span>
-            <CopyButton value={value} label="" ariaLabel={`Copy ${label}`} />
           </div>
-        ))}
-      </OutputSlot>
+        )}
+
+        <OutputSlot className="flex shrink-0 flex-col">
+          {conversions.map(({ label, value, srgbOnly }) => (
+            <div key={label} className="flex min-w-0 items-center gap-1">
+              <span
+                className={cn('w-11 shrink-0 text-muted-foreground', srgbOnly && !inSrgb && 'text-tree-warn')}
+                title={srgbOnly && !inSrgb ? 'Mapped into sRGB' : undefined}
+              >
+                {label}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-mono" title={value}>
+                {value}
+              </span>
+              <CopyButton value={value} label="" ariaLabel={`Copy ${label}`} />
+            </div>
+          ))}
+        </OutputSlot>
+      </div>
+      {showCharts && <OklchCharts color={color} onChange={setColor} className="min-w-0 flex-1" />}
     </div>
   )
+}
+
+/** Tracks an element's content box, for layout decisions container
+ * queries can't make (they only see width, the charts need height too). */
+function useElementSize(ref: RefObject<HTMLElement | null>) {
+  const [size, setSize] = useState({ width: 0, height: 0 })
+  useEffect(() => {
+    const element = ref.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setSize((current) => (current.width === width && current.height === height ? current : { width, height }))
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [ref])
+  return size
 }
 
 function Swatch({ color, srgbFallback }: { color: Oklch; srgbFallback: string | null }) {

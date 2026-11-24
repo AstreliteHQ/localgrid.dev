@@ -122,7 +122,7 @@ export function formatOklab(color: Oklch): string {
   return `oklab(${round(l * 100, 2)}% ${round(a, 4)} ${round(b, 4)}${alphaSuffix(color.alpha)})`
 }
 
-type Vec3 = [number, number, number]
+export type Vec3 = [number, number, number]
 
 function multiply(m: number[][], [x, y, z]: Vec3): Vec3 {
   return [
@@ -150,7 +150,7 @@ const LINEAR_SRGB_TO_LINEAR_P3 = [
   [0.0170826307, 0.0723974407, 0.9105199286],
 ]
 
-function toLinearSrgb(color: Oklch): Vec3 {
+export function toLinearSrgb(color: Oklch): Vec3 {
   const { l, a, b } = toOklab(color)
   const lms = multiply(OKLAB_TO_LMS, [l, a, b]).map((v) => v ** 3) as Vec3
   return multiply(LMS_TO_LINEAR_SRGB, lms)
@@ -162,7 +162,7 @@ function toLinearSrgb(color: Oklch): Vec3 {
  * warning. */
 const GAMUT_EPSILON = 4e-4
 
-function inUnitCube(channels: Vec3): boolean {
+export function inUnitCube(channels: Vec3): boolean {
   return channels.every((v) => v >= -GAMUT_EPSILON && v <= 1 + GAMUT_EPSILON)
 }
 
@@ -170,11 +170,16 @@ export function isInSrgb(color: Oklch): boolean {
   return inUnitCube(toLinearSrgb(color))
 }
 
-export function isInP3(color: Oklch): boolean {
-  return inUnitCube(multiply(LINEAR_SRGB_TO_LINEAR_P3, toLinearSrgb(color)))
+export function linearSrgbToLinearP3(channels: Vec3): Vec3 {
+  return multiply(LINEAR_SRGB_TO_LINEAR_P3, channels)
 }
 
-function encodeSrgb(v: number): number {
+export function isInP3(color: Oklch): boolean {
+  return inUnitCube(linearSrgbToLinearP3(toLinearSrgb(color)))
+}
+
+/** The sRGB transfer function, which Display P3 shares. */
+export function encodeSrgb(v: number): number {
   const sign = v < 0 ? -1 : 1
   const abs = Math.abs(v)
   return sign * (abs > 0.0031308 ? 1.055 * abs ** (1 / 2.4) - 0.055 : 12.92 * abs)
