@@ -82,7 +82,7 @@ shared link always asks before it touches your local dashboard.
 | Text       | Code Snippet, Content Type Detector, Duplicate Remover, Emoji Picker, Log Viewer, Notes, Regex Tester, Text Case Converter, Text Diff         |
 | Math       | Big-O Estimator, Expression Evaluator, Matrix Calculator, Number Base Converter, Percentage Calculator, Statistics Calculator, Unit Converter |
 | AI / LLM   | Invisible Character Cleaner, Token Counter                                                                                                    |
-| Color      | Color Converter, WCAG Contrast Checker                                                                                                        |
+| Color      | Color Converter, OKLCH Color, WCAG Contrast Checker                                                                                           |
 | Image      | Image Converter, Image Metadata, PNG Optimizer, Watermark                                                                                     |
 | Network    | cURL Builder, Subnet Calculator                                                                                                               |
 | Time       | Timeline Builder, Time Zone Calculator, Timer, World Clock                                                                                    |
