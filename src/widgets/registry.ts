@@ -59,6 +59,7 @@ import { k8sResourceCalculatorDefinition } from './k8s-resource-calculator/defin
 import { todoListDefinition } from './todo-list/definition'
 import { scratchpadDefinition } from './scratchpad/definition'
 import { tomlFormatterDefinition } from './toml-formatter/definition'
+import { oklchColorDefinition } from './oklch-color/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -123,6 +124,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   todoListDefinition,
   scratchpadDefinition,
   tomlFormatterDefinition,
+  oklchColorDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(

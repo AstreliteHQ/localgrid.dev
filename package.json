@@ -72,7 +72,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "codemirror": "^6.0.2",
-    "colord": "^2.9.3",
+    "colord": "^2.14.0",
     "diff": "^9.0.0",
     "emojibase-data": "^18.0.0",
     "fflate": "^0.8.3",
