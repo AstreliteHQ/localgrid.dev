@@ -60,6 +60,7 @@ import { todoListDefinition } from './todo-list/definition'
 import { scratchpadDefinition } from './scratchpad/definition'
 import { tomlFormatterDefinition } from './toml-formatter/definition'
 import { oklchColorDefinition } from './oklch-color/definition'
+import { iconPickerDefinition } from './icon-picker/definition'
 
 /** Single source of truth for every widget localgrid knows about. The
  * dashboard grid, tool browser, and command palette all read from this. */
@@ -125,6 +126,7 @@ const ALL_WIDGETS: WidgetDefinition[] = [
   scratchpadDefinition,
   tomlFormatterDefinition,
   oklchColorDefinition,
+  iconPickerDefinition,
 ]
 
 export const WIDGET_REGISTRY: Record<string, WidgetDefinition> = Object.fromEntries(
