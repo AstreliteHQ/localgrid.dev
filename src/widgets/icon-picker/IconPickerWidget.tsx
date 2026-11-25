@@ -297,6 +297,9 @@ function IconGrid({ keys, icons, selected, onSelect }: IconGridProps) {
   const firstRow = Math.max(0, Math.floor(scrollTop / CELL) - OVERSCAN)
   const lastRow = Math.min(rows, Math.ceil((scrollTop + height) / CELL) + OVERSCAN)
   const visible = keys.slice(firstRow * columns, lastRow * columns)
+  // One tab stop: the selected icon, or the first rendered one while the
+  // selection is filtered out or scrolled out of the rendered window.
+  const tabStop = visible.includes(selected) ? selected : visible[0]
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const steps: Record<string, number> = {
@@ -308,7 +311,10 @@ function IconGrid({ keys, icons, selected, onSelect }: IconGridProps) {
     const step = steps[event.key]
     if (step === undefined) return
     event.preventDefault()
-    const index = keys.indexOf(selected)
+    // Arrows move from the focused icon, which is the first rendered one
+    // (not the selection) when the selection is out of view.
+    const focused = event.target instanceof HTMLElement ? event.target.dataset.icon : undefined
+    const index = keys.indexOf(focused ?? selected)
     const nextIndex = index < 0 ? 0 : Math.min(keys.length - 1, Math.max(0, index + step))
     const next = keys[nextIndex]
     onSelect(next)
@@ -348,8 +354,7 @@ function IconGrid({ keys, icons, selected, onSelect }: IconGridProps) {
               aria-label={label}
               aria-pressed={isSelected}
               title={label}
-              // Only the selected icon is a tab stop; arrows move from there.
-              tabIndex={isSelected || (index === 0 && !keys.includes(selected)) ? 0 : -1}
+              tabIndex={key === tabStop ? 0 : -1}
               className={cn(
                 'absolute flex items-center justify-center rounded-md text-foreground outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/50',
                 isSelected && 'bg-primary text-primary-foreground hover:bg-primary/90',

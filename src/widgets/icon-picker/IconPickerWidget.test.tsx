@@ -82,6 +82,20 @@ describe('IconPickerWidget', () => {
     expect(buttons[1]).toHaveAttribute('aria-pressed', 'true')
   })
 
+  it('can be entered with Tab when the selection is out of view', async () => {
+    const user = await renderWidget()
+    // The default selection (sparkles) is far below the first rendered rows.
+    expect(within(grid()).queryByRole('button', { name: 'sparkles' })).not.toBeInTheDocument()
+
+    screen.getByLabelText('Search icons').focus()
+    await user.tab()
+    const first = within(grid()).getAllByRole('button')[0]
+    expect(first).toHaveFocus()
+
+    await user.keyboard('{ArrowRight}')
+    expect(within(grid()).getAllByRole('button')[1]).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('reports a failed PNG copy when images cannot be copied', async () => {
     const user = await renderWidget()
     // Like a browser without image clipboard support.
