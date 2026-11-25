@@ -12,8 +12,4 @@ export const iconPickerDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 4 },
   component: lazy(() => import('./IconPickerWidget')),
   keywords: ['icon', 'icons', 'lucide', 'svg', 'png', 'symbol', 'glyph', 'picker', 'slides', 'logo'],
-  flow: {
-    inputs: [{ field: 'search', label: 'Search' }],
-    output: { label: 'SVG' },
-  },
 }

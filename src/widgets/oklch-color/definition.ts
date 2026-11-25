@@ -12,8 +12,4 @@ export const oklchColorDefinition: WidgetDefinition = {
   minSize: { w: 3, h: 4 },
   component: lazy(() => import('./OklchColorWidget')),
   keywords: ['oklch', 'oklab', 'color', 'colour', 'hex', 'rgb', 'hsl', 'gamut', 'p3', 'srgb', 'css', 'picker'],
-  flow: {
-    inputs: [{ field: 'input', label: 'Color' }],
-    output: { label: 'OKLCH' },
-  },
 }
