@@ -130,3 +130,35 @@ describe('BackupSection', () => {
     expect(useDashboardStore.getState().dashboards).toBe(DASHBOARDS)
   })
 })
+
+describe('BackupSection edge cases', () => {
+  it('only acts on the most recent file selection', async () => {
+    const user = userEvent.setup()
+    let releaseSlow: (text: string) => void = () => {}
+    const slow = new File(['{}'], 'slow.json')
+    slow.text = () => new Promise((resolve) => (releaseSlow = resolve))
+    const fast = new File(['{"nope":true}'], 'fast.json')
+    render(<BackupSection />)
+    const input = screen.getByTestId('workspace-file-input')
+
+    await user.upload(input, slow)
+    await user.upload(input, fast)
+    releaseSlow(serializeWorkspaceFile(buildWorkspaceFile([{ id: 'x', name: 'Slow', widgets: [] }], 'x')))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(screen.getByText("This file isn't a localgrid export.")).toBeInTheDocument()
+    expect(screen.queryByText(/load workspace from file/i)).not.toBeInTheDocument()
+  })
+
+  it('refuses an export too large to load back', async () => {
+    const user = userEvent.setup()
+    useWidgetStateStore.setState({ values: { 'b64:input': 'x'.repeat(21 * 1024 * 1024) } })
+    render(<BackupSection />)
+
+    await user.click(screen.getByRole('checkbox', { name: /include widget content/i }))
+    await user.click(screen.getByRole('button', { name: /download json/i }))
+
+    expect(exported).toHaveLength(0)
+    expect(screen.getByText(/too large to load back/i)).toBeInTheDocument()
+  })
+})

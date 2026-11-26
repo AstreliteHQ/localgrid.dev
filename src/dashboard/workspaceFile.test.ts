@@ -99,6 +99,7 @@ describe('workspaceFile', () => {
         'b64:size': Number.NaN,
         'b64:options': { trim: true, nested: [1, 'two', null] },
         'b64:list': [1, new Blob(['y'])],
+        'b64:input': null,
       },
       ['b64'],
     )

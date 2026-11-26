@@ -233,11 +233,13 @@ export function toJsonValue(value: unknown, depth = 0): unknown {
 }
 
 /** One instance's content, reduced to JSON values (see `toJsonValue`).
- * Undefined when nothing survives. */
+ * A top-level `null` is dropped too, so that field falls back to the
+ * widget's own initial value instead of reaching code that expects a
+ * string or an object. Undefined when nothing survives. */
 export function sanitizeWidgetContent(content: Record<string, unknown>): Record<string, unknown> | undefined {
   const kept = Object.entries(content).flatMap(([field, value]) => {
     const json = toJsonValue(value)
-    return json === undefined ? [] : [[field, json] as const]
+    return json === undefined || json === null ? [] : [[field, json] as const]
   })
   return kept.length > 0 ? Object.fromEntries(kept) : undefined
 }

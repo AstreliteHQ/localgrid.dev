@@ -43,8 +43,12 @@ export function BackupSection() {
   const [includeContent, setIncludeContent] = useState(false)
   const [loaded, setLoaded] = useState<LoadedFile | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // Counts file selections, so a slow read that finishes after a newer
+  // selection is ignored instead of replacing its result.
+  const latestSelection = useRef(0)
   const contentId = useId()
 
   const widgetCount = dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.length, 0)
@@ -68,7 +72,15 @@ export function BackupSection() {
       links,
       stateValues: includeContent ? useWidgetStateStore.getState().values : undefined,
     })
-    downloadText(serializeWorkspaceFile(file), workspaceFileName())
+    const text = serializeWorkspaceFile(file)
+    // Refused rather than downloaded, since import would refuse it too.
+    if (new Blob([text]).size > MAX_WORKSPACE_FILE_BYTES) {
+      setStatus(null)
+      setExportError('This export is too large to load back. Try again without widget content.')
+      return
+    }
+    setExportError(null)
+    downloadText(text, workspaceFileName())
   }
 
   const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +88,7 @@ export function BackupSection() {
     // Cleared so picking the same file again still fires a change.
     event.target.value = ''
     if (!file) return
+    const selection = ++latestSelection.current
     setStatus(null)
     if (file.size > MAX_WORKSPACE_FILE_BYTES) {
       setError('This file is too large to be a localgrid export.')
@@ -85,9 +98,10 @@ export function BackupSection() {
     try {
       text = await file.text()
     } catch {
-      setError('Could not read this file.')
+      if (selection === latestSelection.current) setError('Could not read this file.')
       return
     }
+    if (selection !== latestSelection.current) return
     const result = parseWorkspaceFile(text)
     if (result.ok) {
       setError(null)
@@ -137,6 +151,7 @@ export function BackupSection() {
           <Download className="size-3.5" />
           Download JSON
         </Button>
+        {exportError && <ErrorMessage>{exportError}</ErrorMessage>}
       </section>
 
       <section className="flex flex-col gap-2">
