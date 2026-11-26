@@ -69,6 +69,10 @@ choose what a link carries: just the address, the layout, the layout plus widget
 a full preview of the data before you copy it. Live widget content never travels, and opening a
 shared link always asks before it touches your local dashboard.
 
+**Settings > Import / export** downloads every dashboard as a `.json` file (layout, widget setup
+and flow links, plus live widget content if you tick it) and loads one back, for backups or
+moving to another browser. Loading a file also asks before it replaces your dashboards.
+
 ## Widgets
 
 49 tools across 11 categories, and growing.

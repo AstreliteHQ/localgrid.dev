@@ -18,6 +18,9 @@ interface WidgetStateStore {
    * instead of empty. A source with no stored fields yet (never
    * interacted with) is a harmless no-op. */
   duplicateInstance: (sourceInstanceId: string, targetInstanceId: string) => void
+  /** Writes whole instances' fields at once, keyed by instance id then by
+   * field. Used when a workspace file with widget content is imported. */
+  loadInstances: (content: Record<string, Record<string, unknown>>) => void
 }
 
 export const useWidgetStateStore = create<WidgetStateStore>((set) => ({
@@ -40,6 +43,14 @@ export const useWidgetStateStore = create<WidgetStateStore>((set) => ({
         if (key.startsWith(prefix)) copied[`${targetInstanceId}:${key.slice(prefix.length)}`] = value
       }
       return { values: { ...state.values, ...copied } }
+    }),
+  loadInstances: (content) =>
+    set((state) => {
+      const loaded: Record<string, unknown> = {}
+      for (const [instanceId, fields] of Object.entries(content)) {
+        for (const [field, value] of Object.entries(fields)) loaded[`${instanceId}:${field}`] = value
+      }
+      return { values: { ...state.values, ...loaded } }
     }),
 }))
 

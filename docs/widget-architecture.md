@@ -74,19 +74,20 @@ doubt, keep it state.
 
 ## 3. Instance lifecycle
 
-| Event                                      | Layout                | Widget data                                 | State                       |
-| ------------------------------------------ | --------------------- | ------------------------------------------- | --------------------------- |
-| Add widget                                 | new instance          | empty, widget defaults                      | empty                       |
-| Reload                                     | kept                  | kept                                        | lost                        |
-| Expand to overlay                          | same instance         | same (shared by instanceId)                 | same (shared by instanceId) |
-| Ephemeral overlay (opened, not pinned)     | none                  | held in `useWidgetStateStore`               | in memory                   |
-| Pin an ephemeral overlay                   | new instance, same id | copied into `data` (`pinInstance`)          | kept                        |
-| Duplicate                                  | new instance below    | copied                                      | copied                      |
-| "Clear state"                              | kept                  | kept                                        | cleared, widget remounts    |
-| Reset data (title bar icon)                | kept                  | removed, widget falls back to defaults      | kept                        |
-| Settings > Reset widget data               | kept                  | removed on every instance                   | kept                        |
-| Remove widget / dashboard, Clean dashboard | removed               | removed with the instance                   | cleared                     |
-| Accept a share link                        | replaced              | whatever the link carried, after validation | untouched                   |
+| Event                                      | Layout                | Widget data                                 | State                                  |
+| ------------------------------------------ | --------------------- | ------------------------------------------- | -------------------------------------- |
+| Add widget                                 | new instance          | empty, widget defaults                      | empty                                  |
+| Reload                                     | kept                  | kept                                        | lost                                   |
+| Expand to overlay                          | same instance         | same (shared by instanceId)                 | same (shared by instanceId)            |
+| Ephemeral overlay (opened, not pinned)     | none                  | held in `useWidgetStateStore`               | in memory                              |
+| Pin an ephemeral overlay                   | new instance, same id | copied into `data` (`pinInstance`)          | kept                                   |
+| Duplicate                                  | new instance below    | copied                                      | copied                                 |
+| "Clear state"                              | kept                  | kept                                        | cleared, widget remounts               |
+| Reset data (title bar icon)                | kept                  | removed, widget falls back to defaults      | kept                                   |
+| Settings > Reset widget data               | kept                  | removed on every instance                   | kept                                   |
+| Remove widget / dashboard, Clean dashboard | removed               | removed with the instance                   | cleared                                |
+| Accept a share link                        | replaced              | whatever the link carried, after validation | untouched                              |
+| Import a JSON file                         | replaced              | whatever the file carried, after validation | replaced by the file's content, if any |
 
 ## 4. Dirty tracking
 
@@ -135,6 +136,20 @@ A share link puts a compact JSON payload, LZ-compressed, in the URL fragment
 `c` is only written when the user turns on "Include widget data". `l` (links,
 indexes into `ws` since instance ids don't travel) only with "Include flow". Settings > Share
 previews the exact `toWire` output before the user copies the link.
+
+Settings > Import / export downloads the same wire payload as a `.json` file and loads one
+back (`src/dashboard/workspaceFile.ts`):
+
+```text
+{ format: "localgrid-workspace", version: 1, exportedAt,
+  workspace: <wire payload above, with c and l always included, plus s?: content> }
+```
+
+`s` holds an instance's `useWidgetState` fields, only when the user ticks "Include widget
+content". Only plain JSON values are written (a `File`, `Map` or `NaN` is left out). It is
+read back only from a file, never from a share link, and loaded before the new dashboards
+mount. A file goes through the same `parseWorkspacePayload` validation as a link, and the
+import asks before it replaces the workspace.
 
 Validation boundary: the decoder (`decodeWorkspace` then `finalizeWorkspace`) drops unknown
 widgets and runs `sanitizeWidgetData` on every widget data object, which keeps only fields that match the
