@@ -10,8 +10,6 @@ import { SegmentedControl } from '@/components/SegmentedControl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
-import { InputSlot, OutputSlot } from '@/flow/FlowSlots'
-import { useWidgetOutput } from '@/flow/useWidgetOutput'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -104,22 +102,19 @@ export default function IconPickerWidget({ instanceId }: WidgetProps) {
 
   return (
     <div className="@container flex h-full min-h-0 flex-col gap-2 text-xs">
-      <InputSlot input="search" className="shrink-0">
-        <Input
-          id={searchId}
-          type="search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search icons…"
-          aria-label="Search icons"
-          spellCheck={false}
-          className="h-8 text-xs md:text-xs"
-        />
-      </InputSlot>
+      <Input
+        id={searchId}
+        type="search"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder="Search icons…"
+        aria-label="Search icons"
+        spellCheck={false}
+        className="h-8 shrink-0 text-xs md:text-xs"
+      />
       {catalog.status === 'ready' ? (
         <IconPickerBody
           catalog={catalog.catalog}
-          instanceId={instanceId}
           search={search}
           icon={icon}
           onIconChange={setIcon}
@@ -159,7 +154,6 @@ interface IconSource {
 
 interface IconPickerBodyProps {
   catalog: Catalog
-  instanceId: string
   search: string
   icon: string
   onIconChange: (icon: string) => void
@@ -174,7 +168,6 @@ interface IconPickerBodyProps {
 
 function IconPickerBody({
   catalog: { ICONS, ICON_KEYS },
-  instanceId,
   search,
   icon,
   onIconChange,
@@ -222,7 +215,6 @@ function IconPickerBody({
 
   const current = source?.key === iconKey ? source : null
   const svg = current ? buildIconSvg(current.markup, style, current.viewBox) : ''
-  useWidgetOutput(instanceId, svg)
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto @lg:flex-row @lg:overflow-visible">
@@ -519,7 +511,7 @@ function IconPanel({
         <SegmentedControl value={pngScale} onChange={onPngScaleChange} options={PNG_SCALE_OPTIONS} />
       </Field>
 
-      <OutputSlot className="grid grid-cols-2 gap-1 [&>button]:justify-start">
+      <div className="grid grid-cols-2 gap-1 [&>button]:justify-start">
         <CopyButton value={svg} label="Copy SVG" />
         <CopyPngButton svg={svg} size={pngSize} />
         <Button
@@ -542,7 +534,7 @@ function IconPanel({
           <Download className="size-3.5" />
           Download PNG
         </Button>
-      </OutputSlot>
+      </div>
     </div>
   )
 }

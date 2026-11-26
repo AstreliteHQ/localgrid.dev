@@ -166,6 +166,10 @@ widget's input. A widget opts in declaratively; the framework (`src/flow/`) owns
 wiring, drag and drop, routing, loop prevention and every flow visual. How it works and
 the rules it follows: [flow.md](flow.md).
 
+Only declare flow when another widget would realistically produce or consume the value
+(see "Flow inputs and outputs" in `AGENTS.md`). Search boxes, pickers and settings are
+not inputs, and most interactive editors and pickers declare no flow at all.
+
 1. Declare the inputs and output in `definition.ts`:
 
    ```ts

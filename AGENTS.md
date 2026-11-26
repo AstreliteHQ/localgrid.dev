@@ -44,6 +44,18 @@ After any code change, run `npx tsc -b --noEmit`, `npm run lint`, and `npm test`
 - Colors come from the semantic tokens in `src/index.css` (`success`, `destructive`, `muted`, etc.), not raw Tailwind palette classes, unless a widget has a real reason to deviate.
 - Async work (Web Crypto, etc.) goes through `useEffect` plus a `cancelled` flag, not a bare unhandled promise see HashGeneratorWidget.
 
+## Flow inputs and outputs
+
+Flow (`docs/flow.md`) is opt-in. Do not add `flow` to a widget by default, and never just to tick a box. Declare an input or output only when another widget would realistically produce or consume that value in a pipeline.
+
+- A good input is the main text or document the widget works on, the kind of value another widget emits: text to encode or hash, JSON or YAML to format, a token to decode, a certificate, logs, a CSV, the two sides of a diff.
+- A good output is the widget's main result as text that another widget can take as its input: encoded or decoded text, a hash, formatted JSON, converted YAML.
+- Not an input: search boxes, filters, pickers, sliders, toggles, options and other settings. No widget produces an icon search query, so the Icon Picker has no input.
+- Not an output: a value nobody would feed into another widget, something the user copies or downloads and leaves with (a picked icon's SVG, a color in several notations), or a value that changes on every pointer move.
+- Interactive editors and pickers (color, icon, image tools) usually declare no flow at all. That is fine: the widget still works, it just does not take part in pipelines.
+- When unsure, leave flow out. Adding an input later is easy. Removing one breaks saved and shared links that point at its `field`.
+- Before declaring, name a concrete pipeline, for example "Base64 decode into JSON Formatter". If you cannot, do not declare it.
+
 ## Commit and pull request
 
 - Use conventional commit message pattern

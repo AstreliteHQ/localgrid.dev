@@ -1,7 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useFlowStore } from '@/flow/useFlowStore'
 import IconPickerWidget from './IconPickerWidget'
 
 async function renderWidget() {
@@ -66,11 +65,6 @@ describe('IconPickerWidget', () => {
     expect(svg).toContain('stroke-width="1.5"')
     expect(svg).toContain('<path d="')
     expect(svg.trim().endsWith('</svg>')).toBe(true)
-  })
-
-  it('publishes the SVG as its flow output', async () => {
-    await renderWidget()
-    expect(useFlowStore.getState().outputs.test).toMatch(/^<svg /)
   })
 
   it('moves the selection with arrow keys', async () => {

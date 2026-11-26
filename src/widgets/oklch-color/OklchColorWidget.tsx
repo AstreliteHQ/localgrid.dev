@@ -7,9 +7,6 @@ import { PageColorPicker } from '@/components/PageColorPicker'
 import { ScreenColorPicker } from '@/components/ScreenColorPicker'
 import { Input } from '@/components/ui/input'
 import { Slider } from '@/components/ui/slider'
-import { InputSlot, OutputSlot } from '@/flow/FlowSlots'
-import { useWidgetOutput } from '@/flow/useWidgetOutput'
-import { useThrottledValue } from '@/hooks/useThrottledValue'
 import { cn } from '@/lib/utils'
 import { useWidgetDirty } from '@/widgets/useWidgetDirty'
 import { useWidgetState } from '@/widgets/useWidgetState'
@@ -33,8 +30,6 @@ const DEFAULT_COLOR = parseColor(DEFAULT_INPUT)!
 /** Checkerboard behind the swatch and the alpha track, so transparency
  * reads as transparency in both themes. */
 const CHECKERBOARD = 'repeating-conic-gradient(var(--muted) 0 25%, transparent 0 50%) 0 0 / 10px 10px'
-
-const OUTPUT_INTERVAL_MS = 100
 
 /** The charts open beside the controls once the widget has room for both:
  * the controls column is 320px, the charts want about as much again, and
@@ -115,7 +110,7 @@ const CHANNELS: ChannelSpec[] = [
 ]
 
 export default function OklchColorWidget({ instanceId }: WidgetProps) {
-  // `input` is the single source of truth (and the flow input): sliders
+  // `input` is the single source of truth: sliders
   // write an `oklch()` string into it, and every view is derived from it.
   const [input, setInput] = useWidgetState(instanceId, 'input', DEFAULT_INPUT)
   // Shown while the text is mid-edit or invalid, so the sliders and
@@ -134,10 +129,6 @@ export default function OklchColorWidget({ instanceId }: WidgetProps) {
   }, [parsedKey])
 
   const oklchString = formatOklch(color)
-  // Dragging a slider or a chart changes the color on every pointer move,
-  // faster than flow lets a link write (BURST_LIMIT), so the output follows
-  // at a steady pace instead and still ends on the final color.
-  useWidgetOutput(instanceId, useThrottledValue(oklchString, OUTPUT_INTERVAL_MS))
 
   const rootRef = useRef<HTMLDivElement>(null)
   const size = useElementSize(rootRef)
@@ -175,29 +166,27 @@ export default function OklchColorWidget({ instanceId }: WidgetProps) {
           showCharts ? 'w-80 shrink-0' : 'flex-1',
         )}
       >
-        <InputSlot input="input">
-          <Field
-            label="Color"
-            htmlFor={inputId}
-            error={parsed ? null : 'Not a color. Try oklch(), hex, rgb(), hsl() or a name.'}
-          >
-            <div className="flex items-center gap-1.5">
-              <Input
-                id={inputId}
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="oklch(70% 0.15 250), #65a1fe, rgb(…)"
-                spellCheck={false}
-                aria-invalid={!parsed}
-                className="min-w-0 flex-1 font-mono"
-              />
-              <div className="flex shrink-0 items-center gap-1.5">
-                <PageColorPicker onPick={handlePick} />
-                <ScreenColorPicker onPick={handlePick} />
-              </div>
+        <Field
+          label="Color"
+          htmlFor={inputId}
+          error={parsed ? null : 'Not a color. Try oklch(), hex, rgb(), hsl() or a name.'}
+        >
+          <div className="flex items-center gap-1.5">
+            <Input
+              id={inputId}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="oklch(70% 0.15 250), #65a1fe, rgb(…)"
+              spellCheck={false}
+              aria-invalid={!parsed}
+              className="min-w-0 flex-1 font-mono"
+            />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <PageColorPicker onPick={handlePick} />
+              <ScreenColorPicker onPick={handlePick} />
             </div>
-          </Field>
-        </InputSlot>
+          </div>
+        </Field>
 
         <div className="flex shrink-0 items-stretch gap-2">
           <Swatch color={color} srgbFallback={inSrgb ? null : srgb.toRgbString()} />
@@ -226,7 +215,7 @@ export default function OklchColorWidget({ instanceId }: WidgetProps) {
           </div>
         )}
 
-        <OutputSlot className="flex shrink-0 flex-col">
+        <div className="flex shrink-0 flex-col">
           {conversions.map(({ label, value, srgbOnly }) => (
             <div key={label} className="flex min-w-0 items-center gap-1">
               <span
@@ -241,7 +230,7 @@ export default function OklchColorWidget({ instanceId }: WidgetProps) {
               <CopyButton value={value} label="" ariaLabel={`Copy ${label}`} />
             </div>
           ))}
-        </OutputSlot>
+        </div>
       </div>
       {showCharts && <OklchCharts color={color} onChange={setColor} className="min-w-0 flex-1" />}
     </div>
