@@ -1,8 +1,9 @@
 import type { ComponentType } from 'react'
-import { Cable, Database, Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
+import { Cable, Database, FileJson, Info, Settings2, Share2, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { AboutSection } from './AboutSection'
+import { BackupSection } from './BackupSection'
 import { ExperimentalBadge } from './ExperimentalBadge'
 import { FlowSection } from './FlowSection'
 import { GeneralSection } from './GeneralSection'
@@ -25,6 +26,7 @@ const SECTIONS: SectionEntry[] = [
   { id: 'widget-data', label: 'Widget data', icon: Database, component: WidgetDataSection },
   { id: 'flow', label: 'Flow', icon: Cable, component: FlowSection, experimental: true },
   { id: 'share', label: 'Share', icon: Share2, component: ShareSection },
+  { id: 'backup', label: 'Import / export', icon: FileJson, component: BackupSection },
   { id: 'about', label: 'About', icon: Info, component: AboutSection },
 ]
 

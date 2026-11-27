@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Command } from 'cmdk'
-import { Plus, Share2 } from 'lucide-react'
+import { FileJson, Plus, Share2 } from 'lucide-react'
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut'
 import { useOverlayStore } from '@/overlay/useOverlayStore'
 import { groupWidgetsByCategory } from '@/widgets/categories'
@@ -89,6 +89,16 @@ export function CommandPalette() {
             >
               <Share2 className="size-3.5 text-muted-foreground" />
               Share dashboard…
+            </Command.Item>
+            <Command.Item
+              onSelect={() => {
+                setOpen(false)
+                openSettings('backup')
+              }}
+              className={ITEM_CLASS}
+            >
+              <FileJson className="size-3.5 text-muted-foreground" />
+              Import or export dashboards…
             </Command.Item>
           </Command.Group>
 

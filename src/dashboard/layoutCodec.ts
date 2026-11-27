@@ -171,11 +171,16 @@ export function encodeWorkspace(
 
 export type DecodeResult = { ok: true; workspace: WorkspaceLayoutV2 } | { ok: false; error: string }
 
+/** Where an untrusted payload came from, used in error messages. */
+export type PayloadSource = 'link' | 'file'
+
+const SOURCE_LABEL: Record<PayloadSource, string> = { link: 'share link', file: 'file' }
+
 /** Drops any widget instance whose id no longer exists in the registry
  * (e.g. a stale link after a widget was renamed or removed), strips data
  * fields that don't match the widget's schema, and repairs
  * `activeDashboardId` if it doesn't point at a surviving dashboard. */
-function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
+function finalizeWorkspace(workspace: WorkspaceLayoutV2, source: PayloadSource): DecodeResult {
   const dashboards = workspace.dashboards.map((dashboard) => ({
     ...dashboard,
     widgets: dashboard.widgets
@@ -186,7 +191,7 @@ function finalizeWorkspace(workspace: WorkspaceLayoutV2): DecodeResult {
       }),
   }))
   if (dashboards.length === 0) {
-    return { ok: false, error: "This share link doesn't contain any dashboards." }
+    return { ok: false, error: `This ${SOURCE_LABEL[source]} doesn't contain any dashboards.` }
   }
   const activeDashboardId = dashboards.some((dashboard) => dashboard.id === workspace.activeDashboardId)
     ? workspace.activeDashboardId
@@ -233,19 +238,29 @@ export function decodeWorkspace(encoded: string): DecodeResult {
     return { ok: false, error: 'This share link is corrupted.' }
   }
 
+  return parseWorkspacePayload(parsed, 'link')
+}
+
+/** Validates an already parsed, untrusted payload in the wire format (or
+ * the pre-tabs shape) and turns it into a workspace. Shared by share links
+ * and exported files, so both go through the same checks. */
+export function parseWorkspacePayload(parsed: unknown, source: PayloadSource): DecodeResult {
   const wireResult = v.safeParse(WireWorkspaceSchema, parsed)
   if (wireResult.success) {
-    return finalizeWorkspace(fromWire(wireResult.output))
+    return finalizeWorkspace(fromWire(wireResult.output), source)
   }
 
   const legacyResult = v.safeParse(LegacyLayoutSchema, parsed)
   if (legacyResult.success) {
-    return finalizeWorkspace({
-      version: WORKSPACE_LAYOUT_VERSION,
-      dashboards: [{ id: 'shared', name: 'Shared', widgets: legacyResult.output.widgets }],
-      activeDashboardId: 'shared',
-    })
+    return finalizeWorkspace(
+      {
+        version: WORKSPACE_LAYOUT_VERSION,
+        dashboards: [{ id: 'shared', name: 'Shared', widgets: legacyResult.output.widgets }],
+        activeDashboardId: 'shared',
+      },
+      source,
+    )
   }
 
-  return { ok: false, error: "This share link doesn't match a dashboard layout." }
+  return { ok: false, error: `This ${SOURCE_LABEL[source]} doesn't match a dashboard layout.` }
 }

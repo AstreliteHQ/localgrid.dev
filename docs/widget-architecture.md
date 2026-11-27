@@ -87,6 +87,7 @@ doubt, keep it state.
 | Settings > Reset widget data               | kept                  | removed on every instance                   | kept                        |
 | Remove widget / dashboard, Clean dashboard | removed               | removed with the instance                   | cleared                     |
 | Accept a share link                        | replaced              | whatever the link carried, after validation | untouched                   |
+| Import a JSON file                         | replaced              | whatever the file carried, after validation | untouched                   |
 
 ## 4. Dirty tracking
 
@@ -135,6 +136,18 @@ A share link puts a compact JSON payload, LZ-compressed, in the URL fragment
 `c` is only written when the user turns on "Include widget data". `l` (links,
 indexes into `ws` since instance ids don't travel) only with "Include flow". Settings > Share
 previews the exact `toWire` output before the user copies the link.
+
+Settings > Import / export downloads the same wire payload as a `.json` file and loads one
+back (`src/dashboard/workspaceFile.ts`):
+
+```text
+{ format: "localgrid-workspace", version: 1, exportedAt,
+  workspace: <wire payload above, with c and l always included> }
+```
+
+Like a share link, the file never carries state. It goes through the same
+`parseWorkspacePayload` validation as a link, and the import asks before it replaces the
+workspace.
 
 Validation boundary: the decoder (`decodeWorkspace` then `finalizeWorkspace`) drops unknown
 widgets and runs `sanitizeWidgetData` on every widget data object, which keeps only fields that match the
