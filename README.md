@@ -70,8 +70,8 @@ a full preview of the data before you copy it. Live widget content never travels
 shared link always asks before it touches your local dashboard.
 
 **Settings > Import / export** downloads every dashboard as a `.json` file (layout, widget setup
-and flow links, plus live widget content if you tick it) and loads one back, for backups or
-moving to another browser. Loading a file also asks before it replaces your dashboards.
+and flow links, the same data a share link carries) and loads one back, for backups or moving
+to another browser. Loading a file also asks before it replaces your dashboards.
 
 ## Widgets
 

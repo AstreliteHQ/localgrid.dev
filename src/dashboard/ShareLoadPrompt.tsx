@@ -11,10 +11,8 @@ import type { WorkspaceLayoutV2 } from '@/types/layout'
 
 interface ShareLoadPromptProps {
   workspace: WorkspaceLayoutV2
-  /** Where the workspace comes from. A file can also carry widget content. */
+  /** Where the workspace comes from: a share link or an exported file. */
   source?: 'link' | 'file'
-  /** Widgets the file brings content for. */
-  contentCount?: number
   onAccept: () => void
   onDismiss: () => void
 }
@@ -23,13 +21,7 @@ interface ShareLoadPromptProps {
  * never silent. Unlike a single-dashboard share, this replaces *every*
  * dashboard, so it's genuinely destructive again (a single-tab share could
  * safely just add a new tab; a whole-workspace share can't). */
-export function ShareLoadPrompt({
-  workspace,
-  source = 'link',
-  contentCount = 0,
-  onAccept,
-  onDismiss,
-}: ShareLoadPromptProps) {
+export function ShareLoadPrompt({ workspace, source = 'link', onAccept, onDismiss }: ShareLoadPromptProps) {
   const fromFile = source === 'file'
   const totalWidgets = workspace.dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.length, 0)
   const widgetsWithData = workspace.dashboards.reduce(
@@ -54,10 +46,7 @@ export function ShareLoadPrompt({
             <strong className="font-semibold text-foreground">replace all of your current dashboards</strong>.{' '}
             {widgetsWithData > 0
               ? `It also sets up ${widgetsWithData} widget${widgetsWithData === 1 ? '' : 's'} (with their saved widget data).`
-              : fromFile
-                ? 'It has no saved widget data.'
-                : 'Only widget placement is shared, not their content.'}
-            {contentCount > 0 && ` It restores the content of ${contentCount} widget${contentCount === 1 ? '' : 's'}.`}
+              : `Only widget placement is ${fromFile ? 'included' : 'shared'}, not their content.`}
             {workspace.links &&
               workspace.links.length > 0 &&
               ` ${workspace.links.length} link${workspace.links.length === 1 ? '' : 's'} between widgets ${workspace.links.length === 1 ? 'is' : 'are'} included.`}

@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { Download, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ErrorMessage } from '@/components/ErrorMessage'
@@ -7,14 +7,12 @@ import { ShareLoadPrompt } from '@/dashboard/ShareLoadPrompt'
 import { useDashboardStore } from '@/dashboard/useDashboardStore'
 import {
   buildWorkspaceFile,
-  collectWidgetContent,
   MAX_WORKSPACE_FILE_BYTES,
   parseWorkspaceFile,
   serializeWorkspaceFile,
   workspaceFileName,
 } from '@/dashboard/workspaceFile'
 import { useFlowStore } from '@/flow/useFlowStore'
-import { useWidgetStateStore } from '@/widgets/useWidgetState'
 
 type LoadedFile = Extract<DecodeResult, { ok: true }>
 
@@ -32,15 +30,14 @@ function downloadText(text: string, fileName: string) {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-/** Downloads every dashboard as a `.json` file (layout, widget data, flow
- * links and, if asked, widget content) and loads one back after a confirm. */
+/** Downloads every dashboard as a `.json` file (layout, widget data and
+ * flow links, the same data a share link can carry) and loads one back
+ * after a confirm. */
 export function BackupSection() {
   const dashboards = useDashboardStore((state) => state.dashboards)
   const activeDashboardId = useDashboardStore((state) => state.activeDashboardId)
   const importWorkspace = useDashboardStore((state) => state.importWorkspace)
   const links = useFlowStore((state) => state.links)
-  const stateValues = useWidgetStateStore((state) => state.values)
-  const [includeContent, setIncludeContent] = useState(false)
   const [loaded, setLoaded] = useState<LoadedFile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -49,34 +46,19 @@ export function BackupSection() {
   // Counts file selections, so a slow read that finishes after a newer
   // selection is ignored instead of replacing its result.
   const latestSelection = useRef(0)
-  const contentId = useId()
 
   const widgetCount = dashboards.reduce((sum, dashboard) => sum + dashboard.widgets.length, 0)
   const dataCount = dashboards.reduce(
     (sum, dashboard) => sum + dashboard.widgets.filter((widget) => widget.data).length,
     0,
   )
-  const contentCount = useMemo(
-    () =>
-      Object.keys(
-        collectWidgetContent(
-          stateValues,
-          dashboards.flatMap((dashboard) => dashboard.widgets.map((widget) => widget.instanceId)),
-        ),
-      ).length,
-    [stateValues, dashboards],
-  )
-
   const handleExport = () => {
-    const file = buildWorkspaceFile(dashboards, activeDashboardId, {
-      links,
-      stateValues: includeContent ? useWidgetStateStore.getState().values : undefined,
-    })
+    const file = buildWorkspaceFile(dashboards, activeDashboardId, { links })
     const text = serializeWorkspaceFile(file)
     // Refused rather than downloaded, since import would refuse it too.
     if (new Blob([text]).size > MAX_WORKSPACE_FILE_BYTES) {
       setStatus(null)
-      setExportError('This export is too large to load back. Try again without widget content.')
+      setExportError('This export is too large to load back.')
       return
     }
     setExportError(null)
@@ -113,8 +95,8 @@ export function BackupSection() {
 
   const handleAccept = () => {
     if (!loaded) return
-    const { workspace, content } = loaded
-    importWorkspace(workspace.dashboards, workspace.activeDashboardId, workspace.links, content)
+    const { workspace } = loaded
+    importWorkspace(workspace.dashboards, workspace.activeDashboardId, workspace.links)
     setLoaded(null)
     setStatus(`Loaded ${plural(workspace.dashboards.length, 'dashboard')}.`)
   }
@@ -127,26 +109,11 @@ export function BackupSection() {
           Downloads a .json file with every dashboard, widget positions, saved widget data and flow links. Use it as a
           backup or to move your dashboards to another browser.
         </p>
+        <p className="text-xs text-muted-foreground">Widget content is never exported, the same as with Share.</p>
         <p className="text-xs text-muted-foreground">
           {plural(dashboards.length, 'dashboard')}, {plural(widgetCount, 'widget')}, {dataCount} with widget data,{' '}
           {plural(links.length, 'link')}.
         </p>
-        <label htmlFor={contentId} className="flex items-start gap-2 text-sm">
-          <input
-            id={contentId}
-            type="checkbox"
-            checked={includeContent}
-            onChange={(event) => setIncludeContent(event.target.checked)}
-            className="mt-1 accent-primary"
-          />
-          <span>
-            Include widget content
-            <span className="block text-xs text-muted-foreground">
-              What is in your widgets right now ({contentCount} {contentCount === 1 ? 'widget' : 'widgets'}), such as
-              text you typed. May contain tokens or passwords. Files and images you dropped in are left out.
-            </span>
-          </span>
-        </label>
         <Button type="button" size="sm" onClick={handleExport} className="self-start">
           <Download className="size-3.5" />
           Download JSON
@@ -190,7 +157,6 @@ export function BackupSection() {
         <ShareLoadPrompt
           workspace={loaded.workspace}
           source="file"
-          contentCount={Object.keys(loaded.content ?? {}).length}
           onAccept={handleAccept}
           onDismiss={() => setLoaded(null)}
         />

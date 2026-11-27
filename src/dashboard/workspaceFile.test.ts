@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Dashboard } from '@/types/layout'
-import { encodeWorkspace, decodeWorkspace } from './layoutCodec'
 import {
   buildWorkspaceFile,
-  collectWidgetContent,
   parseWorkspaceFile,
   serializeWorkspaceFile,
   workspaceFileName,
@@ -53,7 +51,6 @@ describe('workspaceFile', () => {
     expect(file.workspace.a).toBe('dash-b')
     expect(file.workspace.d[0].l).toEqual([[0, 1, 'input']])
     expect(file.workspace.d[1].ws[0].c).toEqual({ selectedIds: ['paris', 'tokyo'] })
-    expect(file.workspace.d[0].ws[0].s).toBeUndefined()
   })
 
   it('round-trips layout, widget data, links and the active dashboard', () => {
@@ -67,53 +64,9 @@ describe('workspaceFile', () => {
     expect(workspace.dashboards[1].widgets[0].data).toEqual({ selectedIds: ['paris', 'tokyo'] })
     const [b64, json] = workspace.dashboards[0].widgets
     expect(workspace.links).toEqual([{ from: b64.instanceId, to: json.instanceId, input: 'input' }])
-    expect(result.content).toBeUndefined()
   })
 
-  it('carries widget content only when state values are given', () => {
-    const stateValues = {
-      'b64:input': 'hello',
-      'b64:mode': 'encode',
-      'json:input': '{"a":1}',
-      'overlay:input': 'not on a dashboard',
-    }
-    const file = buildWorkspaceFile(DASHBOARDS, 'dash-a', { stateValues })
-    expect(file.workspace.d[0].ws[0].s).toEqual({ input: 'hello', mode: 'encode' })
-    expect(JSON.stringify(file)).not.toContain('not on a dashboard')
-
-    const result = roundTrip(file)
-    expect(result.ok).toBe(true)
-    if (!result.ok) return
-    const [b64, json] = result.workspace.dashboards[0].widgets
-    expect(result.content).toEqual({
-      [b64.instanceId]: { input: 'hello', mode: 'encode' },
-      [json.instanceId]: { input: '{"a":1}' },
-    })
-  })
-
-  it('leaves out content JSON cannot represent', () => {
-    const content = collectWidgetContent(
-      {
-        'b64:file': new Blob(['x']),
-        'b64:map': new Map(),
-        'b64:size': Number.NaN,
-        'b64:options': { trim: true, nested: [1, 'two', null] },
-        'b64:list': [1, new Blob(['y'])],
-        'b64:input': null,
-      },
-      ['b64'],
-    )
-    expect(content).toEqual({ b64: { options: { trim: true, nested: [1, 'two', null] } } })
-  })
-
-  it('never reads widget content from a share link', () => {
-    const encoded = encodeWorkspace(DASHBOARDS, 'dash-a', { content: () => ({ input: 'secret' }) })
-    const result = decodeWorkspace(encoded)
-    expect(result.ok).toBe(true)
-    if (result.ok) expect(result.content).toBeUndefined()
-  })
-
-  it('drops unknown widgets, their content, and bad widget data', () => {
+  it('drops unknown widgets and bad widget data', () => {
     const file = buildWorkspaceFile(
       [
         {
@@ -126,14 +79,12 @@ describe('workspaceFile', () => {
         },
       ],
       'dash',
-      { stateValues: { 'ghost:input': 'x' } },
     )
     const result = roundTrip(file)
     expect(result.ok).toBe(true)
     if (!result.ok) return
     expect(result.workspace.dashboards[0].widgets).toHaveLength(1)
     expect(result.workspace.dashboards[0].widgets[0].data).toBeUndefined()
-    expect(result.content).toBeUndefined()
   })
 
   it('rejects files that are not localgrid exports', () => {

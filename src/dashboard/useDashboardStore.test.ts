@@ -355,25 +355,6 @@ describe('useDashboardStore — dashboard management', () => {
     expect(useDashboardStore.getState().activeDashboardId).toBe('imported')
   })
 
-  it('importWorkspace with content replaces the old instances state with the imported content', () => {
-    useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
-    const oldId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!.widgets[0].instanceId
-    const old = renderHook(() => useWidgetState(oldId, 'input', ''))
-    act(() => old.result.current[1]('old content'))
-    const incoming: Dashboard[] = [
-      {
-        id: 'imported',
-        name: 'Imported',
-        widgets: [{ instanceId: 'fresh', widgetId: 'base64', x: 0, y: 0, w: 3, h: 3 }],
-      },
-    ]
-
-    useDashboardStore.getState().importWorkspace(incoming, 'imported', [], { fresh: { input: 'restored' } })
-
-    expect(renderHook(() => useWidgetState('fresh', 'input', '')).result.current[0]).toBe('restored')
-    expect(renderHook(() => useWidgetState(oldId, 'input', 'default')).result.current[0]).toBe('default')
-  })
-
   it('removeDashboard also clears every one of its widgets from useWidgetState', () => {
     useDashboardStore.getState().addWidget(DASHBOARD_B, 'base64')
     const instanceId = useDashboardStore.getState().dashboards.find((d) => d.id === DASHBOARD_B)!.widgets[0].instanceId

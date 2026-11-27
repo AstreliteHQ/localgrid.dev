@@ -46,10 +46,6 @@ const WireWidgetSchema = v.object({
   // so links made before it existed still decode. Validated per widget in
   // `finalizeWorkspace`, not here.
   c: v.optional(v.record(v.string(), v.unknown())),
-  // Widget content (useWidgetState fields), only in an exported file and
-  // only when the user opted in. Never written to a share link, and never
-  // read back from one (see `withContent`).
-  s: v.optional(v.record(v.string(), v.unknown())),
 })
 
 const WidgetIndexSchema = v.pipe(v.number(), v.integer(), v.minValue(0))
@@ -80,9 +76,6 @@ export interface EncodeOptions {
   includeData?: boolean
   /** Links to carry as each dashboard's `l`. Left out when undefined. */
   links?: readonly Link[]
-  /** Each widget's content as `s`, for an exported file. Never set for a
-   * share link. */
-  content?: (instanceId: string) => Record<string, unknown> | undefined
 }
 
 /** A dashboard's links as `[from, to, input]` widget indexes. */
@@ -107,49 +100,33 @@ export function toWire(dashboards: Dashboard[], activeDashboardId: string, optio
         id: dashboard.id,
         n: dashboard.name,
         ...(links.length > 0 && { l: links }),
-        ws: dashboard.widgets.map((widget) => {
-          const content = options.content?.(widget.instanceId)
-          return {
-            wid: widget.widgetId,
-            x: widget.x,
-            y: widget.y,
-            w: widget.w,
-            h: widget.h,
-            ...(options.includeData && widget.data && Object.keys(widget.data).length > 0 && { c: widget.data }),
-            ...(content && Object.keys(content).length > 0 && { s: content }),
-          }
-        }),
+        ws: dashboard.widgets.map((widget) => ({
+          wid: widget.widgetId,
+          x: widget.x,
+          y: widget.y,
+          w: widget.w,
+          h: widget.h,
+          ...(options.includeData && widget.data && Object.keys(widget.data).length > 0 && { c: widget.data }),
+        })),
       }
     }),
   }
 }
 
-/** Widget content keyed by instance id, then by `useWidgetState` field. */
-export type WorkspaceContent = Record<string, Record<string, unknown>>
-
 /** Reconstructs the storage shape from a decoded wire payload, minting a
- * fresh `instanceId` per widget — see the "drops out entirely" note above.
- * Content (`s`) is only collected when `withContent` is set. */
-function fromWire(
-  wire: WireWorkspace,
-  withContent: boolean,
-): { workspace: WorkspaceLayoutV2; content: WorkspaceContent } {
+ * fresh `instanceId` per widget — see the "drops out entirely" note above. */
+function fromWire(wire: WireWorkspace): WorkspaceLayoutV2 {
   const links: Link[] = []
-  const content: WorkspaceContent = {}
   const dashboards = wire.d.map((dashboard) => {
-    const widgets = dashboard.ws.map((widget) => {
-      const instanceId = nanoid(8)
-      if (withContent && widget.s) content[instanceId] = widget.s
-      return {
-        instanceId,
-        widgetId: widget.wid,
-        x: widget.x,
-        y: widget.y,
-        w: widget.w,
-        h: widget.h,
-        ...(widget.c && { data: widget.c }),
-      }
-    })
+    const widgets = dashboard.ws.map((widget) => ({
+      instanceId: nanoid(8),
+      widgetId: widget.wid,
+      x: widget.x,
+      y: widget.y,
+      w: widget.w,
+      h: widget.h,
+      ...(widget.c && { data: widget.c }),
+    }))
     for (const [from, to, input] of dashboard.l ?? []) {
       if (widgets[from] && widgets[to]) {
         links.push({ from: widgets[from].instanceId, to: widgets[to].instanceId, input })
@@ -158,13 +135,10 @@ function fromWire(
     return { id: dashboard.id, name: dashboard.n, widgets }
   })
   return {
-    workspace: {
-      version: WORKSPACE_LAYOUT_VERSION,
-      activeDashboardId: wire.a,
-      dashboards,
-      ...(wire.d.some((dashboard) => dashboard.l) && { links }),
-    },
-    content,
+    version: WORKSPACE_LAYOUT_VERSION,
+    activeDashboardId: wire.a,
+    dashboards,
+    ...(wire.d.some((dashboard) => dashboard.l) && { links }),
   }
 }
 
@@ -195,64 +169,18 @@ export function encodeWorkspace(
   return LZString.compressToEncodedURIComponent(JSON.stringify(wire))
 }
 
-export type DecodeResult =
-  | {
-      ok: true
-      workspace: WorkspaceLayoutV2
-      /** Only from an exported file that carried widget content. */
-      content?: WorkspaceContent
-    }
-  | { ok: false; error: string }
+export type DecodeResult = { ok: true; workspace: WorkspaceLayoutV2 } | { ok: false; error: string }
 
-/** Where an untrusted payload came from, used for error messages and to
- * decide whether widget content may come in. */
+/** Where an untrusted payload came from, used in error messages. */
 export type PayloadSource = 'link' | 'file'
 
 const SOURCE_LABEL: Record<PayloadSource, string> = { link: 'share link', file: 'file' }
-
-/** Keeps the JSON values a widget could have stored itself (strings, finite
- * numbers, booleans, null, arrays and plain objects), dropping anything
- * else, such as a `File` or `Map` that a widget keeps in memory and that
- * JSON can't represent. Returns undefined when nothing survives. */
-export function toJsonValue(value: unknown, depth = 0): unknown {
-  if (depth > 32) return undefined
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return value
-  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
-  if (Array.isArray(value)) {
-    const items = value.map((item) => toJsonValue(item, depth + 1))
-    return items.includes(undefined) ? undefined : items
-  }
-  if (typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-    const entries = Object.entries(value).flatMap(([key, item]) => {
-      const kept = toJsonValue(item, depth + 1)
-      return kept === undefined ? [] : [[key, kept] as const]
-    })
-    return Object.fromEntries(entries)
-  }
-  return undefined
-}
-
-/** One instance's content, reduced to JSON values (see `toJsonValue`).
- * A top-level `null` is dropped too, so that field falls back to the
- * widget's own initial value instead of reaching code that expects a
- * string or an object. Undefined when nothing survives. */
-export function sanitizeWidgetContent(content: Record<string, unknown>): Record<string, unknown> | undefined {
-  const kept = Object.entries(content).flatMap(([field, value]) => {
-    const json = toJsonValue(value)
-    return json === undefined || json === null ? [] : [[field, json] as const]
-  })
-  return kept.length > 0 ? Object.fromEntries(kept) : undefined
-}
 
 /** Drops any widget instance whose id no longer exists in the registry
  * (e.g. a stale link after a widget was renamed or removed), strips data
  * fields that don't match the widget's schema, and repairs
  * `activeDashboardId` if it doesn't point at a surviving dashboard. */
-function finalizeWorkspace(
-  workspace: WorkspaceLayoutV2,
-  source: PayloadSource,
-  rawContent: WorkspaceContent = {},
-): DecodeResult {
+function finalizeWorkspace(workspace: WorkspaceLayoutV2, source: PayloadSource): DecodeResult {
   const dashboards = workspace.dashboards.map((dashboard) => ({
     ...dashboard,
     widgets: dashboard.widgets
@@ -269,14 +197,6 @@ function finalizeWorkspace(
     ? workspace.activeDashboardId
     : dashboards[0].id
   const links = workspace.links && finalizeLinks(dashboards, workspace.links)
-  const content: WorkspaceContent = {}
-  for (const dashboard of dashboards) {
-    for (const widget of dashboard.widgets) {
-      const raw = rawContent[widget.instanceId]
-      const sanitized = raw && sanitizeWidgetContent(raw)
-      if (sanitized) content[widget.instanceId] = sanitized
-    }
-  }
   return {
     ok: true,
     workspace: {
@@ -285,7 +205,6 @@ function finalizeWorkspace(
       activeDashboardId,
       ...(links && { links }),
     },
-    ...(Object.keys(content).length > 0 && { content }),
   }
 }
 
@@ -324,13 +243,11 @@ export function decodeWorkspace(encoded: string): DecodeResult {
 
 /** Validates an already parsed, untrusted payload in the wire format (or
  * the pre-tabs shape) and turns it into a workspace. Shared by share links
- * and exported files. Widget content is only kept from a file: a share
- * link never carries it, so one that does is ignored. */
+ * and exported files, so both go through the same checks. */
 export function parseWorkspacePayload(parsed: unknown, source: PayloadSource): DecodeResult {
   const wireResult = v.safeParse(WireWorkspaceSchema, parsed)
   if (wireResult.success) {
-    const { workspace, content } = fromWire(wireResult.output, source === 'file')
-    return finalizeWorkspace(workspace, source, content)
+    return finalizeWorkspace(fromWire(wireResult.output), source)
   }
 
   const legacyResult = v.safeParse(LegacyLayoutSchema, parsed)

@@ -77,17 +77,9 @@ interface DashboardState extends PersistedDashboardState {
    * if the removed one was active. */
   removeDashboard: (id: string) => void
   setActiveDashboardId: (id: string) => void
-  /** The share-link and file import path — replaces the entire workspace
-   * at once, links included (none unless the payload carried some). With
-   * `content` (an exported file's widget content, keyed by the new instance
-   * ids), the replaced instances' state is dropped and that content is
-   * loaded in its place. */
-  importWorkspace: (
-    dashboards: Dashboard[],
-    activeDashboardId: string,
-    links?: Link[],
-    content?: Record<string, Record<string, unknown>>,
-  ) => void
+  /** The share-link accept path — replaces the entire workspace at once,
+   * links included (none unless the link carried some). */
+  importWorkspace: (dashboards: Dashboard[], activeDashboardId: string, links?: Link[]) => void
 }
 
 /** Instance ids only need to be unique, never meaningful — namespaced by
@@ -425,14 +417,7 @@ export const useDashboardStore = create<DashboardState>()(
         set((state) => (state.dashboards.some((dashboard) => dashboard.id === id) ? { activeDashboardId: id } : state))
       },
 
-      importWorkspace: (dashboards, activeDashboardId, links = [], content) => {
-        if (content) {
-          const replaced = get().dashboards.flatMap((dashboard) => dashboard.widgets.map((widget) => widget.instanceId))
-          const widgetState = useWidgetStateStore.getState()
-          widgetState.resetInstances(replaced)
-          // Before the new dashboards mount, so widgets start from it.
-          widgetState.loadInstances(content)
-        }
+      importWorkspace: (dashboards, activeDashboardId, links = []) => {
         set({ dashboards, activeDashboardId })
         useFlowStore.getState().setLinks(links)
       },

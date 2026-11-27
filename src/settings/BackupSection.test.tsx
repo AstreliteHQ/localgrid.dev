@@ -51,7 +51,7 @@ async function exportedJson() {
 }
 
 describe('BackupSection', () => {
-  it('exports layout and widget data without widget content by default', async () => {
+  it('exports layout and widget data but never widget state', async () => {
     const user = userEvent.setup()
     render(<BackupSection />)
 
@@ -63,19 +63,7 @@ describe('BackupSection', () => {
     expect(JSON.stringify(file)).not.toContain('typed text')
   })
 
-  it('exports widget content when asked', async () => {
-    const user = userEvent.setup()
-    render(<BackupSection />)
-    expect(screen.getByText(/right now \(1 widget\)/i)).toBeInTheDocument()
-
-    await user.click(screen.getByRole('checkbox', { name: /include widget content/i }))
-    await user.click(screen.getByRole('button', { name: /download json/i }))
-
-    const file = await exportedJson()
-    expect(file.workspace.d[0].ws[1].s).toEqual({ input: 'typed text' })
-  })
-
-  it('imports a file after confirming, with its widget content', async () => {
+  it('imports a file after confirming', async () => {
     const user = userEvent.setup()
     const text = serializeWorkspaceFile(
       buildWorkspaceFile(
@@ -87,7 +75,6 @@ describe('BackupSection', () => {
           },
         ],
         'other',
-        { stateValues: { 'x:input': 'restored' } },
       ),
     )
     render(<BackupSection />)
@@ -95,7 +82,6 @@ describe('BackupSection', () => {
     await user.upload(screen.getByTestId('workspace-file-input'), new File([text], 'backup.json'))
 
     expect(screen.getByText(/load workspace from file/i)).toBeInTheDocument()
-    expect(screen.getByText(/restores the content of 1 widget/i)).toBeInTheDocument()
     expect(useDashboardStore.getState().activeDashboardId).toBe('dash')
 
     await user.click(screen.getByRole('button', { name: /load file/i }))
@@ -103,9 +89,6 @@ describe('BackupSection', () => {
     const { dashboards, activeDashboardId } = useDashboardStore.getState()
     expect(activeDashboardId).toBe('other')
     expect(dashboards.map((dashboard) => dashboard.name)).toEqual(['From another browser'])
-    const instanceId = dashboards[0].widgets[0].instanceId
-    expect(useWidgetStateStore.getState().values[`${instanceId}:input`]).toBe('restored')
-    expect(useWidgetStateStore.getState().values['b64:input']).toBeUndefined()
     expect(screen.getByRole('status')).toHaveTextContent('Loaded 1 dashboard.')
   })
 
@@ -152,10 +135,31 @@ describe('BackupSection edge cases', () => {
 
   it('refuses an export too large to load back', async () => {
     const user = userEvent.setup()
-    useWidgetStateStore.setState({ values: { 'b64:input': 'x'.repeat(21 * 1024 * 1024) } })
+    const notes = 'x'.repeat(21 * 1024 * 1024)
+    // Bigger than jsdom's localStorage quota, so keep the store from persisting it.
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {})
+    useDashboardStore.setState({
+      dashboards: [
+        {
+          id: 'dash',
+          name: 'Team',
+          widgets: [
+            {
+              instanceId: 'pad',
+              widgetId: 'scratchpad',
+              x: 0,
+              y: 0,
+              w: 4,
+              h: 4,
+              data: { remember: true, savedDoc: notes },
+            },
+          ],
+        },
+      ],
+      activeDashboardId: 'dash',
+    })
     render(<BackupSection />)
 
-    await user.click(screen.getByRole('checkbox', { name: /include widget content/i }))
     await user.click(screen.getByRole('button', { name: /download json/i }))
 
     expect(exported).toHaveLength(0)
